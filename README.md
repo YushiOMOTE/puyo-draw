@@ -1,12 +1,18 @@
-# ぷよ連鎖シミュレーター
+# Puyo Chain Simulator
 
-スマホのタップ操作で盤面を作り、ぷよぷよの連鎖を確認できる依存なしの静的Webアプリです。
+A dependency-free static web app for designing Puyo Puyo boards and previewing chain reactions with touch-friendly controls.
 
-## ローカル確認
+## Local Development
 
-ブラウザで `index.html` を開くか、任意の静的ファイルサーバーから配信してください。
+Serve the repository with any static file server, then open the local URL in a browser. For example:
 
-ロジックテスト:
+```sh
+python3 -m http.server 4173
+```
+
+Open <http://localhost:4173>.
+
+Run the logic tests with:
 
 ```sh
 npm test
@@ -14,4 +20,10 @@ npm test
 
 ## GitHub Pages
 
-`main` ブランチへ push すると `.github/workflows/deploy.yml` が自動デプロイします。初回のみ GitHub リポジトリの Settings → Pages で Source を **GitHub Actions** にしてください。
+Pushing to the `main` branch triggers `.github/workflows/deploy.yml`. In the repository settings, set Pages → Build and deployment → Source to **GitHub Actions**.
+
+## Documentation
+
+- [Product concept](docs/CONCEPT.md)
+- [Product specification](docs/SPECIFICATION.md)
+- [Contribution guidelines](AGENTS.md)

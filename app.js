@@ -45,10 +45,10 @@ function render() {
       cell.className = `cell${areaClass}${boundaryClass}`;
       cell.type = "button";
       cell.role = "gridcell";
-      cell.ariaLabel = `${r < HIDDEN_ROWS ? "隠しエリア " : ""}${ROWS - r}段目 ${
+      cell.ariaLabel = `${r < HIDDEN_ROWS ? "Hidden area " : ""}${ROWS - r} row ${
         c + 1
-      }列目 ${color || "空き"}${
-        r === HIDDEN_ROWS && c === 2 ? " 窒息点" : ""
+      } column ${color || "empty"}${
+        r === HIDDEN_ROWS && c === 2 ? " choke point" : ""
       }`;
       cell.addEventListener("pointerdown", (event) =>
         openFlick(r, c, event),
@@ -127,7 +127,7 @@ async function runSimulation() {
 
   const result = simulate(board);
   if (!result.chains) {
-    setStatus("消えるグループがありません");
+    setStatus("No group of four or more can be cleared");
     return;
   }
 
@@ -139,7 +139,7 @@ async function runSimulation() {
   let step = 0;
   for (const round of result.rounds) {
     chainEl.textContent = String(++step);
-    setStatus(`${step}連鎖目：${round.count}個消えます`);
+    setStatus(`Chain ${step}: ${round.count} puyos will clear`);
 
     const cells = [...boardEl.children];
     findGroups(board)
@@ -156,7 +156,7 @@ async function runSimulation() {
 
   board = result.state;
   chainEl.textContent = String(result.chains);
-  setStatus(`${result.chains}連鎖！ ${result.cleared}個のぷよが消えました`);
+  setStatus(`${result.chains} chain${result.chains === 1 ? "" : "s"}! ${result.cleared} puyos cleared`);
   isSimulating = false;
   document.querySelector("#simulate").disabled = false;
   render();
@@ -179,7 +179,7 @@ function openFlick(row, col, event) {
   flickMenu.style.left = `${event.clientX - cardRect.left - boardCard.clientLeft}px`;
   flickMenu.style.top = `${event.clientY - cardRect.top - boardCard.clientTop}px`;
   flickMenu.hidden = false;
-  setStatus("指をフリックして色を選択・離すと配置");
+  setStatus("Flick to choose a color, then release to place it");
 }
 
 function flickIndex(x, y) {
@@ -214,7 +214,7 @@ function buildFlickMenu() {
     button.className = "flick-option";
     button.type = "button";
     button.dataset.tool = tool;
-    button.ariaLabel = tool === "erase" ? "消しゴム" : `${tool}ぷよ`;
+    button.ariaLabel = tool === "erase" ? "Eraser" : `${tool} puyo`;
 
     if (tool === "erase") {
       button.textContent = "⌫";
@@ -229,7 +229,7 @@ function buildFlickMenu() {
       setTool(tool);
       flick.suppressClick = true;
       closeFlick();
-      setStatus("色を選択しました。盤面をタップしてください");
+      setStatus("Color selected. Tap a board cell to place it");
     });
     flickMenu.append(button);
   });
@@ -255,11 +255,11 @@ window.addEventListener("pointerup", () => {
     flick.suppressClick = true;
     setStatus(
       selectedTool === "erase"
-        ? "消しゴムで消去しました"
-        : `${selectedTool}ぷよを配置しました`,
+        ? "Erased puyo"
+        : `Placed ${selectedTool} puyo`,
     );
   } else {
-    setStatus("色を選択しました。盤面をタップしてください");
+    setStatus("Color selected. Tap a board cell to place it");
   }
 
   closeFlick();
@@ -285,7 +285,7 @@ document.querySelector("#clear").addEventListener("click", () => {
   future = [];
   board = emptyBoard();
   chainEl.textContent = "0";
-  setStatus("盤面をクリアしました");
+  setStatus("Board cleared");
   render();
 });
 document.querySelector("#reset").addEventListener("click", () => {
@@ -295,7 +295,7 @@ document.querySelector("#reset").addEventListener("click", () => {
   future = [];
   board = clone(initialBoard);
   chainEl.textContent = "0";
-  setStatus("初期盤面に戻しました");
+  setStatus("Board reset");
   render();
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
