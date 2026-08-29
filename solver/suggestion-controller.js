@@ -19,7 +19,7 @@ export class SuggestionController {
     let worker;
     try {
       worker = new Worker(
-        new URL("./suggestion-worker.js?v=20260829-2", import.meta.url),
+        new URL("./suggestion-worker.js", import.meta.url),
         { type: "module" },
       );
     } catch (error) {

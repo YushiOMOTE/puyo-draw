@@ -21,10 +21,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Prepare versioned site
+        run: |
+          mkdir _site
+          rsync -a --exclude '.git' --exclude '_site' ./ _site/
+          node scripts/version-assets.mjs _site "$GITHUB_SHA"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

@@ -8,9 +8,9 @@ import {
   findClearingCells,
   applyGravity,
   simulate,
-} from "./engine.js?v=20260829-2";
-import { SuggestionController } from "./solver/suggestion-controller.js?v=20260829-2";
-import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js?v=20260829-2";
+} from "./engine.js";
+import { SuggestionController } from "./solver/suggestion-controller.js";
+import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");

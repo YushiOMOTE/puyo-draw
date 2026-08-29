@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "prepare-pages": "node scripts/version-assets.mjs",
     "test": "node tests.mjs"
   }
 }

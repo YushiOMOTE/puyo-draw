@@ -96,6 +96,8 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 - Keep suggestion solvers independent from the DOM. The worker-facing solver contract lives in `solver/contract.js`. `solver/solver-registry.js` selects a traversal implementation, `solver/search-policy.js` applies shared search rules and records raw milestones, and `solver/candidate-pipeline.js` creates public display candidates.
 - Do not add a build step or runtime dependency without an explicit product decision.
 - GitHub Pages deployment is provided by `.github/workflows/deploy.yml`.
+- The Pages workflow appends the deployment commit SHA to every local JavaScript and CSS reference, including transitive module imports and the suggestion worker URL, so a browser cannot combine modules from different releases.
+- Local development uses the dependency-free `npm run dev` server, which listens on `0.0.0.0` for same-network device testing and sends `Cache-Control: no-store` for every response.
 
 ## Verification
 
