@@ -28,7 +28,6 @@ let history = [];
 let future = [];
 let initialBoard = clone(board);
 let isSimulating = false;
-let fiveColorMode = false;
 let garbageMode = false;
 let paletteIndex = 0;
 let isSuggesting = false;
@@ -69,17 +68,19 @@ const messages = {
       `${count} chain${count === 1 ? "" : "s"}! ${puyos} puyos cleared`,
     ja: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`,
   },
-  fiveColorMode: {
-    en: (enabled) => `Five-color mode ${enabled ? "on" : "off"}`,
-    ja: (enabled) => `5色モードを${enabled ? "オン" : "オフ"}にしました`,
-  },
   garbageMode: {
     en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
     ja: (enabled) => `お邪魔ありを${enabled ? "オン" : "オフ"}にしました`,
   },
   palette: {
-    en: (index) => `Four-color palette ${index + 1} of 5`,
-    ja: (index) => `4色パレット ${index + 1}/5`,
+    en: (index) =>
+      index === fourColorPalettes.length
+        ? "Five-color palette"
+        : `Four-color palette ${index + 1} of 5`,
+    ja: (index) =>
+      index === fourColorPalettes.length
+        ? "5色パレット"
+        : `4色パレット ${index + 1}/5`,
   },
   suggestionSearching: {
     en: "Finding chain extensions…",
@@ -111,7 +112,9 @@ const messages = {
 
 function getFlickTools() {
   return [
-    ...(fiveColorMode ? colorFlickTools : fourColorPalettes[paletteIndex]),
+    ...(paletteIndex === fourColorPalettes.length
+      ? colorFlickTools
+      : fourColorPalettes[paletteIndex]),
     ...(garbageMode ? ["garbage"] : []),
   ];
 }
@@ -246,13 +249,10 @@ function setTool(tool) {
   });
 }
 
-function setMode(mode, enabled) {
-  if (mode === "colors") fiveColorMode = enabled;
-  if (mode === "garbage") garbageMode = enabled;
+function setGarbageMode(enabled) {
+  garbageMode = enabled;
 
-  const button = document.querySelector(
-    mode === "colors" ? "#toggleFiveColors" : "#toggleGarbage",
-  );
+  const button = document.querySelector("#toggleGarbage");
   button.classList.toggle("active", enabled);
   button.ariaPressed = String(enabled);
 
@@ -265,28 +265,34 @@ function setMode(mode, enabled) {
 
   showToast(
     localizedMessage(
-      mode === "colors" ? messages.fiveColorMode : messages.garbageMode,
+      messages.garbageMode,
       enabled,
     ),
   );
-  updatePaletteButton();
+  render();
 }
 
 function updatePaletteButton() {
   const button = document.querySelector("#cyclePalette");
-  const palette = fourColorPalettes[paletteIndex];
-  button.disabled = fiveColorMode;
+  const isFiveColor = paletteIndex === fourColorPalettes.length;
+  const palette = isFiveColor ? colorFlickTools : fourColorPalettes[paletteIndex];
+  button.ariaLabel = isFiveColor
+    ? "Five-color palette"
+    : "Change four-color palette";
+  button.title = isFiveColor
+    ? "Five-color palette"
+    : "Change four-color palette";
+  button.setAttribute("data-five-color", String(isFiveColor));
   button.innerHTML = `<span class="palette-icon" aria-hidden="true">${palette
     .map((color) => `<i class="${color}"></i>`)
     .join("")}</span>`;
 }
 
 function cyclePalette() {
-  if (fiveColorMode) return;
-
-  paletteIndex = (paletteIndex + 1) % fourColorPalettes.length;
+  paletteIndex = (paletteIndex + 1) % (fourColorPalettes.length + 1);
   clearSuggestions();
   updatePaletteButton();
+  render();
   showToast(localizedMessage(messages.palette, paletteIndex));
 }
 
@@ -384,7 +390,9 @@ async function runSimulation() {
 }
 
 function activeSuggestionColors() {
-  return fiveColorMode ? colorFlickTools : fourColorPalettes[paletteIndex];
+  return paletteIndex === fourColorPalettes.length
+    ? colorFlickTools
+    : fourColorPalettes[paletteIndex];
 }
 
 function displaySuggestion(candidate, index, total) {
@@ -640,11 +648,8 @@ document.querySelector("#reset").addEventListener("click", () => {
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
 document.querySelector("#suggest").addEventListener("click", showSuggestion);
-document.querySelector("#toggleFiveColors").addEventListener("click", () => {
-  setMode("colors", !fiveColorMode);
-});
 document.querySelector("#toggleGarbage").addEventListener("click", () => {
-  setMode("garbage", !garbageMode);
+  setGarbageMode(!garbageMode);
 });
 document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 document.querySelector("#help").addEventListener("click", () => {
