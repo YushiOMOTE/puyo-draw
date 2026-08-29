@@ -41,8 +41,8 @@ The right-side rail is ordered from top to bottom:
 2. Undo.
 3. Redo.
 4. Simulate.
-5. Reset.
-6. Suggestion.
+5. Suggestion.
+6. Reset.
 7. Palette.
 8. Garbage puyo mode.
 
