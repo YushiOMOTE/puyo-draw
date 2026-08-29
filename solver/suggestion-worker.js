@@ -1,9 +1,9 @@
-import { solveWithBeam } from "./beam-solver.js";
+import { solveSuggestion } from "./solver-registry.js";
 
 self.addEventListener("message", ({ data }) => {
   const { requestId, request } = data;
   try {
-    self.postMessage({ requestId, ...solveWithBeam(request) });
+    self.postMessage({ requestId, ...solveSuggestion(request) });
   } catch (error) {
     self.postMessage({
       requestId,

@@ -1,4 +1,3 @@
-import { simulate } from "../engine.js";
 import { availablePlacements, place } from "./move-generator.js";
 
 function fieldPotential(board) {
@@ -18,31 +17,18 @@ function fieldPotential(board) {
   return occupied + adjacentPairs * 3;
 }
 
-function candidateScore(result, additions) {
-  // Chain count dominates: a longer extension always beats a cheap short one.
-  // For equal chains, a compact completion is more useful than extra clears.
-  return result.chains * 1_000_000 - additions * 1_000 + result.cleared;
-}
-
 function nodeScore(board, placements) {
   return fieldPotential(board) - placements.length * 0.1;
 }
 
-function placementKey(placements) {
-  return placements
-    .map(({ row, col, color }) => `${row},${col},${color}`)
-    .sort()
-    .join("|");
-}
-
 /** @param {import('./contract.js').SuggestionRequest} request */
-export function solveWithBeam(request) {
+export function searchWithBeam(request, policy) {
   const startedAt = performance.now();
-  const { board, colors, maxAdditions, resultLimit, timeBudgetMs, beamWidth } =
+  const { board, colors, maxAdditions, timeBudgetMs, beamWidth } =
     request;
-  let frontier = [{ board, placements: [] }];
-  const candidates = [];
-  const seenCandidates = new Set();
+  const { baselinePotential, baselineChains } = policy;
+
+  let frontier = [{ board, placements: [], potential: baselinePotential }];
   let timedOut = false;
 
   for (let depth = 1; depth <= maxAdditions && frontier.length; depth++) {
@@ -57,21 +43,14 @@ export function solveWithBeam(request) {
 
         const placements = [...node.placements, move];
         const nextBoard = place(node.board, move);
-        const result = simulate(nextBoard);
-
-        if (result.chains) {
-          const key = placementKey(placements);
-          if (!seenCandidates.has(key)) {
-            seenCandidates.add(key);
-            candidates.push({
-              placements,
-              chains: result.chains,
-              cleared: result.cleared,
-              score: candidateScore(result, placements.length),
-            });
-          }
-        }
-        nextFrontier.push({ board: nextBoard, placements });
+        const assessment = policy.assess(nextBoard, placements);
+        if (!assessment.expandable) continue;
+        const { potential } = assessment;
+        nextFrontier.push({
+          board: nextBoard,
+          placements,
+          potential,
+        });
       }
       if (timedOut) break;
     }
@@ -85,9 +64,10 @@ export function solveWithBeam(request) {
     frontier = nextFrontier.slice(0, beamWidth);
   }
 
-  candidates.sort(
-    (left, right) =>
-      right.score - left.score || left.placements.length - right.placements.length,
-  );
-  return { candidates: candidates.slice(0, resultLimit), timedOut };
+  return {
+    solver: "beam",
+    baselineChains,
+    rawCandidates: policy.candidates(),
+    timedOut,
+  };
 }

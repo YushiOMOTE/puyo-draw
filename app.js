@@ -9,6 +9,7 @@ import {
   simulate,
 } from "./engine.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
+import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
@@ -31,6 +32,7 @@ let paletteIndex = 0;
 let isSuggesting = false;
 let suggestionSession = null;
 let suggestionMarks = new Map();
+let suggestionRevision = 0;
 const suggestionController = new SuggestionController();
 
 const colorFlickTools = [
@@ -86,10 +88,10 @@ const messages = {
     ja: "連鎖を伸ばす候補が見つかりませんでした",
   },
   suggestion: {
-    en: (index, total, chains, additions) =>
-      `Suggestion ${index}/${total}: ${chains} chain${chains === 1 ? "" : "s"} with ${additions} puyo${additions === 1 ? "" : "s"}`,
-    ja: (index, total, chains, additions) =>
-      `提案 ${index}/${total}：${additions}個追加で${chains}連鎖`,
+    en: (index, total, chains, additions, chainGain) =>
+      `Suggestion ${index}/${total}: potential ${chains} chain${chains === 1 ? "" : "s"} (+${chainGain}) with ${additions} added puyo${additions === 1 ? "" : "s"}`,
+    ja: (index, total, chains, additions, chainGain) =>
+      `提案 ${index}/${total}：${additions}個追加で${chains}連鎖候補（+${chainGain}連鎖）`,
   },
   suggestionError: {
     en: "Could not calculate suggestions",
@@ -152,7 +154,9 @@ function render() {
       const suggestion = suggestionMarks.get(`${r},${c}`);
       if (suggestion) {
         const marker = document.createElement("span");
-        marker.className = `suggestion-marker ${suggestion}`;
+        marker.className = `suggestion-marker ${suggestion.color}${
+          suggestion.isTrigger ? " trigger" : ""
+        }`;
         marker.ariaHidden = "true";
         cell.append(marker);
       }
@@ -202,6 +206,7 @@ function clearSuggestionAt(row, col) {
 function clearSuggestions() {
   suggestionMarks.clear();
   suggestionSession = null;
+  suggestionRevision++;
 }
 
 function invalidateSuggestions() {
@@ -366,9 +371,13 @@ function activeSuggestionColors() {
 }
 
 function displaySuggestion(candidate, index, total) {
-  suggestionMarks = new Map(
-    candidate.placements.map(({ row, col, color }) => [`${row},${col}`, color]),
-  );
+  suggestionMarks = new Map();
+  candidate.placements.forEach(({ row, col, color }) => {
+    suggestionMarks.set(`${row},${col}`, { color, isTrigger: false });
+  });
+  (candidate.triggerPlacements || []).forEach(({ row, col, color }) => {
+    suggestionMarks.set(`${row},${col}`, { color, isTrigger: true });
+  });
   render();
   showToast(
     localizedMessage(
@@ -376,7 +385,8 @@ function displaySuggestion(candidate, index, total) {
       index + 1,
       total,
       candidate.chains,
-      candidate.placements.length,
+      suggestionMarks.size,
+      candidate.chainGain,
     ),
     2600,
   );
@@ -403,18 +413,21 @@ async function showSuggestion() {
   }
 
   isSuggesting = true;
+  const requestRevision = suggestionRevision;
   render();
   showToast(messages.suggestionSearching[locale], 1300);
   try {
     const { candidates } = await suggestionController.solve({
       board: clone(board),
       colors,
-      maxAdditions: 8,
-      resultLimit: 5,
-      timeBudgetMs: 700,
-      beamWidth: 120,
+      ...SUGGESTION_SEARCH_CONFIG,
     });
-    if (suggestionController.key(board, colors) !== boardKey) return;
+    if (
+      suggestionRevision !== requestRevision ||
+      suggestionController.key(board, colors) !== boardKey
+    ) {
+      return;
+    }
     if (!candidates.length) {
       showToast(messages.suggestionNone[locale]);
       return;
@@ -566,12 +579,16 @@ document.querySelector("#redo").addEventListener("click", redo);
 document.querySelector("#clear").addEventListener("click", () => {
   if (isSimulating) return;
 
-  if (board.every((row) => row.every((value) => value === null))) return;
+  const hadSuggestions = suggestionMarks.size > 0 || suggestionSession !== null;
+  clearSuggestions();
+  if (board.every((row) => row.every((value) => value === null))) {
+    if (hadSuggestions) render();
+    return;
+  }
 
   history.push(clone(board));
   future = [];
   board = emptyBoard();
-  clearSuggestions();
   chainEl.textContent = "0";
   showToast(messages.cleared[locale]);
   render();
@@ -579,12 +596,16 @@ document.querySelector("#clear").addEventListener("click", () => {
 document.querySelector("#reset").addEventListener("click", () => {
   if (isSimulating) return;
 
-  if (boardsEqual(board, initialBoard)) return;
+  const hadSuggestions = suggestionMarks.size > 0 || suggestionSession !== null;
+  clearSuggestions();
+  if (boardsEqual(board, initialBoard)) {
+    if (hadSuggestions) render();
+    return;
+  }
 
   history.push(clone(board));
   future = [];
   board = clone(initialBoard);
-  clearSuggestions();
   chainEl.textContent = "0";
   showToast(messages.reset[locale]);
   render();
