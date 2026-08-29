@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   COLS,
   ROWS,
+  HIDDEN_ROWS,
   GARBAGE,
   emptyBoard,
   findGroups,
@@ -31,6 +32,9 @@ chain[ROWS - 3][1] = "blue";
 
 assert.equal(simulate(chain).chains, 2);
 assert.equal(COLS, 6);
+assert.equal(ROWS, 13);
+assert.equal(HIDDEN_ROWS, 1);
+assert.equal(emptyBoard().length, 13);
 
 const garbageBoard = emptyBoard();
 for (let col = 0; col < 4; col++) garbageBoard[ROWS - 1][col] = "red";

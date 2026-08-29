@@ -1,6 +1,6 @@
 export const COLS = 6;
-export const ROWS = 14;
-export const HIDDEN_ROWS = 2;
+export const ROWS = 13;
+export const HIDDEN_ROWS = 1;
 export const COLORS = ["red", "green", "blue", "yellow", "purple"];
 export const GARBAGE = "garbage";
 

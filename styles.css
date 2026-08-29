@@ -15,6 +15,8 @@
 
 * {
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 body {
@@ -22,6 +24,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--bg);
+  -webkit-touch-callout: none;
 }
 
 button {
@@ -65,11 +68,11 @@ button {
 }
 
 .board-wrap {
-  width: min(100%, calc((100svh - 16px) * 0.4286));
+  width: min(100%, calc((100svh - 16px) * 0.4615));
   max-width: 100%;
   height: auto;
   padding: 7px;
-  aspect-ratio: 6 / 14;
+  aspect-ratio: 6 / 13;
   background: var(--board);
   border-radius: 15px;
   box-shadow: inset 0 2px 5px #111a2d80;
@@ -77,11 +80,11 @@ button {
 
 .board {
   display: grid;
-  grid-template-rows: repeat(14, minmax(0, 1fr));
+  grid-template-rows: repeat(13, minmax(0, 1fr));
   grid-template-columns: repeat(6, minmax(0, 1fr));
   width: 100%;
   height: 100%;
-  aspect-ratio: 6 / 14;
+  aspect-ratio: 6 / 13;
 }
 
 .cell {
@@ -573,10 +576,10 @@ button {
 }
 
 @media (max-width: 599px) {
-  .app-shell { padding: 4px; }
+  .app-shell { padding: 8px; }
   .play-area { gap: 4px; }
-  .board-card { padding: 0; }
-  .board-wrap { width: min(100%, calc((100svh - 8px) * 0.4286)); padding: 7px; }
+  .board-card { padding: 0 6px; }
+  .board-wrap { width: min(100%, calc((100svh - 16px) * 0.4615)); padding: 7px; }
   .toolbar { gap: 7px; padding-top: 2px; }
   .toolbar .chain-badge,
   .toolbar .primary-btn,
