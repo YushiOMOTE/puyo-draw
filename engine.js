@@ -12,6 +12,22 @@ export function clone(state) {
   return state.map((row) => [...row]);
 }
 
+export function isSettled(state) {
+  for (let col = 0; col < COLS; col++) {
+    let foundEmptyCell = false;
+
+    for (let row = ROWS - 1; row >= 0; row--) {
+      if (!state[row][col]) {
+        foundEmptyCell = true;
+      } else if (foundEmptyCell) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 export function findGroups(state) {
   const seen = new Set();
   const groups = [];

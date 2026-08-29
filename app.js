@@ -4,12 +4,13 @@ import {
   HIDDEN_ROWS,
   emptyBoard,
   clone,
+  isSettled,
   findClearingCells,
   applyGravity,
   simulate,
-} from "./engine.js";
-import { SuggestionController } from "./solver/suggestion-controller.js";
-import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
+} from "./engine.js?v=20260829-2";
+import { SuggestionController } from "./solver/suggestion-controller.js?v=20260829-2";
+import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js?v=20260829-2";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
@@ -96,6 +97,14 @@ const messages = {
   suggestionError: {
     en: "Could not calculate suggestions",
     ja: "提案を計算できませんでした",
+  },
+  suggestionAlreadyFiring: {
+    en: "Suggestions are unavailable because the board can already fire",
+    ja: "すでに発火可能な盤面のため、提案を計算できません",
+  },
+  suggestionFloating: {
+    en: "Land all puyos before calculating suggestions",
+    ja: "すべてのぷよを着地させてから提案を計算してください",
   },
 };
 
@@ -395,6 +404,16 @@ function displaySuggestion(candidate, index, total) {
 async function showSuggestion() {
   if (isSimulating || isSuggesting) return;
 
+  if (!isSettled(board)) {
+    showToast(messages.suggestionFloating[locale]);
+    return;
+  }
+
+  if (findClearingCells(board).length) {
+    showToast(messages.suggestionAlreadyFiring[locale]);
+    return;
+  }
+
   const colors = activeSuggestionColors();
   const boardKey = suggestionController.key(board, colors);
   if (
@@ -434,7 +453,8 @@ async function showSuggestion() {
     }
     suggestionSession = { boardKey, candidates, index: 0, stale: false };
     displaySuggestion(candidates[0], 0, candidates.length);
-  } catch {
+  } catch (error) {
+    console.error("Suggestion search failed", error);
     showToast(messages.suggestionError[locale]);
   } finally {
     isSuggesting = false;

@@ -5,6 +5,7 @@ import {
   HIDDEN_ROWS,
   GARBAGE,
   emptyBoard,
+  isSettled,
   findGroups,
   findClearingCells,
   applyGravity,
@@ -20,6 +21,7 @@ import {
 } from "./solver/candidate-utils.js";
 import { createSearchPolicy } from "./solver/search-policy.js";
 import { solveSuggestion } from "./solver/solver-registry.js";
+import { SuggestionController } from "./solver/suggestion-controller.js";
 
 const solveWithAma = (request) =>
   solveSuggestion({ ...request, solver: "ama" });
@@ -51,6 +53,16 @@ assert.equal(COLS, 6);
 assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
+
+const settledBoard = emptyBoard();
+settledBoard[ROWS - 1][0] = "red";
+settledBoard[ROWS - 2][0] = GARBAGE;
+assert.equal(isSettled(settledBoard), true);
+assert.equal(isSettled(emptyBoard()), true);
+
+const floatingBoard = emptyBoard();
+floatingBoard[ROWS - 2][0] = "red";
+assert.equal(isSettled(floatingBoard), false);
 
 const garbageBoard = emptyBoard();
 for (let col = 0; col < 4; col++) garbageBoard[ROWS - 1][col] = "red";
@@ -244,6 +256,19 @@ assert.equal(noFalseExtension.baselineChains, 1);
 assert.equal(noFalseExtension.candidates.length, 0);
 assert.equal(evaluateLatentChain(alreadyTriggered).source, "immediate");
 assert.equal(noFalseExtension.timedOut, false);
+
+const fallbackController = new SuggestionController();
+await assert.rejects(
+  fallbackController.solve({
+    board: alreadyTriggered,
+    colors: ["red", "green", "blue", "yellow"],
+    maxAdditions: 1,
+    resultLimit: 5,
+    timeBudgetMs: 100,
+    maxQueueSize: 100,
+  }),
+  /not supported/,
+);
 
 const confirmedTriggerBoard = emptyBoard();
 confirmedTriggerBoard[ROWS - 3][0] = "green";

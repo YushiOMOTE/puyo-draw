@@ -60,9 +60,12 @@ The Help button opens a modal instruction overlay. The overlay contains a visual
 
 Toast notifications use the browser language: Japanese for Japanese locales and English otherwise. Toasts are used for chains, reset, undo, redo, clear, and no-chain feedback. Cell placement messages are not shown as toasts.
 
+Suggestion precondition errors also use localized toasts. A floating board asks the user to land every puyo, while a board that already contains a clearing group explains that it can already fire.
+
 ## Chain Suggestions
 
 - The Suggestion button searches for additions that produce a chain from the current board and shows one candidate at a time as colored, dashed circles in the field.
+- Suggestions are calculated only when every puyo is already resting at the bottom of its column or on another puyo. A board with any floating puyo is rejected before search.
 - A candidate can contain multiple puyos. Suggested puyos are visual only: they do not change the board or create history entries.
 - Pressing Suggestion again cycles through the cached alternatives for the unchanged board and active palette.
 - Suggestions use only the active four- or five-color palette. They never suggest garbage puyos.
@@ -84,7 +87,7 @@ Toast notifications use the browser language: Japanese for Japanese locales and 
 - Longer chains rank ahead of shorter chains even when they require more added puyos. For equal chain counts, fewer total extension and trigger additions rank ahead of cleared-puyo count.
 - Editing a suggested cell removes that cell's marker. Editing any cell invalidates the candidate cycle while leaving other visible markers in place.
 - Starting a simulation, clearing, resetting, undoing, redoing, or changing palette/mode removes all suggestion markers and cached alternatives. Clear and Reset do so even when the underlying board would otherwise be a no-op, and an in-flight search cannot restore suggestions after either action.
-- Suggestions run in a Web Worker and stale results are ignored when the board or palette has changed. The UI applies an overall response timeout and restarts a failed or unresponsive worker so the Suggestion control cannot remain permanently disabled.
+- Suggestions run in a Web Worker and stale results are ignored when the board or palette has changed. The worker is created lazily on the first Suggestion action, so loading the page never initializes the solver or blocks board rendering. The search timeout starts only after the worker reports that its modules are ready, so initial loading time on a mobile device does not consume the search budget. A failed or unresponsive worker is discarded and may be started fresh by the next Suggestion action. Solver code is never run on the UI thread.
 
 ## Technical Constraints
 
@@ -96,4 +99,4 @@ Toast notifications use the browser language: Japanese for Japanese locales and 
 
 ## Verification
 
-The logic tests cover four-puyo clearing, gravity, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, and the six-column board width. UI changes should also be checked in a mobile-sized Chrome viewport.
+The logic tests cover four-puyo clearing, gravity, settled and floating board detection, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, clean failure when workers are unavailable, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, and the six-column board width. UI changes should also be checked in a mobile-sized Chrome viewport.

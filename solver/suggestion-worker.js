@@ -1,5 +1,7 @@
 import { solveSuggestion } from "./solver-registry.js";
 
+self.postMessage({ type: "ready" });
+
 self.addEventListener("message", ({ data }) => {
   const { requestId, request } = data;
   try {
