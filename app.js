@@ -24,8 +24,8 @@ let history = [];
 let future = [];
 let initialBoard = clone(board);
 let isSimulating = false;
-let fiveColorMode = true;
-let garbageMode = true;
+let fiveColorMode = false;
+let garbageMode = false;
 let paletteIndex = 0;
 
 const colorFlickTools = [

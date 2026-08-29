@@ -25,7 +25,7 @@
 - Holding a cell opens a radial menu with the enabled color and garbage options, plus a centered delete icon.
 - Releasing without flicking deletes the tapped cell.
 - Flicking toward a radial option selects that tool and applies it to the original cell.
-- The radial menu always includes four color options. Five-color mode uses all five colors; Four-color mode uses one of five palettes, each omitting a different color. Garbage mode adds garbage. Both modes are ON by default.
+- The radial menu always includes four color options. Five-color mode uses all five colors; Four-color mode uses one of five palettes, each omitting a different color. Garbage mode adds garbage. Both modes are OFF by default.
 - Undo and redo maintain board snapshots and are disabled when their respective history is empty.
 - Clear empties a non-empty board and creates an undo point; clearing an already empty board is a no-op.
 - Reset returns to the initial empty board and clears history.
