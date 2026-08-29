@@ -2,6 +2,10 @@
 
 A dependency-free static web app for designing Puyo Puyo boards and previewing chain reactions with touch-friendly controls.
 
+## Live Demo
+
+Open the deployed app on GitHub Pages: [Puyo Chain Simulator](https://yushiomote.github.io/puyo-draw/)
+
 ## Local Development
 
 Serve the repository with any static file server, then open the local URL in a browser. For example:
