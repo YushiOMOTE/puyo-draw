@@ -69,7 +69,7 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 - A candidate can contain multiple puyos. Suggested puyos are visual only: they do not change the board or create history entries.
 - Pressing Suggestion again cycles through the cached alternatives for the unchanged board and active palette.
 - Suggestions use only the active four- or five-color palette. They never suggest garbage puyos.
-- The solver adds puyos only to the next available position in a column and never suggests the hidden row or choke point. It searches up to eight added puyos, returns up to five candidates, and has a two-second search budget followed by a separate 300ms candidate-minimization budget.
+- The solver adds puyos only to the next available position in a column and never suggests the hidden row or choke point. It searches up to twenty added puyos, returns up to eight candidates, and has a five-second search budget followed by a separate 300ms candidate-minimization budget.
 - The default solver is an Ama-inspired best-first search. It combines connected-group and bridge potential with field-height, roughness, hole, and hidden-area penalties, and uses a transposition table to skip duplicate fields reached at an equal or greater depth.
 - The original beam solver remains available through the solver registry for comparison and future tuning. This project does not claim to port the complete Ama engine, opponent model, pair-piece search, or its exact evaluation weights.
 - Ama and Beam are responsible only for traversal order, frontier management, and solver-specific scoring. A shared search policy evaluates states, rejects unstable immediate-clearing additions, and records raw chain milestones consistently for every solver.
@@ -87,6 +87,7 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 - Longer chains rank ahead of shorter chains even when they require more added puyos. For equal chain counts, fewer total extension and trigger additions rank ahead of cleared-puyo count.
 - Editing a suggested cell removes that cell's marker. Editing any cell invalidates the candidate cycle while leaving other visible markers in place.
 - Starting a simulation, clearing, resetting, undoing, redoing, or changing palette/mode removes all suggestion markers and cached alternatives. Clear and Reset do so even when the underlying board would otherwise be a no-op, and an in-flight search cannot restore suggestions after either action.
+- While a suggestion search is running, board cells, Undo, Redo, Simulate, and Reset are disabled, and a translucent spinner overlay is centered over the field. The board and controls become available again when the search succeeds or fails.
 - Suggestions run in a Web Worker and stale results are ignored when the board or palette has changed. The worker is created lazily on the first Suggestion action, so loading the page never initializes the solver or blocks board rendering. The search timeout starts only after the worker reports that its modules are ready, so initial loading time on a mobile device does not consume the search budget. A failed or unresponsive worker is discarded and may be started fresh by the next Suggestion action. Solver code is never run on the UI thread.
 
 ## Technical Constraints

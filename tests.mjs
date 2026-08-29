@@ -22,6 +22,7 @@ import {
 import { createSearchPolicy } from "./solver/search-policy.js";
 import { solveSuggestion } from "./solver/solver-registry.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
+import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 
 const solveWithAma = (request) =>
   solveSuggestion({ ...request, solver: "ama" });
@@ -53,6 +54,9 @@ assert.equal(COLS, 6);
 assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
+assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
+assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
+assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);
 
 const settledBoard = emptyBoard();
 settledBoard[ROWS - 1][0] = "red";

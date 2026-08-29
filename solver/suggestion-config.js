@@ -1,8 +1,8 @@
 export const SUGGESTION_SEARCH_CONFIG = Object.freeze({
   solver: "ama",
-  maxAdditions: 8,
-  resultLimit: 5,
-  timeBudgetMs: 2_000,
+  maxAdditions: 20,
+  resultLimit: 8,
+  timeBudgetMs: 5_000,
   minimizationBudgetMs: 300,
   minimumChainGain: 2,
   targetChainGain: 3,

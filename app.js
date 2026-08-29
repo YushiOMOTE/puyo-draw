@@ -16,6 +16,7 @@ const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
 const statusEl = document.querySelector("#status");
 const chainEl = document.querySelector("#chainNumber");
+const suggestionLoadingEl = document.querySelector("#suggestionLoading");
 const flickMenu = document.querySelector("#flickMenu");
 const toastEl = document.querySelector("#toast");
 const helpOverlay = document.querySelector("#helpOverlay");
@@ -138,6 +139,7 @@ function render() {
       cell.className = `cell${areaClass}${boundaryClass}`;
       cell.type = "button";
       cell.role = "gridcell";
+      cell.disabled = isSimulating || isSuggesting;
       cell.ariaLabel = `${r < HIDDEN_ROWS ? "Hidden area " : ""}${ROWS - r} row ${
         c + 1
       } column ${color || "empty"}${
@@ -182,13 +184,19 @@ function render() {
     }),
   );
 
-  document.querySelector("#undo").disabled = !history.length;
-  document.querySelector("#redo").disabled = !future.length;
+  document.querySelector("#undo").disabled =
+    !history.length || isSimulating || isSuggesting;
+  document.querySelector("#redo").disabled =
+    !future.length || isSimulating || isSuggesting;
+  document.querySelector("#simulate").disabled = isSimulating || isSuggesting;
+  document.querySelector("#reset").disabled = isSimulating || isSuggesting;
   document.querySelector("#suggest").disabled = isSimulating || isSuggesting;
+  suggestionLoadingEl.hidden = !isSuggesting;
+  boardEl.setAttribute("aria-busy", String(isSuggesting));
 }
 
 function editCell(row, col) {
-  if (isSimulating) return;
+  if (isSimulating || isSuggesting) return;
 
   const nextValue = selectedTool === "erase" ? null : selectedTool;
   if (board[row][col] === nextValue) {
@@ -463,7 +471,7 @@ async function showSuggestion() {
 }
 
 function openFlick(row, col, event) {
-  if (isSimulating) return;
+  if (isSimulating || isSuggesting) return;
 
   const tools = getFlickTools();
 
