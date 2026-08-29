@@ -119,6 +119,10 @@ button {
   animation: pop 0.16s ease-out;
 }
 
+.puyo.garbage {
+  background: #8c96a8;
+}
+
 .puyo::after {
   position: absolute;
   top: 17%;
@@ -201,6 +205,7 @@ button {
 }
 
 .sidebar-btn,
+.help-btn,
 .toolbar .primary-btn,
 .toolbar .reset-btn {
   width: var(--sidebar-size);
@@ -214,6 +219,16 @@ button {
 .sidebar-btn {
   color: #4f5b73;
   font-size: 23px;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 5px 12px #28344d20;
+}
+
+.help-btn {
+  color: #4f5b73;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 5px 12px #28344d20;
 }
 
 .history-icon {
@@ -228,6 +243,13 @@ button {
   stroke-linejoin: round;
 }
 
+.reset-icon {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.8;
+  transform: translate(-1px, -1px);
+}
+
 .toolbar .primary-btn,
 .toolbar .reset-btn {
   font-size: 23px;
@@ -238,6 +260,12 @@ button {
   background: #ef5364;
   border: 0;
   box-shadow: 0 5px 12px #ef536440;
+}
+
+.toolbar .primary-btn:disabled {
+  color: #eef0f4;
+  background: #aeb6c4;
+  box-shadow: none;
 }
 
 .toolbar .reset-btn {
@@ -253,6 +281,12 @@ button {
   opacity: 0.36;
 }
 
+.sidebar-btn:disabled {
+  color: #aeb5c3;
+  background: #e6e9f0;
+  box-shadow: none;
+}
+
 .palette,
 .action-row,
 .status {
@@ -260,7 +294,7 @@ button {
 }
 
 .flick-menu {
-  position: absolute;
+  position: fixed;
   z-index: 10;
   width: 174px;
   height: 174px;
@@ -271,15 +305,26 @@ button {
   transform: translate(-50%, -50%);
 }
 
-.flick-menu::after {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  color: #ffffffb8;
-  content: "FLICK";
-  font-size: 11px;
+.toast {
+  position: fixed;
+  top: 6px;
+  z-index: 12;
+  max-width: none;
+  padding: 10px 16px;
+  color: #fff;
+  font-size: 13px;
   font-weight: 800;
-  transform: translate(-50%, -50%);
+  text-align: center;
+  background: #172033d9;
+  border: 1px solid #ffffff26;
+  border-radius: 999px;
+  box-shadow: 0 5px 16px #17203345;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.flick-menu::after {
+  display: none;
 }
 
 .flick-option {
@@ -292,6 +337,7 @@ button {
   border: 3px solid #fff;
   border-radius: 50%;
   box-shadow: 0 2px 7px #11182766;
+  transform: translate(-50%, -50%);
 }
 
 .flick-option i {
@@ -309,6 +355,14 @@ button {
 .flick-option[data-tool="yellow"] i { background: var(--yellow); }
 .flick-option[data-tool="purple"] i { background: var(--purple); }
 
+.flick-option[data-tool="garbage"] {
+  background: #fff;
+}
+
+.flick-option[data-tool="garbage"] i {
+  background: #8c96a8;
+}
+
 .flick-option[data-tool="erase"] {
   color: #59657b;
   font-size: 22px;
@@ -317,6 +371,196 @@ button {
 .flick-option.active {
   outline: 3px solid #fff8;
   transform: translate(-50%, -50%) scale(1.18) !important;
+}
+
+.flick-delete {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: #59657b;
+  font-size: 22px;
+  background: #fff;
+  border: 2px solid #dbe0ea;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.help-btn {
+  margin-top: auto;
+  font-family: Georgia, serif;
+  font-size: 23px;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.help-overlay {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: #10182788;
+  overscroll-behavior: contain;
+}
+
+.help-overlay[hidden] {
+  display: none;
+}
+
+.help-card {
+  position: relative;
+  width: min(100%, 390px);
+  max-height: calc(100svh - 40px);
+  overflow-y: auto;
+  padding: 28px 24px 24px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 18px 50px #10182755;
+}
+
+.help-card h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.help-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.help-card ul {
+  margin: 16px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.help-card h3 {
+  margin: 20px 0 8px;
+  font-size: 15px;
+}
+
+.help-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 0 !important;
+  padding-left: 0 !important;
+  list-style: none;
+}
+
+.help-controls li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.help-action-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  color: #4f5b73;
+  font-size: 18px;
+  font-weight: 800;
+  background: #fff;
+  border-radius: 9px;
+  box-shadow: 0 3px 8px #28344d20;
+}
+
+.help-action-icon .history-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.chain-icon {
+  color: #fff;
+  font-size: 15px;
+  background: linear-gradient(145deg, #556584, #293650);
+}
+
+.help-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+}
+
+.help-flick-demo {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  margin: 18px auto 6px;
+  background: #172033d9;
+  border-radius: 50%;
+}
+
+.help-flick-option {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-60px)
+    rotate(calc(-1 * var(--angle)));
+}
+
+.help-flick-option:nth-child(1) { --angle: 0deg; }
+.help-flick-option:nth-child(2) { --angle: 60deg; }
+.help-flick-option:nth-child(3) { --angle: 120deg; }
+.help-flick-option:nth-child(4) { --angle: 180deg; }
+.help-flick-option:nth-child(5) { --angle: 240deg; }
+.help-flick-option:nth-child(6) { --angle: 300deg; }
+
+.help-flick-option i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.help-flick-option.red i { background: var(--red); }
+.help-flick-option.green i { background: var(--green); }
+.help-flick-option.blue i { background: var(--blue); }
+.help-flick-option.yellow i { background: var(--yellow); }
+.help-flick-option.purple i { background: var(--purple); }
+.help-flick-option.garbage i {
+  background: #8c96a8;
+}
+
+.help-flick-delete {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: #59657b;
+  font-size: 21px;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 }
 
 @keyframes pop {
@@ -337,7 +581,8 @@ button {
   .toolbar .chain-badge,
   .toolbar .primary-btn,
   .toolbar .reset-btn,
-  .sidebar-btn { border-radius: 12px; }
+  .sidebar-btn,
+  .help-btn { border-radius: 12px; }
   .toolbar .simulation-row,
   .sidebar-actions { gap: 7px; }
   .chain-badge span { font-size: 21px; }

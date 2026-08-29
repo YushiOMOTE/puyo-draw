@@ -32,6 +32,7 @@
             hidden
             aria-label="Flick to select a color"
           ></div>
+          <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
           <p id="status" class="status" role="status"></p>
         </section>
 
@@ -139,9 +140,91 @@
               aria-label="Reset"
               title="Reset"
             >
-              ↺
+              <svg
+                class="history-icon reset-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M20 11a8 8 0 1 0 1 4" />
+                <path d="M20 4v7h-7" />
+              </svg>
             </button>
           </div>
+          <button
+            id="help"
+            class="secondary-btn help-btn"
+            aria-label="How to use"
+            title="How to use"
+          >
+            i
+          </button>
+        </section>
+      </div>
+
+      <div id="helpOverlay" class="help-overlay" hidden>
+        <section
+          class="help-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="helpTitle"
+        >
+          <button id="closeHelp" class="help-close" aria-label="Close help">
+            ×
+          </button>
+          <h2 id="helpTitle">How to use</h2>
+          <p>Hold a cell, then flick toward an option to place it.</p>
+          <div class="help-flick-demo" aria-label="Flick menu example">
+            <span class="help-flick-option red"><i></i></span>
+            <span class="help-flick-option green"><i></i></span>
+            <span class="help-flick-option blue"><i></i></span>
+            <span class="help-flick-option yellow"><i></i></span>
+            <span class="help-flick-option purple"><i></i></span>
+            <span class="help-flick-option garbage"><i></i></span>
+            <span class="help-flick-delete">⌫</span>
+          </div>
+          <ul>
+            <li>Flick toward a colored circle to place that color.</li>
+            <li>Flick toward the gray circle to place garbage.</li>
+            <li>Release without flicking to delete the cell.</li>
+          </ul>
+          <h3>Sidebar controls</h3>
+          <ul class="help-controls">
+            <li>
+              <span class="help-action-icon chain-icon">0</span>
+              <span>Chain count: shows the current chain total.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">
+                <svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9 7h7a5 5 0 0 1 0 10h-3" />
+                  <path d="m9 7 4-4M9 7l4 4" />
+                </svg>
+              </span>
+              <span>Undo: goes back one board change.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">
+                <svg class="history-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M15 7H8a5 5 0 0 0 0 10h3" />
+                  <path d="m15 7-4-4M15 7l-4 4" />
+                </svg>
+              </span>
+              <span>Redo: restores an undone board change.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">▶</span>
+              <span>Simulate: starts the chain animation.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">
+                <svg class="history-icon reset-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 11a8 8 0 1 0 1 4" />
+                  <path d="M20 4v7h-7" />
+                </svg>
+              </span>
+              <span>Reset: returns to the initial empty board.</span>
+            </li>
+          </ul>
         </section>
       </div>
     </main>

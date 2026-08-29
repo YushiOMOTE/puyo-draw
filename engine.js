@@ -2,6 +2,7 @@ export const COLS = 6;
 export const ROWS = 14;
 export const HIDDEN_ROWS = 2;
 export const COLORS = ["red", "green", "blue", "yellow", "purple"];
+export const GARBAGE = "garbage";
 
 export function emptyBoard() {
   return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
@@ -17,7 +18,11 @@ export function findGroups(state) {
 
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      if (!state[row][col] || seen.has(`${row},${col}`)) continue;
+      if (
+        !state[row][col] ||
+        state[row][col] === GARBAGE ||
+        seen.has(`${row},${col}`)
+      ) continue;
 
       const color = state[row][col];
       const group = [];
@@ -73,8 +78,42 @@ export function applyGravity(state) {
   return next;
 }
 
+function findAdjacentGarbage(state, clearedCells) {
+  const queue = [...clearedCells];
+  const garbage = new Set();
+
+  while (queue.length) {
+    const [row, col] = queue.shift();
+
+    for (const [rowDelta, colDelta] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const nextRow = row + rowDelta;
+      const nextCol = col + colDelta;
+      const key = `${nextRow},${nextCol}`;
+
+      if (
+        nextRow >= 0 &&
+        nextRow < ROWS &&
+        nextCol >= 0 &&
+        nextCol < COLS &&
+        state[nextRow][nextCol] === GARBAGE &&
+        !garbage.has(key)
+      ) {
+        garbage.add(key);
+        queue.push([nextRow, nextCol]);
+      }
+    }
+  }
+
+  return [...garbage].map((key) => key.split(",").map(Number));
+}
+
 export function simulate(state) {
-  let current = clone(state);
+  let current = applyGravity(state);
   let chains = 0;
   let cleared = 0;
   const rounds = [];
@@ -83,7 +122,9 @@ export function simulate(state) {
     const groups = findGroups(current);
     if (!groups.length) break;
 
-    const removed = groups.flat();
+    const clearedGroups = groups.flat();
+    const adjacentGarbage = findAdjacentGarbage(current, clearedGroups);
+    const removed = [...clearedGroups, ...adjacentGarbage];
     const next = clone(current);
     removed.forEach(([row, col]) => {
       next[row][col] = null;

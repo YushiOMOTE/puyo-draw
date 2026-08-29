@@ -11,17 +11,19 @@
 ## Puyo Rules
 
 - Supported colors: red, green, blue, yellow, and purple.
+- Garbage puyos are supported as a non-color obstacle.
 - Four or more orthogonally connected puyos of the same color clear together.
+- Garbage puyos do not form color groups. Garbage puyos adjacent to a clearing color group, including connected garbage behind them, clear at the same time.
 - After clearing, each column applies gravity independently.
 - Newly connected groups are checked repeatedly until no group of four remains.
 - The simulator reports the number of chains and the total number of cleared puyos.
 
 ## Editing
 
-- A normal tap places the currently selected tool in the tapped cell.
-- A touch or pointer press opens a six-item radial menu centered on the press location.
-- Flicking in a radial direction selects a color or the eraser and applies it to the original cell.
-- The radial menu options are red, green, blue, yellow, purple, and eraser.
+- Holding a cell opens a six-item radial menu with five colors and garbage, plus a centered delete icon.
+- Releasing without flicking deletes the tapped cell.
+- Flicking toward a radial option selects that tool and applies it to the original cell.
+- The radial menu options are red, green, blue, yellow, purple, and garbage.
 - Undo and redo maintain board snapshots and are disabled when their respective history is empty.
 - Clear empties the board and creates an undo point.
 - Reset returns to the initial empty board and clears history.
