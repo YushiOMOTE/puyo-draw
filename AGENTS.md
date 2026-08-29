@@ -6,6 +6,14 @@ Read the project documentation in `docs/` before changing the application. The c
 
 Keep the existing mobile-first interaction model and preserve the core chain rules unless a specification change is explicitly requested.
 
+## Documentation Synchronization
+
+- Treat `docs/SPECIFICATION.md` as the behavioral source of truth for the implementation.
+- When changing behavior, update the specification in the same change; do not leave implementation and documentation updates for a later commit.
+- Before committing, compare the documented controls, board dimensions, interaction rules, and simulation rules against `index.html`, `app.js`, and `engine.js`.
+- Add or update a focused test when a documented rule changes, especially for chain clearing, gravity, garbage puyos, or history behavior.
+- Do not describe controls as available if they are hidden or unavailable in the current UI.
+
 ## Language and Style
 
 - Write all documentation, code comments, UI labels, accessibility labels, status messages, and generated content in English.
