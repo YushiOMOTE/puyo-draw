@@ -12,7 +12,7 @@
       content="A touch-friendly Puyo Puyo chain simulator"
     />
     <title>Puyo Chain Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260829-3" />
+    <link rel="stylesheet" href="styles.css?v=20260829-5" />
   </head>
   <body>
     <main class="app-shell">
@@ -30,7 +30,7 @@
             id="flickMenu"
             class="flick-menu"
             hidden
-            aria-label="Flick to select a color"
+            aria-label="Flick to select an option"
           ></div>
           <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
           <p id="status" class="status" role="status"></p>
@@ -150,6 +150,26 @@
               </svg>
             </button>
           </div>
+          <div class="sidebar-actions mode-actions" aria-label="Flick menu modes">
+            <button
+              id="toggleFiveColors"
+              class="secondary-btn sidebar-btn mode-btn active"
+              aria-label="Five-color mode"
+              aria-pressed="true"
+              title="Five-color mode"
+            >
+              <span class="mode-five-icon" aria-hidden="true">5</span>
+            </button>
+            <button
+              id="toggleGarbage"
+              class="secondary-btn sidebar-btn mode-btn active"
+              aria-label="Garbage puyo mode"
+              aria-pressed="true"
+              title="Garbage puyo mode"
+            >
+              <span class="mode-garbage-icon" aria-hidden="true"></span>
+            </button>
+          </div>
           <button
             id="help"
             class="secondary-btn help-btn"
@@ -223,6 +243,16 @@
                 </svg>
               </span>
               <span>Reset: returns to the initial empty board.</span>
+            </li>
+            <li>
+              <span class="help-action-icon mode-help-icon">5</span>
+              <span>Five-color mode: toggles the purple flick option.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">
+                <span class="mode-garbage-icon" aria-hidden="true"></span>
+              </span>
+              <span>Garbage mode: toggles the garbage flick option.</span>
             </li>
           </ul>
         </section>

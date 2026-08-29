@@ -236,6 +236,46 @@ button {
   box-shadow: 0 5px 12px #28344d20;
 }
 
+.mode-btn.active {
+  color: #fff;
+  background: linear-gradient(145deg, #6aa7ff, #3977d9);
+  box-shadow: 0 5px 12px #3977d940;
+}
+
+.mode-actions {
+  padding-top: 10px;
+  border-top: 1px solid #b9c1d080;
+}
+
+.mode-five-icon {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  margin: auto;
+  place-items: center;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mode-garbage-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: auto;
+  background: #8c96a8;
+  border-radius: 50%;
+  box-shadow: inset -3px -3px #0002, inset 2px 2px #fff5;
+}
+
+.mode-help-icon {
+  font-size: 16px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
 .help-btn {
   color: #4f5b73;
   background: #fff;

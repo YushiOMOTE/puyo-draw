@@ -24,14 +24,15 @@ let history = [];
 let future = [];
 let initialBoard = clone(board);
 let isSimulating = false;
+let fiveColorMode = true;
+let garbageMode = true;
 
-const flickTools = [
+const colorFlickTools = [
   "red",
   "green",
   "blue",
   "yellow",
   "purple",
-  "garbage",
 ];
 const locale = navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
 const messages = {
@@ -52,7 +53,22 @@ const messages = {
       `${count} chain${count === 1 ? "" : "s"}! ${puyos} puyos cleared`,
     ja: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`,
   },
+  fiveColorMode: {
+    en: (enabled) => `Five-color mode ${enabled ? "on" : "off"}`,
+    ja: (enabled) => `5色モードを${enabled ? "オン" : "オフ"}にしました`,
+  },
+  garbageMode: {
+    en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
+    ja: (enabled) => `お邪魔ありを${enabled ? "オン" : "オフ"}にしました`,
+  },
 };
+
+function getFlickTools() {
+  return [
+    ...colorFlickTools.filter((tool) => tool !== "purple" || fiveColorMode),
+    ...(garbageMode ? ["garbage"] : []),
+  ];
+}
 
 let flick = {
   row: -1,
@@ -61,6 +77,7 @@ let flick = {
   startY: 0,
   moved: false,
   choice: null,
+  tools: [],
   suppressClick: false,
 };
 
@@ -140,6 +157,29 @@ function setTool(tool) {
     button.classList.toggle("active", active);
     button.ariaPressed = String(active);
   });
+}
+
+function setMode(mode, enabled) {
+  if (mode === "colors") fiveColorMode = enabled;
+  if (mode === "garbage") garbageMode = enabled;
+
+  const button = document.querySelector(
+    mode === "colors" ? "#toggleFiveColors" : "#toggleGarbage",
+  );
+  button.classList.toggle("active", enabled);
+  button.ariaPressed = String(enabled);
+
+  if (flick.row >= 0) {
+    closeFlick();
+    flick.row = -1;
+  }
+
+  showToast(
+    localizedMessage(
+      mode === "colors" ? messages.fiveColorMode : messages.garbageMode,
+      enabled,
+    ),
+  );
 }
 
 function undo() {
@@ -234,6 +274,8 @@ async function runSimulation() {
 function openFlick(row, col, event) {
   if (isSimulating) return;
 
+  const tools = getFlickTools();
+
   flick = {
     row,
     col,
@@ -241,13 +283,15 @@ function openFlick(row, col, event) {
     startY: event.clientY,
     moved: false,
     choice: null,
+    tools,
     suppressClick: false,
   };
 
+  buildFlickMenu(tools);
   flickMenu.style.left = `${event.clientX}px`;
   flickMenu.style.top = `${event.clientY}px`;
   flickMenu.hidden = false;
-  setStatus("Flick to choose a color, then release to place it");
+  setStatus("Flick to choose an option, then release to place it");
 }
 
 function flickIndex(x, y) {
@@ -257,9 +301,9 @@ function flickIndex(x, y) {
 
   if (distance < 24) return -1;
 
-  const sector = (Math.PI * 2) / flickTools.length;
+  const sector = (Math.PI * 2) / flick.tools.length;
   const index = Math.round((Math.atan2(dy, dx) + Math.PI / 2) / sector);
-  return (index % flickTools.length + flickTools.length) % flickTools.length;
+  return (index % flick.tools.length + flick.tools.length) % flick.tools.length;
 }
 
 function highlightFlick(index) {
@@ -275,8 +319,10 @@ function closeFlick() {
     .forEach((button) => button.classList.remove("active"));
 }
 
-function buildFlickMenu() {
-  flickTools.forEach((tool, index) => {
+function buildFlickMenu(tools) {
+  flickMenu.innerHTML = "";
+
+  tools.forEach((tool, index) => {
     const button = document.createElement("button");
     button.className = "flick-option";
     button.type = "button";
@@ -291,14 +337,14 @@ function buildFlickMenu() {
       button.append(document.createElement("i"));
     }
 
-    const angle = -Math.PI / 2 + index * (Math.PI / 3);
+    const angle = -Math.PI / 2 + index * ((Math.PI * 2) / tools.length);
     button.style.left = `calc(50% + ${Math.cos(angle) * 62}px)`;
     button.style.top = `calc(50% + ${Math.sin(angle) * 62}px)`;
     button.addEventListener("click", () => {
       setTool(tool);
       flick.suppressClick = true;
       closeFlick();
-      setStatus("Color selected. Tap a board cell to place it");
+      setStatus("Option selected. Tap a board cell to place it");
     });
     flickMenu.append(button);
   });
@@ -329,7 +375,7 @@ window.addEventListener("pointerup", () => {
   if (flick.row < 0) return;
 
   if (flick.moved && flick.choice !== null) {
-    selectedTool = flickTools[flick.choice];
+    selectedTool = flick.tools[flick.choice];
     editCell(flick.row, flick.col);
     flick.suppressClick = true;
     setStatus(
@@ -384,6 +430,12 @@ document.querySelector("#reset").addEventListener("click", () => {
   render();
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
+document.querySelector("#toggleFiveColors").addEventListener("click", () => {
+  setMode("colors", !fiveColorMode);
+});
+document.querySelector("#toggleGarbage").addEventListener("click", () => {
+  setMode("garbage", !garbageMode);
+});
 document.querySelector("#help").addEventListener("click", () => {
   helpOverlay.hidden = false;
 });
@@ -395,5 +447,4 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !helpOverlay.hidden) closeHelp();
 });
 
-buildFlickMenu();
 render();
