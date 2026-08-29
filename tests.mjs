@@ -10,6 +10,7 @@ import {
   applyGravity,
   simulate,
 } from "./engine.js";
+import { solveWithBeam } from "./solver/beam-solver.js";
 
 const state = emptyBoard();
 for (let col = 0; col < 4; col++) state[ROWS - 1][col] = "red";
@@ -49,5 +50,20 @@ assert.equal(garbageResult.chains, 1);
 assert.equal(garbageResult.cleared, 6);
 assert.equal(garbageResult.state.flat().filter(Boolean).length, 1);
 assert.equal(garbageResult.state.flat().filter((value) => value === GARBAGE).length, 1);
+
+const suggestionBoard = emptyBoard();
+for (let col = 0; col < 3; col++) suggestionBoard[ROWS - 1][col] = "red";
+const suggestionResult = solveWithBeam({
+  board: suggestionBoard,
+  colors: ["red", "green", "blue", "yellow"],
+  maxAdditions: 1,
+  resultLimit: 5,
+  timeBudgetMs: 1_000,
+  beamWidth: 24,
+});
+assert.ok(suggestionResult.candidates.length > 0);
+assert.equal(suggestionResult.candidates[0].chains, 1);
+assert.equal(suggestionResult.candidates[0].placements.length, 1);
+assert.equal(suggestionResult.candidates[0].placements[0].color, "red");
 
 console.log("Chain logic tests passed");

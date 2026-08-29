@@ -12,7 +12,7 @@
       content="A touch-friendly Puyo Puyo chain simulator"
     />
     <title>Puyo Chain Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260829-6" />
+    <link rel="stylesheet" href="styles.css?v=20260829-8" />
   </head>
   <body>
     <main class="app-shell">
@@ -150,6 +150,18 @@
               </svg>
             </button>
           </div>
+          <button
+            id="suggest"
+            class="secondary-btn sidebar-btn suggestion-btn"
+            aria-label="Suggest chain extensions"
+            title="Suggest chain extensions"
+          >
+            <svg class="suggestion-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.2 18h5.6M10 21h4" />
+              <path d="M8.2 15.7C6.8 14.5 6 12.8 6 11a6 6 0 0 1 12 0c0 1.8-.8 3.5-2.2 4.7-.7.6-1.1 1.3-1.1 2.3H9.3c0-1-.4-1.7-1.1-2.3Z" />
+              <path d="m18.7 4.5.7-1.2M5.3 4.5l-.7-1.2M12 3V1.6" />
+            </svg>
+          </button>
           <div class="sidebar-actions mode-actions" aria-label="Flick menu modes">
             <button
               id="toggleFiveColors"
@@ -251,6 +263,16 @@
                 </svg>
               </span>
               <span>Reset: returns to the initial empty board.</span>
+            </li>
+            <li>
+              <span class="help-action-icon">
+                <svg class="suggestion-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M9.2 18h5.6M10 21h4" />
+                  <path d="M8.2 15.7C6.8 14.5 6 12.8 6 11a6 6 0 0 1 12 0c0 1.8-.8 3.5-2.2 4.7-.7.6-1.1 1.3-1.1 2.3H9.3c0-1-.4-1.7-1.1-2.3Z" />
+                  <path d="m18.7 4.5.7-1.2M5.3 4.5l-.7-1.2M12 3V1.6" />
+                </svg>
+              </span>
+              <span>Suggestion: shows dotted puyos that can extend a chain. Press again to cycle through alternatives.</span>
             </li>
             <li>
               <span class="help-action-icon">

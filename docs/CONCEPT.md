@@ -12,6 +12,7 @@ Puyo Chain Simulator is a lightweight web app for designing Puyo Puyo boards and
 4. The chain count and compact controls are shown in the right-side control rail.
 5. The control rail can enable or disable the purple and garbage flick options to keep the menu compact.
 6. In four-color mode, the rail cycles through all five choices of four colors.
+7. The user can ask for chain-extension suggestions and compare several dotted-puyo alternatives without changing the board.
 
 ## Design Principles
 
@@ -23,4 +24,4 @@ Puyo Chain Simulator is a lightweight web app for designing Puyo Puyo boards and
 
 ## Out of Scope
 
-The current concept does not include real-time multiplayer, accounts, cloud storage, scoreboards, sound effects, or a full falling-piece game loop. It is a board editor and deterministic chain visualizer.
+The current concept does not include real-time multiplayer, accounts, cloud storage, scoreboards, sound effects, a full falling-piece game loop, or a complete competitive Puyo Puyo AI. Suggestions are bounded local chain-extension searches for board experimentation.

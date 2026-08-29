@@ -8,6 +8,7 @@ import {
   applyGravity,
   simulate,
 } from "./engine.js";
+import { SuggestionController } from "./solver/suggestion-controller.js";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
@@ -27,6 +28,10 @@ let isSimulating = false;
 let fiveColorMode = false;
 let garbageMode = false;
 let paletteIndex = 0;
+let isSuggesting = false;
+let suggestionSession = null;
+let suggestionMarks = new Map();
+const suggestionController = new SuggestionController();
 
 const colorFlickTools = [
   "red",
@@ -71,6 +76,24 @@ const messages = {
   palette: {
     en: (index) => `Four-color palette ${index + 1} of 5`,
     ja: (index) => `4色パレット ${index + 1}/5`,
+  },
+  suggestionSearching: {
+    en: "Finding chain extensions…",
+    ja: "連鎖の伸ばし方を探索中…",
+  },
+  suggestionNone: {
+    en: "No chain extension found",
+    ja: "連鎖を伸ばす候補が見つかりませんでした",
+  },
+  suggestion: {
+    en: (index, total, chains, additions) =>
+      `Suggestion ${index}/${total}: ${chains} chain${chains === 1 ? "" : "s"} with ${additions} puyo${additions === 1 ? "" : "s"}`,
+    ja: (index, total, chains, additions) =>
+      `提案 ${index}/${total}：${additions}個追加で${chains}連鎖`,
+  },
+  suggestionError: {
+    en: "Could not calculate suggestions",
+    ja: "提案を計算できませんでした",
   },
 };
 
@@ -126,6 +149,14 @@ function render() {
         cell.append(puyo);
       }
 
+      const suggestion = suggestionMarks.get(`${r},${c}`);
+      if (suggestion) {
+        const marker = document.createElement("span");
+        marker.className = `suggestion-marker ${suggestion}`;
+        marker.ariaHidden = "true";
+        cell.append(marker);
+      }
+
       if (r === HIDDEN_ROWS && c === 2) {
         const mark = document.createElement("span");
         mark.className = "dead-mark";
@@ -140,18 +171,41 @@ function render() {
 
   document.querySelector("#undo").disabled = !history.length;
   document.querySelector("#redo").disabled = !future.length;
+  document.querySelector("#suggest").disabled = isSimulating || isSuggesting;
 }
 
 function editCell(row, col) {
   if (isSimulating) return;
 
   const nextValue = selectedTool === "erase" ? null : selectedTool;
-  if (board[row][col] === nextValue) return;
+  if (board[row][col] === nextValue) {
+    if (nextValue === null && suggestionMarks.has(`${row},${col}`)) {
+      clearSuggestionAt(row, col);
+      invalidateSuggestions();
+      render();
+    }
+    return;
+  }
 
   history.push(clone(board));
   future = [];
   board[row][col] = nextValue;
+  clearSuggestionAt(row, col);
+  invalidateSuggestions();
   render();
+}
+
+function clearSuggestionAt(row, col) {
+  suggestionMarks.delete(`${row},${col}`);
+}
+
+function clearSuggestions() {
+  suggestionMarks.clear();
+  suggestionSession = null;
+}
+
+function invalidateSuggestions() {
+  if (suggestionSession) suggestionSession.stale = true;
 }
 
 function boardsEqual(left, right) {
@@ -185,6 +239,8 @@ function setMode(mode, enabled) {
     flick.row = -1;
   }
 
+  clearSuggestions();
+
   showToast(
     localizedMessage(
       mode === "colors" ? messages.fiveColorMode : messages.garbageMode,
@@ -207,6 +263,7 @@ function cyclePalette() {
   if (fiveColorMode) return;
 
   paletteIndex = (paletteIndex + 1) % fourColorPalettes.length;
+  clearSuggestions();
   updatePaletteButton();
   showToast(localizedMessage(messages.palette, paletteIndex));
 }
@@ -216,6 +273,7 @@ function undo() {
 
   future.push(clone(board));
   board = history.pop();
+  clearSuggestions();
   render();
   showToast(messages.undo[locale]);
 }
@@ -225,6 +283,7 @@ function redo() {
 
   history.push(clone(board));
   board = future.pop();
+  clearSuggestions();
   render();
   showToast(messages.redo[locale]);
 }
@@ -255,6 +314,8 @@ function localizedMessage(message, ...args) {
 async function runSimulation() {
   if (isSimulating) return;
 
+  clearSuggestions();
+
   const beforeSimulation = clone(board);
   board = applyGravity(board);
   render();
@@ -271,6 +332,7 @@ async function runSimulation() {
 
   isSimulating = true;
   document.querySelector("#simulate").disabled = true;
+  document.querySelector("#suggest").disabled = true;
   history.push(beforeSimulation);
   future = [];
 
@@ -297,6 +359,74 @@ async function runSimulation() {
   isSimulating = false;
   document.querySelector("#simulate").disabled = false;
   render();
+}
+
+function activeSuggestionColors() {
+  return fiveColorMode ? colorFlickTools : fourColorPalettes[paletteIndex];
+}
+
+function displaySuggestion(candidate, index, total) {
+  suggestionMarks = new Map(
+    candidate.placements.map(({ row, col, color }) => [`${row},${col}`, color]),
+  );
+  render();
+  showToast(
+    localizedMessage(
+      messages.suggestion,
+      index + 1,
+      total,
+      candidate.chains,
+      candidate.placements.length,
+    ),
+    2600,
+  );
+}
+
+async function showSuggestion() {
+  if (isSimulating || isSuggesting) return;
+
+  const colors = activeSuggestionColors();
+  const boardKey = suggestionController.key(board, colors);
+  if (
+    suggestionSession &&
+    !suggestionSession.stale &&
+    suggestionSession.boardKey === boardKey
+  ) {
+    suggestionSession.index =
+      (suggestionSession.index + 1) % suggestionSession.candidates.length;
+    displaySuggestion(
+      suggestionSession.candidates[suggestionSession.index],
+      suggestionSession.index,
+      suggestionSession.candidates.length,
+    );
+    return;
+  }
+
+  isSuggesting = true;
+  render();
+  showToast(messages.suggestionSearching[locale], 1300);
+  try {
+    const { candidates } = await suggestionController.solve({
+      board: clone(board),
+      colors,
+      maxAdditions: 8,
+      resultLimit: 5,
+      timeBudgetMs: 700,
+      beamWidth: 120,
+    });
+    if (suggestionController.key(board, colors) !== boardKey) return;
+    if (!candidates.length) {
+      showToast(messages.suggestionNone[locale]);
+      return;
+    }
+    suggestionSession = { boardKey, candidates, index: 0, stale: false };
+    displaySuggestion(candidates[0], 0, candidates.length);
+  } catch {
+    showToast(messages.suggestionError[locale]);
+  } finally {
+    isSuggesting = false;
+    render();
+  }
 }
 
 function openFlick(row, col, event) {
@@ -441,6 +571,7 @@ document.querySelector("#clear").addEventListener("click", () => {
   history.push(clone(board));
   future = [];
   board = emptyBoard();
+  clearSuggestions();
   chainEl.textContent = "0";
   showToast(messages.cleared[locale]);
   render();
@@ -453,11 +584,13 @@ document.querySelector("#reset").addEventListener("click", () => {
   history.push(clone(board));
   future = [];
   board = clone(initialBoard);
+  clearSuggestions();
   chainEl.textContent = "0";
   showToast(messages.reset[locale]);
   render();
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
+document.querySelector("#suggest").addEventListener("click", showSuggestion);
 document.querySelector("#toggleFiveColors").addEventListener("click", () => {
   setMode("colors", !fiveColorMode);
 });
