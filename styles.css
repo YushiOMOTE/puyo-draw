@@ -242,6 +242,9 @@ button {
 }
 
 .chain-badge {
+  appearance: none;
+  border: 0;
+  padding: 0;
   display: grid;
   place-content: center;
   width: var(--sidebar-size);

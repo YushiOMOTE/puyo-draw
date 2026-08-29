@@ -27,6 +27,8 @@ let selectedTool = "red";
 let history = [];
 let future = [];
 let initialBoard = clone(board);
+let chainCount = 0;
+let cumulativeScore = 0;
 let isSimulating = false;
 let garbageMode = false;
 let paletteIndex = 0;
@@ -60,13 +62,19 @@ const messages = {
   cleared: { en: "Board cleared", ja: "盤面をクリアしました" },
   reset: { en: "Board reset", ja: "盤面をリセットしました" },
   chain: {
-    en: (count, puyos) => `Chain ${count}: ${puyos} puyos clearing`,
-    ja: (count, puyos) => `${count}連鎖目：${puyos}個消えます`,
+    en: (count, puyos, score, cumulative) =>
+      `Chain ${count}: +${score.toLocaleString()} points (${cumulative.toLocaleString()} total), ${puyos} puyos clearing`,
+    ja: (count, puyos, score, cumulative) =>
+      `${count}連鎖目：${puyos}個消去、+${score.toLocaleString()}点（累積${cumulative.toLocaleString()}点）`,
   },
   complete: {
     en: (count, puyos) =>
       `${count} chain${count === 1 ? "" : "s"}! ${puyos} puyos cleared`,
     ja: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`,
+  },
+  score: {
+    en: (chains, score) => `${chains} chain${chains === 1 ? "" : "s"}: ${score.toLocaleString()} points`,
+    ja: (chains, score) => `${chains}連鎖：累積${score.toLocaleString()}点`,
   },
   garbageMode: {
     en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
@@ -196,6 +204,17 @@ function render() {
   document.querySelector("#suggest").disabled = isSimulating || isSuggesting;
   suggestionLoadingEl.hidden = !isSuggesting;
   boardEl.setAttribute("aria-busy", String(isSuggesting));
+  chainEl.textContent = String(chainCount);
+}
+
+function snapshot() {
+  return { board: clone(board), chains: chainCount, score: cumulativeScore };
+}
+
+function restoreSnapshot(state) {
+  board = clone(state.board);
+  chainCount = state.chains;
+  cumulativeScore = state.score;
 }
 
 function editCell(row, col) {
@@ -211,7 +230,7 @@ function editCell(row, col) {
     return;
   }
 
-  history.push(clone(board));
+  history.push(snapshot());
   future = [];
   board[row][col] = nextValue;
   clearSuggestionAt(row, col);
@@ -299,8 +318,8 @@ function cyclePalette() {
 function undo() {
   if (!history.length || isSimulating) return;
 
-  future.push(clone(board));
-  board = history.pop();
+  future.push(snapshot());
+  restoreSnapshot(history.pop());
   clearSuggestions();
   render();
   showToast(messages.undo[locale]);
@@ -309,8 +328,8 @@ function undo() {
 function redo() {
   if (!future.length || isSimulating) return;
 
-  history.push(clone(board));
-  board = future.pop();
+  history.push(snapshot());
+  restoreSnapshot(future.pop());
   clearSuggestions();
   render();
   showToast(messages.redo[locale]);
@@ -345,12 +364,13 @@ async function runSimulation() {
   clearSuggestions();
 
   const beforeSimulation = clone(board);
+  const beforeSnapshot = snapshot();
   board = applyGravity(board);
   render();
   const result = simulate(board);
   if (!result.chains) {
     if (!boardsEqual(beforeSimulation, board)) {
-      history.push(beforeSimulation);
+      history.push(beforeSnapshot);
       future = [];
       render();
     }
@@ -361,13 +381,17 @@ async function runSimulation() {
   isSimulating = true;
   document.querySelector("#simulate").disabled = true;
   document.querySelector("#suggest").disabled = true;
-  history.push(beforeSimulation);
+  history.push(beforeSnapshot);
   future = [];
 
   let step = 0;
   for (const round of result.rounds) {
-    chainEl.textContent = String(++step);
-    showToast(localizedMessage(messages.chain, step, round.count), 700);
+    chainCount = ++step;
+    cumulativeScore = round.cumulativeScore;
+    showToast(
+      localizedMessage(messages.chain, step, round.count, round.score, cumulativeScore),
+      1100,
+    );
 
     const cells = [...boardEl.children];
     findClearingCells(board)
@@ -382,8 +406,12 @@ async function runSimulation() {
   }
 
   board = result.state;
-  chainEl.textContent = String(result.chains);
-  showToast(localizedMessage(messages.complete, result.chains, result.cleared), 2600);
+  chainCount = result.chains;
+  cumulativeScore = result.score;
+  showToast(
+    `${localizedMessage(messages.complete, result.chains, result.cleared)} ${localizedMessage(messages.score, result.chains, result.score)}`,
+    2600,
+  );
   isSimulating = false;
   document.querySelector("#simulate").disabled = false;
   render();
@@ -612,20 +640,28 @@ document
   );
 document.querySelector("#undo").addEventListener("click", undo);
 document.querySelector("#redo").addEventListener("click", redo);
+document.querySelector("#chainBadge").addEventListener("click", () => {
+  showToast(localizedMessage(messages.score, chainCount, cumulativeScore));
+});
 document.querySelector("#clear").addEventListener("click", () => {
   if (isSimulating) return;
 
   const hadSuggestions = suggestionMarks.size > 0 || suggestionSession !== null;
   clearSuggestions();
-  if (board.every((row) => row.every((value) => value === null))) {
+  if (
+    board.every((row) => row.every((value) => value === null)) &&
+    chainCount === 0 &&
+    cumulativeScore === 0
+  ) {
     if (hadSuggestions) render();
     return;
   }
 
-  history.push(clone(board));
+  history.push(snapshot());
   future = [];
   board = emptyBoard();
-  chainEl.textContent = "0";
+  chainCount = 0;
+  cumulativeScore = 0;
   showToast(messages.cleared[locale]);
   render();
 });
@@ -634,15 +670,20 @@ document.querySelector("#reset").addEventListener("click", () => {
 
   const hadSuggestions = suggestionMarks.size > 0 || suggestionSession !== null;
   clearSuggestions();
-  if (boardsEqual(board, initialBoard)) {
+  if (
+    boardsEqual(board, initialBoard) &&
+    chainCount === 0 &&
+    cumulativeScore === 0
+  ) {
     if (hadSuggestions) render();
     return;
   }
 
-  history.push(clone(board));
+  history.push(snapshot());
   future = [];
   board = clone(initialBoard);
-  chainEl.textContent = "0";
+  chainCount = 0;
+  cumulativeScore = 0;
   showToast(messages.reset[locale]);
   render();
 });

@@ -10,6 +10,7 @@ import {
   findClearingCells,
   applyGravity,
   simulate,
+  scoreChain,
 } from "./engine.js";
 import { availablePlacements, place } from "./solver/move-generator.js";
 import { MaxPriorityQueue } from "./solver/priority-queue.js";
@@ -42,6 +43,20 @@ const result = simulate(state);
 assert.equal(result.chains, 1);
 assert.equal(result.cleared, 4);
 assert.equal(result.state.flat().filter(Boolean).length, 0);
+assert.equal(result.score, 40);
+assert.equal(result.rounds[0].score, 40);
+assert.equal(result.rounds[0].cumulativeScore, 40);
+
+const simultaneous = emptyBoard();
+for (let col = 0; col < 4; col++) {
+  simultaneous[ROWS - 1][col] = "red";
+  simultaneous[ROWS - 2][col] = "blue";
+}
+assert.deepEqual(scoreChain(findGroups(simultaneous), 1), {
+  score: 240,
+  colorPuyos: 8,
+  multiplier: 3,
+});
 
 const chain = emptyBoard();
 for (let col = 0; col < 4; col++) chain[ROWS - 1][col] = "red";

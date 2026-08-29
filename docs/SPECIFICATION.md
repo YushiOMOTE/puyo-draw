@@ -32,6 +32,9 @@
 
 ## Simulation UI
 
+- The chain count button shows the current chain count and displays the cumulative chain-clear score in a toast when tapped. Each chain toast displays that step's score and the cumulative score.
+- Reset and Clear reset the chain count and cumulative score to zero. Undo and Redo restore the board, chain count, and cumulative score together.
+
 The right-side rail is ordered from top to bottom:
 
 1. Chain count.
