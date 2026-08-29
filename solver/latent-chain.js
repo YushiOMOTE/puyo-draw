@@ -134,6 +134,7 @@ function evaluateTriggerGroup(board, group) {
   return {
     chains: selected.result.chains,
     cleared: selected.result.cleared,
+    residualState: selected.result.state,
     triggerCost: group.triggerCost,
     triggerColor: group.color,
     triggerPlacements: selected.placements,
@@ -148,6 +149,7 @@ export function evaluateLatentChain(board, { maxTriggerPuyos = 1 } = {}) {
     return {
       chains: immediate.chains,
       cleared: immediate.cleared,
+      residualState: immediate.state,
       triggerCost: 0,
       triggerColor: null,
       triggerPlacements: [],
@@ -158,6 +160,7 @@ export function evaluateLatentChain(board, { maxTriggerPuyos = 1 } = {}) {
   let best = {
     chains: 0,
     cleared: 0,
+    residualState: stableBoard,
     triggerCost: null,
     triggerColor: null,
     triggerPlacements: [],

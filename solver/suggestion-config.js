@@ -1,5 +1,5 @@
 export const SUGGESTION_SEARCH_CONFIG = Object.freeze({
-  solver: "ama",
+  solver: "hybrid",
   maxAdditions: 20,
   resultLimit: 8,
   timeBudgetMs: 5_000,
@@ -7,6 +7,6 @@ export const SUGGESTION_SEARCH_CONFIG = Object.freeze({
   minimumChainGain: 2,
   targetChainGain: 3,
   maxTriggerPuyos: 1,
-  beamWidth: 120,
+  beamWidth: 48,
   maxQueueSize: 5_000,
 });

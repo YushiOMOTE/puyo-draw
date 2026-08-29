@@ -28,6 +28,8 @@ const solveWithAma = (request) =>
   solveSuggestion({ ...request, solver: "ama" });
 const solveWithBeam = (request) =>
   solveSuggestion({ ...request, solver: "beam" });
+const solveWithHybrid = (request) =>
+  solveSuggestion({ ...request, solver: "hybrid" });
 
 const state = emptyBoard();
 for (let col = 0; col < 4; col++) state[ROWS - 1][col] = "red";
@@ -57,6 +59,8 @@ assert.equal(emptyBoard().length, 13);
 assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
 assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
 assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);
+assert.equal(SUGGESTION_SEARCH_CONFIG.solver, "hybrid");
+assert.equal(SUGGESTION_SEARCH_CONFIG.beamWidth, 48);
 
 const settledBoard = emptyBoard();
 settledBoard[ROWS - 1][0] = "red";
@@ -161,6 +165,50 @@ assert.ok(amaSuggestionResult.candidates.length > 0);
 assert.equal(amaSuggestionResult.candidates[0].chains, 2);
 assert.equal(amaSuggestionResult.candidates[0].chainGain, 1);
 assert.equal(amaSuggestionResult.candidates[0].placements.length, 1);
+
+const longChainBoard = emptyBoard();
+for (const [row, col, color] of [
+  [12, 0, "red"],
+  [11, 0, "red"],
+  [10, 0, "green"],
+  [9, 0, "green"],
+  [8, 0, "yellow"],
+  [7, 0, "yellow"],
+  [6, 0, "yellow"],
+  [5, 0, "green"],
+  [12, 1, "green"],
+  [11, 1, "red"],
+  [10, 1, "green"],
+  [9, 1, "red"],
+]) {
+  longChainBoard[row][col] = color;
+}
+assert.equal(evaluateLatentChain(longChainBoard).chains, 3);
+const longChainResult = solveWithHybrid({
+  board: longChainBoard,
+  colors: ["red", "green", "blue", "yellow"],
+  maxAdditions: 10,
+  resultLimit: 4,
+  timeBudgetMs: 3_000,
+  minimizationBudgetMs: 500,
+  minimumChainGain: 2,
+  targetChainGain: 3,
+  maxTriggerPuyos: 1,
+  beamWidth: 36,
+});
+assert.equal(longChainResult.solver, "hybrid");
+assert.ok(longChainResult.candidates.length > 0);
+assert.equal(longChainResult.candidates[0].chains, 5);
+assert.equal(longChainResult.candidates[0].chainGain, 2);
+const longChainCandidate = longChainResult.candidates[0];
+let completedLongChainBoard = longChainBoard;
+for (const placement of [
+  ...longChainCandidate.placements,
+  ...longChainCandidate.triggerPlacements,
+]) {
+  completedLongChainBoard = place(completedLongChainBoard, placement);
+}
+assert.equal(simulate(completedLongChainBoard).chains, 5);
 
 const necessaryPlacement = suggestionResult.candidates[0].placements[0];
 let redundantSuggestionBoard = place(extensionBoard, necessaryPlacement);
