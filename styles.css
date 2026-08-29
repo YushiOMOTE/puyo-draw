@@ -270,6 +270,54 @@ button {
   box-shadow: inset -3px -3px #0002, inset 2px 2px #fff5;
 }
 
+.palette-icon {
+  display: grid;
+  grid-template-columns: repeat(2, 10px);
+  grid-template-rows: repeat(2, 10px);
+  align-content: center;
+  justify-content: center;
+  gap: 2px;
+  width: 26px;
+  height: 26px;
+  margin: auto;
+}
+
+.palette-icon i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: inset -1px -1px #0002, inset 1px 1px #fff5;
+}
+
+.palette-icon i.red { background: var(--red); }
+.palette-icon i.green { background: var(--green); }
+.palette-icon i.blue { background: var(--blue); }
+.palette-icon i.yellow { background: var(--yellow); }
+.palette-icon i.purple { background: var(--purple); }
+
+.palette-cycle-btn:disabled .palette-icon i {
+  filter: grayscale(1);
+  opacity: 0.5;
+}
+
+.palette-help-icon {
+  gap: 0;
+}
+
+.palette-help-icon .palette-icon {
+  grid-template-columns: repeat(2, 7px);
+  grid-template-rows: repeat(2, 7px);
+  width: 20px;
+  height: 20px;
+  gap: 1px;
+}
+
+.palette-help-icon .palette-icon i {
+  width: 7px;
+  height: 7px;
+}
+
 .mode-help-icon {
   font-size: 16px;
   border: 2px solid currentColor;

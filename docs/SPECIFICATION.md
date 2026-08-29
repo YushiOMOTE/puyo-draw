@@ -25,7 +25,7 @@
 - Holding a cell opens a radial menu with the enabled color and garbage options, plus a centered delete icon.
 - Releasing without flicking deletes the tapped cell.
 - Flicking toward a radial option selects that tool and applies it to the original cell.
-- The radial menu always includes red, green, blue, and yellow. Five-color mode adds purple; Garbage mode adds garbage. Both modes are ON by default.
+- The radial menu always includes four color options. Five-color mode uses all five colors; Four-color mode uses one of five palettes, each omitting a different color. Garbage mode adds garbage. Both modes are ON by default.
 - Undo and redo maintain board snapshots and are disabled when their respective history is empty.
 - Clear empties a non-empty board and creates an undo point; clearing an already empty board is a no-op.
 - Reset returns to the initial empty board and clears history.
@@ -40,9 +40,12 @@ The right-side rail is ordered from top to bottom:
 4. Simulate.
 5. Reset.
 6. Five-color mode.
-7. Garbage puyo mode.
+7. Four-color palette.
+8. Garbage puyo mode.
 
 The Help (`i`) button is pinned to the bottom of the rail.
+
+The Four-color palette button is enabled only when Five-color mode is OFF. It shows the active four-color palette and cycles through all five possible palettes when pressed. It is gray and disabled in Five-color mode.
 
 The rail uses square icon buttons without explanatory labels in the compact layout. Accessibility labels and tooltips must still describe each action in English.
 
@@ -50,7 +53,7 @@ Long-pressing the board or controls must not enter browser text-selection or tou
 
 The document itself must not scroll on mobile; the field and controls fit within the app's actual available area, including device safe-area insets, by reducing the field size when necessary.
 
-The Help button opens a modal instruction overlay. The overlay contains a visual example of the radial flick menu and short explanations for color placement, garbage placement, deletion, Five-color mode, and Garbage mode. It closes from the top-right close button, by clicking outside the card, or with the Escape key. The help card scrolls internally when its content exceeds the viewport; the page behind it must not scroll.
+The Help button opens a modal instruction overlay. The overlay contains a visual example of the radial flick menu and short explanations for color placement, garbage placement, deletion, Five-color mode, Four-color palette, and Garbage mode. It closes from the top-right close button, by clicking outside the card, or with the Escape key. The help card scrolls internally when its content exceeds the viewport; the page behind it must not scroll.
 
 Toast notifications use the browser language: Japanese for Japanese locales and English otherwise. Toasts are used for chains, reset, undo, redo, clear, and no-chain feedback. Cell placement messages are not shown as toasts.
 

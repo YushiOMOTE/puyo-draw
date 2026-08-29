@@ -11,6 +11,7 @@ Puyo Chain Simulator is a lightweight web app for designing Puyo Puyo boards and
 3. The user starts a simulation to watch groups disappear, pieces fall, and subsequent chains trigger.
 4. The chain count and compact controls are shown in the right-side control rail.
 5. The control rail can enable or disable the purple and garbage flick options to keep the menu compact.
+6. In four-color mode, the rail cycles through all five choices of four colors.
 
 ## Design Principles
 

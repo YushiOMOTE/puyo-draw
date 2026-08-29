@@ -26,6 +26,7 @@ let initialBoard = clone(board);
 let isSimulating = false;
 let fiveColorMode = true;
 let garbageMode = true;
+let paletteIndex = 0;
 
 const colorFlickTools = [
   "red",
@@ -34,6 +35,12 @@ const colorFlickTools = [
   "yellow",
   "purple",
 ];
+const fourColorPalettes = [
+  "purple",
+  ...colorFlickTools.filter((color) => color !== "purple"),
+].map((excludedColor) =>
+  colorFlickTools.filter((color) => color !== excludedColor),
+);
 const locale = navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
 const messages = {
   noChain: {
@@ -61,11 +68,15 @@ const messages = {
     en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
     ja: (enabled) => `お邪魔ありを${enabled ? "オン" : "オフ"}にしました`,
   },
+  palette: {
+    en: (index) => `Four-color palette ${index + 1} of 5`,
+    ja: (index) => `4色パレット ${index + 1}/5`,
+  },
 };
 
 function getFlickTools() {
   return [
-    ...colorFlickTools.filter((tool) => tool !== "purple" || fiveColorMode),
+    ...(fiveColorMode ? colorFlickTools : fourColorPalettes[paletteIndex]),
     ...(garbageMode ? ["garbage"] : []),
   ];
 }
@@ -180,6 +191,24 @@ function setMode(mode, enabled) {
       enabled,
     ),
   );
+  updatePaletteButton();
+}
+
+function updatePaletteButton() {
+  const button = document.querySelector("#cyclePalette");
+  const palette = fourColorPalettes[paletteIndex];
+  button.disabled = fiveColorMode;
+  button.innerHTML = `<span class="palette-icon" aria-hidden="true">${palette
+    .map((color) => `<i class="${color}"></i>`)
+    .join("")}</span>`;
+}
+
+function cyclePalette() {
+  if (fiveColorMode) return;
+
+  paletteIndex = (paletteIndex + 1) % fourColorPalettes.length;
+  updatePaletteButton();
+  showToast(localizedMessage(messages.palette, paletteIndex));
 }
 
 function undo() {
@@ -436,6 +465,7 @@ document.querySelector("#toggleFiveColors").addEventListener("click", () => {
 document.querySelector("#toggleGarbage").addEventListener("click", () => {
   setMode("garbage", !garbageMode);
 });
+document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 document.querySelector("#help").addEventListener("click", () => {
   helpOverlay.hidden = false;
 });
@@ -448,3 +478,4 @@ document.addEventListener("keydown", (event) => {
 });
 
 render();
+updatePaletteButton();

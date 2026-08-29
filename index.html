@@ -12,7 +12,7 @@
       content="A touch-friendly Puyo Puyo chain simulator"
     />
     <title>Puyo Chain Simulator</title>
-    <link rel="stylesheet" href="styles.css?v=20260829-5" />
+    <link rel="stylesheet" href="styles.css?v=20260829-6" />
   </head>
   <body>
     <main class="app-shell">
@@ -161,6 +161,14 @@
               <span class="mode-five-icon" aria-hidden="true">5</span>
             </button>
             <button
+              id="cyclePalette"
+              class="secondary-btn sidebar-btn palette-cycle-btn"
+              aria-label="Change four-color palette"
+              title="Change four-color palette"
+            >
+              <span class="palette-icon" aria-hidden="true"></span>
+            </button>
+            <button
               id="toggleGarbage"
               class="secondary-btn sidebar-btn mode-btn active"
               aria-label="Garbage puyo mode"
@@ -247,6 +255,17 @@
             <li>
               <span class="help-action-icon mode-help-icon">5</span>
               <span>Five-color mode: toggles the purple flick option.</span>
+            </li>
+            <li>
+              <span class="help-action-icon palette-help-icon">
+                <span class="palette-icon" aria-hidden="true">
+                  <i class="red"></i>
+                  <i class="green"></i>
+                  <i class="blue"></i>
+                  <i class="yellow"></i>
+                </span>
+              </span>
+              <span>Palette: cycles through all five four-color combinations. It is disabled in Five-color mode.</span>
             </li>
             <li>
               <span class="help-action-icon">
