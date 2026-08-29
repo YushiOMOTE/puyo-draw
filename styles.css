@@ -24,6 +24,8 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--bg);
+  overflow: hidden;
+  overscroll-behavior: none;
   -webkit-touch-callout: none;
 }
 
@@ -576,10 +578,19 @@ button {
 }
 
 @media (max-width: 599px) {
-  .app-shell { padding: 8px; }
+  .app-shell {
+    padding: max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+  }
   .play-area { gap: 4px; }
-  .board-card { padding: 0 6px; }
-  .board-wrap { width: min(100%, calc((100svh - 16px) * 0.4615)); padding: 7px; }
+  .board-card { padding: 12px 8px; }
+  .board-wrap {
+    width: min(100%, calc((100svh - 40px) * 0.4615));
+    max-height: calc(100svh - 40px);
+    padding: 7px;
+  }
   .toolbar { gap: 7px; padding-top: 2px; }
   .toolbar .chain-badge,
   .toolbar .primary-btn,
