@@ -4,7 +4,7 @@ import {
   HIDDEN_ROWS,
   emptyBoard,
   clone,
-  findGroups,
+  findClearingCells,
   applyGravity,
   simulate,
 } from "./engine.js";
@@ -280,8 +280,7 @@ async function runSimulation() {
     showToast(localizedMessage(messages.chain, step, round.count), 700);
 
     const cells = [...boardEl.children];
-    findGroups(board)
-      .flat()
+    findClearingCells(board)
       .forEach(([row, col]) =>
         cells[row * COLS + col].classList.add("clearing"),
       );
@@ -451,7 +450,7 @@ document.querySelector("#reset").addEventListener("click", () => {
 
   if (boardsEqual(board, initialBoard)) return;
 
-  history = [];
+  history.push(clone(board));
   future = [];
   board = clone(initialBoard);
   chainEl.textContent = "0";

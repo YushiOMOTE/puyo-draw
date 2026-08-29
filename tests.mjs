@@ -6,6 +6,7 @@ import {
   GARBAGE,
   emptyBoard,
   findGroups,
+  findClearingCells,
   applyGravity,
   simulate,
 } from "./engine.js";
@@ -40,10 +41,13 @@ const garbageBoard = emptyBoard();
 for (let col = 0; col < 4; col++) garbageBoard[ROWS - 1][col] = "red";
 garbageBoard[ROWS - 2][0] = GARBAGE;
 garbageBoard[ROWS - 2][1] = GARBAGE;
+garbageBoard[ROWS - 3][0] = GARBAGE;
 
 const garbageResult = simulate(garbageBoard);
+assert.equal(findClearingCells(garbageBoard).length, 6);
 assert.equal(garbageResult.chains, 1);
 assert.equal(garbageResult.cleared, 6);
-assert.equal(garbageResult.state.flat().filter(Boolean).length, 0);
+assert.equal(garbageResult.state.flat().filter(Boolean).length, 1);
+assert.equal(garbageResult.state.flat().filter((value) => value === GARBAGE).length, 1);
 
 console.log("Chain logic tests passed");

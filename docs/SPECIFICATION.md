@@ -14,7 +14,7 @@
 - Supported colors: red, green, blue, yellow, and purple.
 - Garbage puyos are supported as a non-color obstacle.
 - Four or more orthogonally connected puyos of the same color clear together.
-- Garbage puyos do not form color groups. Garbage puyos adjacent to a clearing color group, including connected garbage behind them, clear at the same time.
+- Garbage puyos do not form color groups. Only garbage puyos directly adjacent to a clearing color group clear at the same time; connected garbage farther away remains.
 - The simulation applies gravity once before the first group check, so floating pieces can form the first chain after falling.
 - After clearing, each column applies gravity independently.
 - Newly connected groups are checked repeatedly until no group of four remains.
@@ -28,7 +28,7 @@
 - The radial menu always includes four color options. Five-color mode uses all five colors; Four-color mode uses one of five palettes, each omitting a different color. Garbage mode adds garbage. Both modes are OFF by default.
 - Undo and redo maintain board snapshots and are disabled when their respective history is empty.
 - Clear empties a non-empty board and creates an undo point; clearing an already empty board is a no-op.
-- Reset returns to the initial empty board and clears history.
+- Reset returns to the initial empty board and records the previous board as an undo point, preserving earlier history.
 
 ## Simulation UI
 
@@ -46,6 +46,8 @@ The right-side rail is ordered from top to bottom:
 The Help (`i`) button is pinned to the bottom of the rail.
 
 The Four-color palette button is enabled only when Five-color mode is OFF. It shows the active four-color palette and cycles through all five possible palettes when pressed. It is gray and disabled in Five-color mode.
+
+During the clearing animation, directly adjacent garbage puyos receive the same clearing animation and timing as the color puyos that trigger their removal.
 
 The rail uses square icon buttons without explanatory labels in the compact layout. Accessibility labels and tooltips must still describe each action in English.
 

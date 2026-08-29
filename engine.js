@@ -79,12 +79,9 @@ export function applyGravity(state) {
 }
 
 function findAdjacentGarbage(state, clearedCells) {
-  const queue = [...clearedCells];
   const garbage = new Set();
 
-  while (queue.length) {
-    const [row, col] = queue.shift();
-
+  for (const [row, col] of clearedCells) {
     for (const [rowDelta, colDelta] of [
       [1, 0],
       [-1, 0],
@@ -104,12 +101,18 @@ function findAdjacentGarbage(state, clearedCells) {
         !garbage.has(key)
       ) {
         garbage.add(key);
-        queue.push([nextRow, nextCol]);
       }
     }
   }
 
   return [...garbage].map((key) => key.split(",").map(Number));
+}
+
+export function findClearingCells(state) {
+  const clearedGroups = findGroups(state).flat();
+  if (!clearedGroups.length) return [];
+
+  return [...clearedGroups, ...findAdjacentGarbage(state, clearedGroups)];
 }
 
 export function simulate(state) {
@@ -119,12 +122,9 @@ export function simulate(state) {
   const rounds = [];
 
   while (true) {
-    const groups = findGroups(current);
-    if (!groups.length) break;
+    const removed = findClearingCells(current);
+    if (!removed.length) break;
 
-    const clearedGroups = groups.flat();
-    const adjacentGarbage = findAdjacentGarbage(current, clearedGroups);
-    const removed = [...clearedGroups, ...adjacentGarbage];
     const next = clone(current);
     removed.forEach(([row, col]) => {
       next[row][col] = null;
