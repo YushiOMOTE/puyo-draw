@@ -7,7 +7,7 @@
 - The top row is the hidden-area row and uses a distinct background color; the former fourteenth row is not modeled because puyos do not fall into it.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
-- Narrow mobile layouts keep forced minimum margins around the field: 12px vertically and 8px horizontally, in addition to device safe-area insets.
+- Narrow mobile layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
 
 ## Puyo Rules
 
@@ -46,7 +46,7 @@ The rail uses square icon buttons without explanatory labels in the compact layo
 
 Long-pressing the board or controls must not enter browser text-selection or touch-callout mode.
 
-The document itself must not scroll on mobile; the field and controls fit within the viewport by reducing the field size when necessary.
+The document itself must not scroll on mobile; the field and controls fit within the app's actual available area, including device safe-area insets, by reducing the field size when necessary.
 
 The Help button opens a modal instruction overlay. The overlay contains a visual example of the radial flick menu and short explanations for color placement, garbage placement, and deletion. It closes from the top-right close button, by clicking outside the card, or with the Escape key. The help card scrolls internally when its content exceeds the viewport; the page behind it must not scroll.
 

@@ -20,6 +20,7 @@ Keep the existing mobile-first interaction model and preserve the core chain rul
 - Prefer clear, concise, human-readable wording.
 - Keep the dependency-free static architecture unless a change clearly requires a different approach.
 - Keep touch targets large and test layouts at narrow mobile widths.
+- When changing `styles.css`, increment the stylesheet version query in `index.html` so GitHub Pages users receive the updated CSS without waiting for the browser cache to expire.
 
 ## Verification
 

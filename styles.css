@@ -19,13 +19,18 @@
   user-select: none;
 }
 
+html,
 body {
-  min-height: 100svh;
+  width: 100%;
+  height: 100%;
   margin: 0;
-  color: var(--ink);
-  background: var(--bg);
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+body {
+  color: var(--ink);
+  background: var(--bg);
   -webkit-touch-callout: none;
 }
 
@@ -42,8 +47,10 @@ button {
   flex-direction: column;
   width: 100%;
   height: 100svh;
+  height: 100dvh;
   min-height: 0;
   padding: 8px;
+  overflow: hidden;
 }
 
 .play-area {
@@ -585,11 +592,21 @@ button {
       max(8px, env(safe-area-inset-left));
   }
   .play-area { gap: 4px; }
-  .board-card { padding: 12px 8px; }
+  .board-card {
+    padding: 16px 10px;
+    overflow: hidden;
+    container-type: size;
+  }
   .board-wrap {
     width: min(100%, calc((100svh - 40px) * 0.4615));
-    max-height: calc(100svh - 40px);
+    max-height: none;
     padding: 7px;
+  }
+
+  @supports (width: 1cqw) {
+    .board-wrap {
+      width: min(100cqw, 46.153cqh);
+    }
   }
   .toolbar { gap: 7px; padding-top: 2px; }
   .toolbar .chain-badge,
