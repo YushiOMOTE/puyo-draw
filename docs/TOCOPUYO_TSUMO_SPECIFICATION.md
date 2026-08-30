@@ -101,20 +101,21 @@ Palette, garbage, Clear, Simulate, and Suggestion controls are hidden rather tha
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its current position until the user acts.
 
-Tapping any cell targets its column, moves the visible falling pair horizontally to that column, and opens a four-direction flick menu. Each option shows a small colored preview of the pair in its resulting orientation:
+Pressing any cell targets its column, moves the visible falling pair horizontally in the upper spawn area, and begins a direct-manipulation preview without a menu. The preview updates as the pointer moves:
 
-- Down flick: move the pair to the tapped column, keep its spawn orientation, and hard-drop it.
-- Right flick: move the pair to the tapped column, rotate the child 90 degrees clockwise around the axis, and hard-drop it.
-- Left flick: move the pair to the tapped column, rotate the child 90 degrees counterclockwise around the axis, and hard-drop it.
-- Up flick: move the pair to the tapped column, rotate the pair 180 degrees, and hard-drop it.
+- Release without moving: move the pair to the tapped column, keep its spawn orientation, and hard-drop it.
+- Right movement: move the pair to the tapped column, rotate the child 90 degrees clockwise around the axis, and hard-drop it if valid.
+- Left movement: move the pair to the tapped column, rotate the child 90 degrees counterclockwise around the axis, and hard-drop it if valid.
+- Down movement: move the pair to the tapped column, rotate the pair 180 degrees, and hard-drop it if valid.
+- Up movement: cancel and restore the pair to its original spawn position.
 
-Each flick performs exactly one action. Horizontal movement and rotation do not advance the hand. Releasing without crossing the flick threshold cancels the menu and does not mutate session state.
+The vertical direction takes priority when horizontal and vertical movement are both present, so a diagonal down movement selects the 180-degree action. Direction selection uses hysteresis: 24 pixels enters a direction, returning within 12 pixels of the starting point restores straight placement, and 34 pixels is required to switch directly between non-neutral directions. The pair preview is updated continuously, while the hand advances only when the originating pointer is released. Additional simultaneous pointers are ignored.
 
-A placement that would place either puyo outside the allowed active-pair area or overlap a locked puyo is rejected. Right and left rotations reproduce Tsu-style collision correction: attempt the requested rotation, then its permitted wall-kick displacement when blocked. The up/180-degree action skips wall kicks, so a first-column target remains in the first column even when the upside-down child would otherwise require a kick.
+A placement that would place either puyo outside the allowed active-pair area or overlap a locked puyo is rejected. Horizontal rotations use no wall kicks: only rotations that would extend outside the field or overlap existing puyos leave the preview unrotated. A first-column right rotation is valid because both puyos remain inside the field. The down/180-degree rotation uses a floor kick at the supporting surface, whether that surface is the field floor or the top of an existing stack, so the child rests on it and the axis is one row above. Every preview is recomputed from the original upper pair position, preventing repeated direction changes from gradually raising the axis. Horizontal previews remain an intact pair; the split or chigiri result is shown only after confirmation.
 
 ### Lock and automatic simulation
 
-1. A down flick computes the lowest valid position for the current pair orientation.
+1. A downward release computes the lowest valid position for the current pair orientation, including the floor kick for a 180-degree rotation against the field floor or an existing stack.
 2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported.
 3. The current hand is consumed only after both puyos have successfully locked.
 4. If the locked board contains a connected group of four or more, chain simulation begins automatically. No Simulate button is shown.
@@ -217,7 +218,7 @@ The active pair cannot be committed if there is no legal landing position for bo
 - Returning to Drawing mode preserves the Tokopuyo session; switching back resumes it.
 - Reset starts a new random pattern rather than replaying the current seed.
 - The pattern number is always shown in compact form near Next and Next Next.
-- Right and left rotations include Tsu-style wall kicks; the up/180-degree action skips wall kicks.
+- No Tokopuyo rotation uses wall kicks in the direct-manipulation interaction variant.
 - Game over is checked at the standard third-column choke point after chain resolution.
 - Undo/Redo operates on one committed hand plus its complete automatic chain result, not on individual pre-lock moves or rotations.
 

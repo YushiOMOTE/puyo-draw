@@ -15,7 +15,8 @@
 - The top row is the hidden-area row and uses a distinct background color; the former fourteenth row is not modeled because puyos do not fall into it.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
-- Narrow mobile layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
+- Narrow mobile Drawing-mode layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
+- Narrow mobile Tokopuyo layouts enlarge and bottom-align the field using compact outer and inner spacing. The bottom edge keeps only the device safe-area inset; the field frame retains a small five-pixel inset around the cells.
 
 ## Puyo Rules
 
@@ -63,8 +64,8 @@ The Help (`i`) button is pinned to the bottom of the rail.
 - The selected four-color pattern contains 128 axis/child pairs and loops after hand 128. The displayed pattern number is `seed + 1` and remains visible near the previews.
 - The active pair starts vertically over the third column, with the child above the axis. A virtual row above the modeled thirteen-row board allows the spawn position to be rendered without changing the locked-board model.
 - Next and Next Next appear in a compact preview area above the Tokopuyo sidebar.
-- Tapping any cell targets its column, moves the visible falling pair horizontally to that column, and opens a four-direction flick menu. Each option previews the pair's colors and resulting orientation. Down places the pair in that column without rotating; right and left rotate 90 degrees and place it there with wall kicks; up rotates 180 degrees and places it there without a wall kick. Releasing below the flick threshold cancels.
-- Placement is step-driven and has no timer. Right/left rotation uses collision push-back/wall kicks; the 180-degree up action intentionally skips wall kicks.
+- Pressing any cell targets its column, moves the visible falling pair horizontally at the upper spawn area, and begins a direct-manipulation preview without a flick menu. Releasing without moving drops straight; sliding right or left rotates 90 degrees and drops if the pair fits; sliding down rotates 180 degrees and drops with the floor kick that places the child on the top of the existing stack and the axis one row above; sliding up cancels and returns the pair to its spawn position. Vertical intent takes priority over horizontal intent.
+- Placement is step-driven and has no timer. Horizontal rotations use no wall kicks; a rotation that does not fit is rejected visually and resolves as straight placement. A down/180-degree rotation may use the floor kick, and every new preview recomputes from the original pair position so the axis does not drift upward across direction changes. Direction selection uses hysteresis: entering a direction requires more movement than retaining it, returning close to the starting point restores straight placement, and switching directly between non-neutral directions requires a larger movement. Only the pointer that started the gesture may update or finish it.
 - On lock, horizontally separated puyos fall independently when their columns have different heights. The current hand advances only after lock.
 - Groups of four or more trigger the existing chain animation and scoring automatically. Pair input and history controls are disabled until resolution finishes.
 - The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero.

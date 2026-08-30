@@ -26,6 +26,12 @@ import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { generatePattern, getTsumo } from "./tokopuyo/queue.js";
 import {
+  GESTURE_ENTER_DISTANCE,
+  GESTURE_EXIT_DISTANCE,
+  GESTURE_SWITCH_DISTANCE,
+  gestureIntent,
+} from "./tokopuyo/gesture.js";
+import {
   ORIENTATION,
   createActivePair,
   hardDrop,
@@ -39,6 +45,7 @@ import {
   commitPairAtColumn,
   createSession,
   previewHands,
+  previewPairAtColumn,
   redoSession,
   undoSession,
 } from "./tokopuyo/session.js";
@@ -89,6 +96,38 @@ assert.equal(COLS, 6);
 assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
+
+assert.equal(
+  gestureIntent(0, 0, GESTURE_ENTER_DISTANCE - 1, 0),
+  "straight",
+);
+assert.equal(gestureIntent(0, 0, GESTURE_ENTER_DISTANCE, 0), "right");
+assert.equal(
+  gestureIntent(0, 0, GESTURE_EXIT_DISTANCE + 1, 0, "right"),
+  "right",
+);
+assert.equal(
+  gestureIntent(0, 0, GESTURE_EXIT_DISTANCE, 0, "right"),
+  "straight",
+);
+assert.equal(
+  gestureIntent(0, 0, GESTURE_SWITCH_DISTANCE, 0, "down"),
+  "right",
+);
+assert.equal(
+  gestureIntent(
+    0,
+    0,
+    GESTURE_SWITCH_DISTANCE,
+    GESTURE_ENTER_DISTANCE,
+    "right",
+  ),
+  "down",
+);
+assert.equal(
+  gestureIntent(0, 0, -GESTURE_SWITCH_DISTANCE, 0, "right"),
+  "left",
+);
 
 const seedZeroPattern = generatePattern(0);
 assert.equal(seedZeroPattern.number, 1);
@@ -169,12 +208,28 @@ assert.equal(redoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 1);
 
 const kickedSession = createSession(0);
-assert.ok(commitPairAtColumn(kickedSession, 0, "left"));
-assert.equal(kickedSession.board[ROWS - 1][0], seedZeroPattern.hands[0].child);
-assert.equal(kickedSession.board[ROWS - 1][1], seedZeroPattern.hands[0].axis);
+assert.equal(commitPairAtColumn(kickedSession, 0, "left"), null);
+assert.ok(commitPairAtColumn(kickedSession, 0, "right"));
+
+const splitPreviewSession = createSession(0);
+splitPreviewSession.board[ROWS - 1][2] = "green";
+const splitPreview = previewPairAtColumn(splitPreviewSession, 2, "right");
+assert.deepEqual(
+  splitPreview.map(({ row, col }) => ({ row, col })),
+  [
+    { row: 0, col: 2 },
+    { row: 0, col: 3 },
+  ],
+);
+
+const floorKickSession = createSession(0);
+floorKickSession.board[ROWS - 1][2] = "green";
+assert.ok(commitPairAtColumn(floorKickSession, 2, "down"));
+assert.equal(floorKickSession.board[ROWS - 2][2], seedZeroPattern.hands[0].child);
+assert.equal(floorKickSession.board[ROWS - 3][2], seedZeroPattern.hands[0].axis);
 
 const upsideDownSession = createSession(0);
-assert.ok(commitPairAtColumn(upsideDownSession, 0, "up"));
+assert.ok(commitPairAtColumn(upsideDownSession, 0, "down"));
 assert.equal(
   upsideDownSession.board[ROWS - 1][0],
   seedZeroPattern.hands[0].child,

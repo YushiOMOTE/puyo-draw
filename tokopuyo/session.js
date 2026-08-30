@@ -1,14 +1,34 @@
 import { COLS, HIDDEN_ROWS, clone, emptyBoard, simulate } from "../engine.js";
 import {
+  ORIENTATION,
   createActivePair,
   hardDrop,
   isPairValid,
+  pairCells,
   movePair,
   rotatePair,
 } from "./pair-engine.js";
 import { generatePattern, getTsumo } from "./queue.js";
 
 const CHOKE_COL = 2;
+const PLACEMENT_ORIENTATIONS = Object.freeze({
+  straight: ORIENTATION.UP,
+  right: ORIENTATION.RIGHT,
+  down: ORIENTATION.DOWN,
+  left: ORIENTATION.LEFT,
+});
+
+function pairAtColumn(session, col, direction) {
+  const orientation = PLACEMENT_ORIENTATIONS[direction];
+  if (orientation === undefined) return null;
+  const pair = {
+    ...createActivePair(getTsumo(session.pattern, session.handIndex)),
+    axis: { row: 0, col },
+    orientation,
+    blockedRotation: null,
+  };
+  return isPairValid(session.board, pair) ? pair : null;
+}
 
 function canonicalSnapshot(session) {
   return {
@@ -99,27 +119,19 @@ export function commitPairAtColumn(session, col, direction) {
   if (!Number.isInteger(col) || col < 0 || col >= COLS) {
     throw new RangeError("Tokopuyo target column is out of range");
   }
-  if (!["up", "right", "down", "left"].includes(direction)) {
+  if (!["straight", "right", "down", "left"].includes(direction)) {
     throw new RangeError(`Unsupported Tokopuyo drop direction: ${direction}`);
   }
 
-  let pair = createActivePair(getTsumo(session.pattern, session.handIndex));
-  pair.axis = { row: pair.axis.row, col };
-  if (!isPairValid(session.board, pair)) return null;
-
-  if (direction === "right") pair = rotatePair(session.board, pair, 1);
-  if (direction === "left") pair = rotatePair(session.board, pair, -1);
-  if (direction === "up") {
-    pair = { ...pair, orientation: 2, blockedRotation: null };
-    if (!isPairValid(session.board, pair)) return null;
-  }
-
-  if (
-    (direction === "right" || direction === "left") &&
-    pair.orientation === 0
-  ) return null;
-
+  const pair = pairAtColumn(session, col, direction);
+  if (!pair) return null;
   return commitPair(session, pair);
+}
+
+export function previewPairAtColumn(session, col, direction) {
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
+  const pair = pairAtColumn(session, col, direction);
+  return pair ? pairCells(pair) : null;
 }
 
 export function undoSession(session) {

@@ -62,9 +62,9 @@ Deliverable: both modes render correctly and preserve the existing compact sideb
 
 ## Phase 5: Flick interaction and animation integration
 
-1. Build a dedicated four-direction column-targeted flick menu rather than reusing color-selection semantics.
-2. Map up/down/left/right gestures to rotate-and-drop or straight-drop placement actions.
-3. Cancel cleanly on a short release or pointer cancellation.
+1. Build a direct-manipulation column preview rather than showing a flick menu.
+2. Map horizontal movement to 90-degree rotation and vertical movement to cancel or 180-degree rotation, with vertical intent taking priority.
+3. Show split/chigiri landing positions during horizontal previews and restore the spawn preview on cancellation.
 4. On hard drop, animate placement, run the existing clear/gravity animation automatically when needed, then spawn the next pair.
 5. Disable pair and history input during lock and chain animation.
 6. Ensure stale pointer events cannot mutate a session after Reset or a mode switch.

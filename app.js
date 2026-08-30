@@ -12,10 +12,12 @@ import {
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { pairCells } from "./tokopuyo/pair-engine.js";
+import { gestureIntent } from "./tokopuyo/gesture.js";
 import { randomSeed } from "./tokopuyo/queue.js";
 import {
   commitPairAtColumn,
   createSession,
+  previewPairAtColumn,
   previewHands,
   redoSession,
   undoSession,
@@ -57,7 +59,7 @@ let appMode = "drawing";
 let tokopuyoSession = null;
 let tokopuyoBoardOverride = null;
 let tokopuyoDisplayedChain = null;
-let tokopuyoFlickPair = null;
+let tokopuyoPreviewCells = null;
 const suggestionController = new SuggestionController();
 
 const colorFlickTools = [
@@ -167,6 +169,8 @@ let flick = {
   choice: null,
   tools: [],
   suppressClick: false,
+  pointerId: null,
+  intent: "straight",
 };
 
 function renderPreviewPair(element, tsumo) {
@@ -192,15 +196,24 @@ function renderActivePair() {
   const boardRect = boardEl.getBoundingClientRect();
   const wrapRect = boardWrap.getBoundingClientRect();
   const cellSize = boardRect.width / COLS;
-  const displayPair = tokopuyoFlickPair || tokopuyoSession.activePair;
-  for (const { row, col, color, role } of pairCells(displayPair)) {
+  const displayCells =
+    tokopuyoPreviewCells || pairCells(tokopuyoSession.activePair);
+  for (const { row, col, color, role } of displayCells) {
     const puyo = document.createElement("span");
     puyo.className = `active-puyo ${color}`;
-    puyo.ariaLabel = `${role === "axis" ? "Axis" : "Child"} ${color} puyo; flick to move, rotate, or drop`;
+    puyo.ariaLabel = `${role === "axis" ? "Axis" : "Child"} ${color} puyo; drag to preview placement`;
     puyo.style.width = `${cellSize * 0.78}px`;
     puyo.style.height = `${cellSize * 0.78}px`;
-    puyo.style.left = `${boardRect.left - wrapRect.left + (col + 0.5) * cellSize}px`;
-    puyo.style.top = `${boardRect.top - wrapRect.top + (row + 0.5) * cellSize}px`;
+    const cell = row >= 0 ? boardEl.children[row * COLS + col] : null;
+    const cellRect = cell?.getBoundingClientRect();
+    const centerX = cellRect
+      ? cellRect.left + cellRect.width / 2 - wrapRect.left
+      : boardRect.left - wrapRect.left + (col + 0.5) * cellSize;
+    const centerY = cellRect
+      ? cellRect.top + cellRect.height / 2 - wrapRect.top
+      : boardRect.top - wrapRect.top + (row + 0.5) * cellSize;
+    puyo.style.left = `${centerX}px`;
+    puyo.style.top = `${centerY}px`;
     activePairLayer.append(puyo);
   }
 }
@@ -648,87 +661,58 @@ function openTokopuyoFlick(event, targetCol = null) {
   ) return;
 
   event.preventDefault();
-  tokopuyoFlickPair = {
-    ...tokopuyoSession.activePair,
-    axis: {
-      ...tokopuyoSession.activePair.axis,
-      col: targetCol ?? tokopuyoSession.activePair.axis.col,
-    },
-  };
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  const col = targetCol ?? tokopuyoSession.activePair.axis.col;
+  tokopuyoPreviewCells = previewPairAtColumn(tokopuyoSession, col, "straight");
   flick = {
     kind: "tokopuyo",
     row: 0,
-    col: targetCol ?? 0,
+    col,
     startX: event.clientX,
     startY: event.clientY,
     moved: false,
-    choice: null,
+    choice: "straight",
     tools: [],
     suppressClick: true,
+    pointerId: event.pointerId,
+    intent: "straight",
   };
 
-  buildTokopuyoFlickMenu();
-  flickMenu.style.left = `${event.clientX}px`;
-  flickMenu.style.top = `${event.clientY}px`;
-  flickMenu.hidden = false;
+  flickMenu.hidden = true;
+  flickMenu.classList.remove("tokopuyo-flick-menu");
   renderActivePair();
-  setStatus("Flick up, down, left, or right to place this pair in the selected column");
 }
 
-function buildTokopuyoFlickMenu() {
-  const actions = [
-    ["up", 2, 0, -62, "Rotate 180 degrees and drop"],
-    ["left", 3, -62, 0, "Rotate left and drop"],
-    ["down", 0, 0, 62, "Drop straight"],
-    ["right", 1, 62, 0, "Rotate right and drop"],
-  ];
-  flickMenu.innerHTML = "";
-  flickMenu.classList.add("tokopuyo-flick-menu");
-
-  for (const [action, orientation, x, y, label] of actions) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "flick-option tokopuyo-flick-option";
-    button.dataset.action = action;
-    button.ariaLabel = `${label} (${tokopuyoFlickPair.axisColor} and ${tokopuyoFlickPair.childColor})`;
-    button.style.left = `calc(50% + ${x}px)`;
-    button.style.top = `calc(50% + ${y}px)`;
-    button.append(createTokopuyoMiniPair(orientation));
-    flickMenu.append(button);
+function updateTokopuyoPreview(action) {
+  let effectiveAction = action;
+  if (action === "cancel") {
+    tokopuyoPreviewCells = pairCells(tokopuyoSession.activePair);
+  } else {
+    const straightPreview = previewPairAtColumn(
+      tokopuyoSession,
+      flick.col,
+      "straight",
+    );
+    const requestedPreview = previewPairAtColumn(
+      tokopuyoSession,
+      flick.col,
+      action,
+    );
+    tokopuyoPreviewCells =
+      requestedPreview || straightPreview || pairCells(tokopuyoSession.activePair);
+    effectiveAction = requestedPreview ? action : "straight";
   }
-}
-
-function createTokopuyoMiniPair(orientation) {
-  const pair = document.createElement("span");
-  pair.className = `tokopuyo-mini-pair orientation-${orientation}`;
-  for (const [color, role] of [
-    [tokopuyoFlickPair.axisColor, "axis"],
-    [tokopuyoFlickPair.childColor, "child"],
-  ]) {
-    const puyo = document.createElement("i");
-    puyo.className = `mini-puyo ${role} ${color}`;
-    pair.append(puyo);
-  }
-  return pair;
-}
-
-function tokopuyoFlickChoice(x, y) {
-  const dx = x - flick.startX;
-  const dy = y - flick.startY;
-  if (Math.hypot(dx, dy) < 24) return null;
-  if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? "left" : "right";
-  return dy < 0 ? "up" : "down";
-}
-
-function highlightTokopuyoFlick(action) {
-  flickMenu.querySelectorAll(".flick-option").forEach((button) => {
-    button.classList.toggle("active", button.dataset.action === action);
-  });
+  renderActivePair();
+  return effectiveAction;
 }
 
 async function dropTokopuyoPair(direction, targetCol) {
   if (!tokopuyoSession || tokopuyoSession.busy) return;
-  const committed = commitPairAtColumn(tokopuyoSession, targetCol, direction);
+  const committed = commitPairAtColumn(
+    tokopuyoSession,
+    targetCol,
+    direction,
+  );
   if (!committed) return;
 
   tokopuyoSession.busy = true;
@@ -795,6 +779,7 @@ function switchAppMode() {
 }
 
 function openFlick(row, col, event) {
+  if (flick.row >= 0) return;
   if (appMode === "tokopuyo") {
     openTokopuyoFlick(event, col);
     return;
@@ -813,7 +798,11 @@ function openFlick(row, col, event) {
     choice: null,
     tools,
     suppressClick: false,
+    pointerId: event.pointerId,
+    intent: "straight",
   };
+
+  event.currentTarget.setPointerCapture?.(event.pointerId);
 
   buildFlickMenu(tools);
   flickMenu.style.left = `${event.clientX}px`;
@@ -848,7 +837,7 @@ function closeFlick() {
     .querySelectorAll(".flick-option")
     .forEach((button) => button.classList.remove("active"));
   if (wasTokopuyo) {
-    tokopuyoFlickPair = null;
+    tokopuyoPreviewCells = null;
     renderActivePair();
   }
 }
@@ -897,14 +886,20 @@ function closeHelp() {
 
 window.addEventListener("pointermove", (event) => {
   if (flick.row < 0) return;
+  if (event.pointerId !== flick.pointerId) return;
 
   if (flick.kind === "tokopuyo") {
-    const action = tokopuyoFlickChoice(event.clientX, event.clientY);
-    if (action) {
-      flick.moved = true;
-      flick.choice = action;
-      highlightTokopuyoFlick(action);
-    }
+    const intent = gestureIntent(
+      flick.startX,
+      flick.startY,
+      event.clientX,
+      event.clientY,
+      flick.intent,
+    );
+    if (intent === flick.intent) return;
+    flick.intent = intent;
+    flick.moved = intent !== "straight";
+    flick.choice = updateTokopuyoPreview(intent);
     return;
   }
 
@@ -916,14 +911,16 @@ window.addEventListener("pointermove", (event) => {
   }
 });
 
-window.addEventListener("pointerup", () => {
+window.addEventListener("pointerup", (event) => {
   if (flick.row < 0) return;
+  if (event.pointerId !== flick.pointerId) return;
 
   if (flick.kind === "tokopuyo") {
-    const action = flick.moved ? flick.choice : null;
+    const action = flick.choice || "straight";
+    const targetCol = flick.col;
     closeFlick();
     flick.row = -1;
-    if (action) performTokopuyoAction(action);
+    if (action !== "cancel") dropTokopuyoPair(action, targetCol);
     return;
   }
 
@@ -946,7 +943,8 @@ window.addEventListener("pointerup", () => {
   flick.row = -1;
 });
 
-window.addEventListener("pointercancel", () => {
+window.addEventListener("pointercancel", (event) => {
+  if (flick.row < 0 || event.pointerId !== flick.pointerId) return;
   closeFlick();
   flick.row = -1;
 });
