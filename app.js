@@ -57,6 +57,7 @@ let appMode = "drawing";
 let tokopuyoSession = null;
 let tokopuyoBoardOverride = null;
 let tokopuyoDisplayedChain = null;
+let tokopuyoFlickPair = null;
 const suggestionController = new SuggestionController();
 
 const colorFlickTools = [
@@ -191,7 +192,8 @@ function renderActivePair() {
   const boardRect = boardEl.getBoundingClientRect();
   const wrapRect = boardWrap.getBoundingClientRect();
   const cellSize = boardRect.width / COLS;
-  for (const { row, col, color, role } of pairCells(tokopuyoSession.activePair)) {
+  const displayPair = tokopuyoFlickPair || tokopuyoSession.activePair;
+  for (const { row, col, color, role } of pairCells(displayPair)) {
     const puyo = document.createElement("span");
     puyo.className = `active-puyo ${color}`;
     puyo.ariaLabel = `${role === "axis" ? "Axis" : "Child"} ${color} puyo; flick to move, rotate, or drop`;
@@ -646,6 +648,13 @@ function openTokopuyoFlick(event, targetCol = null) {
   ) return;
 
   event.preventDefault();
+  tokopuyoFlickPair = {
+    ...tokopuyoSession.activePair,
+    axis: {
+      ...tokopuyoSession.activePair.axis,
+      col: targetCol ?? tokopuyoSession.activePair.axis.col,
+    },
+  };
   flick = {
     kind: "tokopuyo",
     row: 0,
@@ -662,30 +671,45 @@ function openTokopuyoFlick(event, targetCol = null) {
   flickMenu.style.left = `${event.clientX}px`;
   flickMenu.style.top = `${event.clientY}px`;
   flickMenu.hidden = false;
+  renderActivePair();
   setStatus("Flick up, down, left, or right to place this pair in the selected column");
 }
 
 function buildTokopuyoFlickMenu() {
   const actions = [
-    ["up", "↑", 0, -62, "Rotate 180 degrees and drop"],
-    ["left", "←", -62, 0, "Rotate left and drop"],
-    ["down", "↓", 0, 62, "Drop straight"],
-    ["right", "→", 62, 0, "Rotate right and drop"],
+    ["up", 2, 0, -62, "Rotate 180 degrees and drop"],
+    ["left", 3, -62, 0, "Rotate left and drop"],
+    ["down", 0, 0, 62, "Drop straight"],
+    ["right", 1, 62, 0, "Rotate right and drop"],
   ];
   flickMenu.innerHTML = "";
   flickMenu.classList.add("tokopuyo-flick-menu");
 
-  for (const [action, icon, x, y, label] of actions) {
+  for (const [action, orientation, x, y, label] of actions) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "flick-option tokopuyo-flick-option";
     button.dataset.action = action;
-    button.textContent = icon;
-    button.ariaLabel = label;
+    button.ariaLabel = `${label} (${tokopuyoFlickPair.axisColor} and ${tokopuyoFlickPair.childColor})`;
     button.style.left = `calc(50% + ${x}px)`;
     button.style.top = `calc(50% + ${y}px)`;
+    button.append(createTokopuyoMiniPair(orientation));
     flickMenu.append(button);
   }
+}
+
+function createTokopuyoMiniPair(orientation) {
+  const pair = document.createElement("span");
+  pair.className = `tokopuyo-mini-pair orientation-${orientation}`;
+  for (const [color, role] of [
+    [tokopuyoFlickPair.axisColor, "axis"],
+    [tokopuyoFlickPair.childColor, "child"],
+  ]) {
+    const puyo = document.createElement("i");
+    puyo.className = `mini-puyo ${role} ${color}`;
+    pair.append(puyo);
+  }
+  return pair;
 }
 
 function tokopuyoFlickChoice(x, y) {
@@ -817,11 +841,16 @@ function highlightFlick(index) {
 }
 
 function closeFlick() {
+  const wasTokopuyo = flick.kind === "tokopuyo";
   flickMenu.hidden = true;
   flickMenu.classList.remove("tokopuyo-flick-menu");
   flickMenu
     .querySelectorAll(".flick-option")
     .forEach((button) => button.classList.remove("active"));
+  if (wasTokopuyo) {
+    tokopuyoFlickPair = null;
+    renderActivePair();
+  }
 }
 
 function buildFlickMenu(tools) {

@@ -101,7 +101,7 @@ Palette, garbage, Clear, Simulate, and Suggestion controls are hidden rather tha
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its current position until the user acts.
 
-Tapping any cell targets its column and opens a four-direction flick menu:
+Tapping any cell targets its column, moves the visible falling pair horizontally to that column, and opens a four-direction flick menu. Each option shows a small colored preview of the pair in its resulting orientation:
 
 - Down flick: move the pair to the tapped column, keep its spawn orientation, and hard-drop it.
 - Right flick: move the pair to the tapped column, rotate the child 90 degrees clockwise around the axis, and hard-drop it.

@@ -63,7 +63,7 @@ The Help (`i`) button is pinned to the bottom of the rail.
 - The selected four-color pattern contains 128 axis/child pairs and loops after hand 128. The displayed pattern number is `seed + 1` and remains visible near the previews.
 - The active pair starts vertically over the third column, with the child above the axis. A virtual row above the modeled thirteen-row board allows the spawn position to be rendered without changing the locked-board model.
 - Next and Next Next appear in a compact preview area above the Tokopuyo sidebar.
-- Tapping any cell targets its column and opens a four-direction flick menu. Down places the pair in that column without rotating; right and left rotate 90 degrees and place it there with wall kicks; up rotates 180 degrees and places it there without a wall kick. Releasing below the flick threshold cancels.
+- Tapping any cell targets its column, moves the visible falling pair horizontally to that column, and opens a four-direction flick menu. Each option previews the pair's colors and resulting orientation. Down places the pair in that column without rotating; right and left rotate 90 degrees and place it there with wall kicks; up rotates 180 degrees and places it there without a wall kick. Releasing below the flick threshold cancels.
 - Placement is step-driven and has no timer. Right/left rotation uses collision push-back/wall kicks; the 180-degree up action intentionally skips wall kicks.
 - On lock, horizontally separated puyos fall independently when their columns have different heights. The current hand advances only after lock.
 - Groups of four or more trigger the existing chain animation and scoring automatically. Pair input and history controls are disabled until resolution finishes.
