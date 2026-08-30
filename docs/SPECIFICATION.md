@@ -16,7 +16,7 @@
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
 - Narrow mobile Drawing-mode layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
-- Narrow mobile Tokopuyo layouts enlarge and bottom-align the field using compact outer and inner spacing. The bottom edge keeps only the device safe-area inset; the field frame retains a small five-pixel inset around the cells.
+- Narrow mobile Tokopuyo layouts use the same outer, card, and field-frame spacing as Drawing mode while retaining square cells and the device safe-area insets.
 
 ## Puyo Rules
 

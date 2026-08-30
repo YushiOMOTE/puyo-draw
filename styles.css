@@ -1031,21 +1031,6 @@ button {
     max-height: none;
     padding: 7px;
   }
-  body[data-mode="tokopuyo"] .app-shell {
-    padding: max(4px, env(safe-area-inset-top))
-      max(4px, env(safe-area-inset-right))
-      env(safe-area-inset-bottom)
-      max(4px, env(safe-area-inset-left));
-  }
-  body[data-mode="tokopuyo"] .play-area { gap: 2px; }
-  body[data-mode="tokopuyo"] .board-card {
-    align-items: flex-end;
-    padding: 8px 2px 0;
-  }
-  body[data-mode="tokopuyo"] .board-wrap {
-    padding: 5px;
-  }
-
   @supports (width: 1cqw) {
     .board-wrap {
       width: min(100cqw, 46.153cqh);
