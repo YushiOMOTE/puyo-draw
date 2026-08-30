@@ -34,4 +34,6 @@ Pushing to the `main` branch triggers `.github/workflows/deploy.yml`. The workfl
 
 - [Product concept](docs/CONCEPT.md)
 - [Product specification](docs/SPECIFICATION.md)
+- [Tokopuyo specification](docs/TOCOPUYO_TSUMO_SPECIFICATION.md)
+- [Tokopuyo implementation plan](docs/TOCOPUYO_IMPLEMENTATION_PLAN.md)
 - [Contribution guidelines](AGENTS.md)

@@ -1,5 +1,13 @@
 # Puyo Chain Simulator — Specification
 
+## Application Modes
+
+- Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
+- Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
+- The Tokopuyo button is directly above Help at the bottom of the Drawing-mode sidebar. The same position contains the Drawing-mode button while Tokopuyo is active.
+- Switching modes preserves each mode's board, history, score, and mode-specific state. Switching modes does not create a history entry.
+- Direct board editing, palette selection, garbage mode, Clear, manual Simulate, and Suggestion are unavailable in Tokopuyo mode.
+
 ## Board Model
 
 - Six columns and thirteen rows.
@@ -45,8 +53,27 @@ The right-side rail is ordered from top to bottom:
 6. Reset.
 7. Palette.
 8. Garbage puyo mode.
+9. Tokopuyo mode.
 
 The Help (`i`) button is pinned to the bottom of the rail.
+
+## Tokopuyo Mode
+
+- The first entry starts immediately with a uniformly selected seed from 0 through 65,535. Reset clears Tokopuyo state and starts another randomly selected pattern.
+- The selected four-color pattern contains 128 axis/child pairs and loops after hand 128. The displayed pattern number is `seed + 1` and remains visible near the previews.
+- The active pair starts vertically over the third column, with the child above the axis. A virtual row above the modeled thirteen-row board allows the spawn position to be rendered without changing the locked-board model.
+- Next and Next Next appear in a compact preview area above the Tokopuyo sidebar.
+- Tapping any cell targets its column and opens a four-direction flick menu. Down places the pair in that column without rotating; right and left rotate 90 degrees and place it there with wall kicks; up rotates 180 degrees and places it there without a wall kick. Releasing below the flick threshold cancels.
+- Placement is step-driven and has no timer. Right/left rotation uses collision push-back/wall kicks; the 180-degree up action intentionally skips wall kicks.
+- On lock, horizontally separated puyos fall independently when their columns have different heights. The current hand advances only after lock.
+- Groups of four or more trigger the existing chain animation and scoring automatically. Pair input and history controls are disabled until resolution finishes.
+- The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero.
+- Tokopuyo Undo/Redo is independent from Drawing mode. One committed pair and its complete chain result form one atomic history entry; pre-lock movement and rotation are not history entries. Redo restores the resolved state without replaying animation.
+- After chain resolution, occupancy of the marked third-column choke point ends the session. Reset, Undo, Drawing mode, and Help remain available at game over.
+- The Tokopuyo sidebar contains, below the previews: Chain count, Undo, Redo, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
+- The Help overlay shows instructions for the active mode.
+
+The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
 
 The Palette button cycles through all five four-color palettes and then the five-color palette. The five-color state is shown with five colored circles arranged like the face of a die.
 
@@ -98,6 +125,7 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 - Use plain HTML, CSS, and JavaScript modules.
 - Keep the chain engine independent from the DOM so it can be tested with Node.js.
 - Keep suggestion solvers independent from the DOM. The worker-facing solver contract lives in `solver/contract.js`. `solver/solver-registry.js` selects a traversal implementation, `solver/search-policy.js` applies shared search rules and records raw milestones, and `solver/candidate-pipeline.js` creates public display candidates.
+- Keep Tokopuyo queue generation, active-pair movement, and session history independent from the DOM in `tokopuyo/queue.js`, `tokopuyo/pair-engine.js`, and `tokopuyo/session.js`.
 - Do not add a build step or runtime dependency without an explicit product decision.
 - GitHub Pages deployment is provided by `.github/workflows/deploy.yml`.
 - The Pages workflow appends the deployment commit SHA to every local JavaScript and CSS reference, including transitive module imports and the suggestion worker URL, so a browser cannot combine modules from different releases.
@@ -105,4 +133,4 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 
 ## Verification
 
-The logic tests cover four-puyo clearing, gravity, settled and floating board detection, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, clean failure when workers are unavailable, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, hybrid long-chain discovery, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, and the six-column board width. UI changes should also be checked in a mobile-sized Chrome viewport.
+The logic tests cover four-puyo clearing, gravity, settled and floating board detection, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, clean failure when workers are unavailable, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, hybrid long-chain discovery, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, six-column board width, deterministic Tokopuyo generation and wraparound, movement, rotation kicks, direct 180-degree placement, split hard drops, automatic chains, atomic history, and choke-point game over. UI changes should also be checked in a mobile-sized browser viewport.

@@ -24,6 +24,24 @@ import { createSearchPolicy } from "./solver/search-policy.js";
 import { solveSuggestion } from "./solver/solver-registry.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
+import { generatePattern, getTsumo } from "./tokopuyo/queue.js";
+import {
+  ORIENTATION,
+  createActivePair,
+  hardDrop,
+  movePair,
+  pairCells,
+  rotatePair,
+} from "./tokopuyo/pair-engine.js";
+import {
+  actOnPair,
+  commitActivePair,
+  commitPairAtColumn,
+  createSession,
+  previewHands,
+  redoSession,
+  undoSession,
+} from "./tokopuyo/session.js";
 
 const solveWithAma = (request) =>
   solveSuggestion({ ...request, solver: "ama" });
@@ -71,6 +89,122 @@ assert.equal(COLS, 6);
 assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
+
+const seedZeroPattern = generatePattern(0);
+assert.equal(seedZeroPattern.number, 1);
+assert.equal(seedZeroPattern.hands.length, 128);
+assert.equal(seedZeroPattern.colors.length, 4);
+assert.deepEqual(getTsumo(seedZeroPattern, 128), getTsumo(seedZeroPattern, 0));
+assert.throws(() => generatePattern(-1), RangeError);
+assert.throws(() => generatePattern(65_536), RangeError);
+assert.equal(generatePattern(65_535).number, 65_536);
+assert.deepEqual(generatePattern(0), seedZeroPattern);
+assert.equal(
+  generatePattern(34_066).hands
+    .slice(0, 8)
+    .map(({ axis, child }) => `${axis[0]}${child[0]}`)
+    .join(""),
+  "bpbpbpypgybgbpbb",
+);
+
+const activePair = createActivePair({ axis: "red", child: "blue" });
+assert.deepEqual(pairCells(activePair), [
+  { row: 0, col: 2, color: "red", role: "axis" },
+  { row: -1, col: 2, color: "blue", role: "child" },
+]);
+const movedPair = movePair(emptyBoard(), activePair, 1);
+assert.equal(movedPair.axis.col, 3);
+assert.equal(rotatePair(emptyBoard(), activePair, 1).orientation, ORIENTATION.RIGHT);
+
+const wallPair = {
+  ...activePair,
+  axis: { row: 2, col: 0 },
+  orientation: ORIENTATION.UP,
+};
+const wallKicked = rotatePair(emptyBoard(), wallPair, -1);
+assert.equal(wallKicked.orientation, ORIENTATION.LEFT);
+assert.equal(wallKicked.axis.col, 1);
+
+const wedgedBoard = emptyBoard();
+wedgedBoard[2][1] = "green";
+wedgedBoard[2][3] = "yellow";
+const wedgedPair = {
+  ...activePair,
+  axis: { row: 2, col: 2 },
+  orientation: ORIENTATION.UP,
+};
+const blockedOnce = rotatePair(wedgedBoard, wedgedPair, 1);
+assert.equal(blockedOnce.orientation, ORIENTATION.UP);
+assert.equal(blockedOnce.blockedRotation, 1);
+const quickTurned = rotatePair(wedgedBoard, blockedOnce, 1);
+assert.equal(quickTurned.orientation, ORIENTATION.DOWN);
+assert.equal(quickTurned.axis.row, 1);
+
+const splitBoard = emptyBoard();
+splitBoard[ROWS - 1][2] = "green";
+splitBoard[ROWS - 1][3] = "yellow";
+splitBoard[ROWS - 2][3] = "yellow";
+const horizontalPair = {
+  ...activePair,
+  orientation: ORIENTATION.RIGHT,
+};
+const splitDrop = hardDrop(splitBoard, horizontalPair);
+assert.equal(splitDrop.board[ROWS - 2][2], "red");
+assert.equal(splitDrop.board[ROWS - 3][3], "blue");
+
+const tokopuyoSession = createSession(0);
+assert.deepEqual(previewHands(tokopuyoSession), [
+  getTsumo(seedZeroPattern, 1),
+  getTsumo(seedZeroPattern, 2),
+]);
+actOnPair(tokopuyoSession, "left");
+const committed = commitActivePair(tokopuyoSession);
+assert.ok(committed);
+assert.equal(tokopuyoSession.handIndex, 1);
+assert.equal(tokopuyoSession.history.length, 1);
+assert.equal(undoSession(tokopuyoSession), true);
+assert.equal(tokopuyoSession.handIndex, 0);
+assert.equal(tokopuyoSession.activePair.axis.col, 2);
+assert.equal(redoSession(tokopuyoSession), true);
+assert.equal(tokopuyoSession.handIndex, 1);
+
+const kickedSession = createSession(0);
+assert.ok(commitPairAtColumn(kickedSession, 0, "left"));
+assert.equal(kickedSession.board[ROWS - 1][0], seedZeroPattern.hands[0].child);
+assert.equal(kickedSession.board[ROWS - 1][1], seedZeroPattern.hands[0].axis);
+
+const upsideDownSession = createSession(0);
+assert.ok(commitPairAtColumn(upsideDownSession, 0, "up"));
+assert.equal(
+  upsideDownSession.board[ROWS - 1][0],
+  seedZeroPattern.hands[0].child,
+);
+assert.equal(
+  upsideDownSession.board[ROWS - 2][0],
+  seedZeroPattern.hands[0].axis,
+);
+
+const firingSession = createSession(0);
+for (let row = ROWS - 3; row < ROWS; row++) {
+  firingSession.board[row][0] = "red";
+}
+firingSession.activePair = {
+  ...createActivePair({ axis: "red", child: "blue" }),
+  axis: { row: 0, col: 0 },
+};
+const firingCommit = commitActivePair(firingSession);
+assert.equal(firingCommit.result.chains, 1);
+assert.equal(firingSession.chainCount, 1);
+assert.equal(firingSession.board[ROWS - 1][0], "blue");
+
+const gameOverSession = createSession(0);
+for (let row = HIDDEN_ROWS; row < ROWS; row++) {
+  gameOverSession.board[row][2] = row % 2 ? "red" : "blue";
+}
+gameOverSession.activePair = createActivePair({ axis: "green", child: "yellow" });
+assert.ok(commitActivePair(gameOverSession));
+assert.equal(gameOverSession.gameOver, true);
+assert.equal(actOnPair(gameOverSession, "left"), false);
 assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
 assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
 assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);
