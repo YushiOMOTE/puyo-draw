@@ -99,23 +99,26 @@ Palette, garbage, Clear, Simulate, and Suggestion controls are hidden rather tha
 
 ## Active-pair interaction
 
-Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its current position until the user acts.
+Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing any cell targets its column, moves the visible falling pair horizontally in the upper spawn area, and begins a direct-manipulation preview without a menu. The preview updates as the pointer moves:
+Pressing anywhere in the field begins direct manipulation and targets the pressed column. The upper pair preview moves directly from its spawn column to that column while retaining its current orientation. If locked puyos prevent the pair from occupying the target column at spawn height, the preview retains its current spawn column. Subsequent horizontal pointer travel moves the upper preview left or right one column at a time. Column thresholds are based on the rendered cell size and use hysteresis so small reversals near a boundary do not make the preview oscillate.
 
-- Release without moving: move the pair to the tapped column, keep its spawn orientation, and hard-drop it.
-- Right movement: move the pair to the tapped column, rotate the child 90 degrees clockwise around the axis, and hard-drop it if valid.
-- Left movement: move the pair to the tapped column, rotate the child 90 degrees counterclockwise around the axis, and hard-drop it if valid.
-- Down movement: move the pair to the tapped column, rotate the pair 180 degrees, and hard-drop it if valid.
-- Up movement: cancel and restore the pair to its original spawn position.
+Pointer displacement controls movement and rotation on independent axes for the complete gesture:
 
-The vertical direction takes priority when horizontal and vertical movement are both present, so a diagonal down movement selects the 180-degree action. Direction selection uses hysteresis: 24 pixels enters a direction, returning within 12 pixels of the starting point restores straight placement, and 34 pixels is required to switch directly between non-neutral directions. The pair preview is updated continuously, while the hand advances only when the originating pointer is released. Additional simultaneous pointers are ignored.
+- Every 0.7-cell horizontal step from the press point requests one column of movement in the same direction.
+- Every 0.7-cell upward step requests one 90-degree clockwise rotation.
+- Every 0.7-cell downward step requests one 90-degree counterclockwise rotation.
+- Continued vertical travel requests successive quarter turns at 180, 270, and 360 degrees. Four steps return to the initial orientation.
+- A diagonal drag can change the requested column and orientation in the same pointer update. There is no translation/rotation mode switch.
+- Returning toward the press position reverses the corresponding horizontal or vertical steps. After a step is entered, the pointer must return 0.18 cell past its entry boundary before that step is removed, preventing boundary jitter.
 
-A placement that would place either puyo outside the allowed active-pair area or overlap a locked puyo is rejected. Horizontal rotations use no wall kicks: only rotations that would extend outside the field or overlap existing puyos leave the preview unrotated. A first-column right rotation is valid because both puyos remain inside the field. The down/180-degree rotation uses a floor kick at the supporting surface, whether that surface is the field floor or the top of an existing stack, so the child rests on it and the axis is one row above. Every preview is recomputed from the original upper pair position, preventing repeated direction changes from gradually raising the axis. Horizontal previews remain an intact pair; the split or chigiri result is shown only after confirmation.
+All rotation candidates are constructed directly at the upper preview position. Tokopuyo placement applies no wall kicks or floor kicks. If a requested quarter-turn orientation would put either puyo outside the active-pair area or over a locked puyo, that orientation is skipped and the last valid preview remains visible. Continued vertical movement still evaluates the next quarter-turn, so a blocked 90-degree orientation may jump directly to a valid 180-degree orientation. Horizontal movement similarly retains the last valid column if the current orientation does not fit in a requested adjacent column.
+
+The pair preview updates continuously, while the hand advances only when the originating pointer is released. Additional simultaneous pointers are ignored. Releasing normally commits the last valid column and orientation. Four visible corner targets appear during manipulation. Entering one arms cancellation and previews the original spawn state; releasing inside it cancels, while moving back out disarms cancellation and restores the last valid preview. A gesture that begins inside a corner target must leave and re-enter it before the target can arm, preserving the ability to start anywhere in the field. A browser `pointercancel` also cancels safely.
 
 ### Lock and automatic simulation
 
-1. A downward release computes the lowest valid position for the current pair orientation, including the floor kick for a 180-degree rotation against the field floor or an existing stack.
+1. A normal release computes the lowest valid position for the last accepted upper-preview orientation without applying a rotation kick.
 2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported.
 3. The current hand is consumed only after both puyos have successfully locked.
 4. If the locked board contains a connected group of four or more, chain simulation begins automatically. No Simulate button is shown.
@@ -218,7 +221,7 @@ The active pair cannot be committed if there is no legal landing position for bo
 - Returning to Drawing mode preserves the Tokopuyo session; switching back resumes it.
 - Reset starts a new random pattern rather than replaying the current seed.
 - The pattern number is always shown in compact form near Next and Next Next.
-- No Tokopuyo rotation uses wall kicks in the direct-manipulation interaction variant.
+- No Tokopuyo rotation uses wall kicks or floor kicks in the direct-manipulation interaction variant.
 - Game over is checked at the standard third-column choke point after chain resolution.
 - Undo/Redo operates on one committed hand plus its complete automatic chain result, not on individual pre-lock moves or rotations.
 

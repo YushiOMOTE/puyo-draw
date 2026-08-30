@@ -106,6 +106,7 @@ button {
 .drawing-only[hidden],
 .tokopuyo-preview[hidden],
 .active-pair-layer[hidden],
+.tokopuyo-cancel-targets[hidden],
 #drawingHelp[hidden],
 #tokopuyoHelp[hidden] {
   display: none;
@@ -129,6 +130,68 @@ button {
     0 3px 7px #10182788;
   transform: translate(-50%, -50%);
   touch-action: none;
+}
+
+.tokopuyo-cancel-targets {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tokopuyo-cancel-targets span {
+  position: absolute;
+  display: grid;
+  width: var(--cancel-target-size, 56px);
+  height: var(--cancel-target-size, 56px);
+  place-items: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  background: #ef476f3d;
+  border: 2px solid #ef476f80;
+  opacity: 0.72;
+  transition: background 100ms ease, opacity 100ms ease, transform 100ms ease;
+}
+
+.tokopuyo-cancel-targets span[data-corner="top-left"] {
+  top: 0;
+  left: 0;
+  padding: env(safe-area-inset-top) 0 0 env(safe-area-inset-left);
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 20px 0;
+}
+
+.tokopuyo-cancel-targets span[data-corner="top-right"] {
+  top: 0;
+  right: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 0;
+  border-width: 0 0 2px 2px;
+  border-radius: 0 0 0 20px;
+}
+
+.tokopuyo-cancel-targets span[data-corner="bottom-left"] {
+  bottom: 0;
+  left: 0;
+  padding: 0 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border-width: 2px 2px 0 0;
+  border-radius: 0 20px 0 0;
+}
+
+.tokopuyo-cancel-targets span[data-corner="bottom-right"] {
+  right: 0;
+  bottom: 0;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) 0;
+  border-width: 2px 0 0 2px;
+  border-radius: 20px 0 0 0;
+}
+
+.tokopuyo-cancel-targets span.active {
+  color: #fff;
+  background: #ef476fcc;
+  border-color: #fff;
+  opacity: 1;
+  transform: scale(1.08);
 }
 
 .active-puyo::after,

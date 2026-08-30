@@ -1,39 +1,123 @@
-export const GESTURE_ENTER_DISTANCE = 24;
-export const GESTURE_EXIT_DISTANCE = 12;
-export const GESTURE_SWITCH_DISTANCE = 34;
+export const DRAG_STEP_RATIO = 0.7;
+export const DRAG_RETURN_HYSTERESIS_RATIO = 0.18;
+export const CANCEL_TARGET_MIN_SIZE = 56;
 
-export function gestureIntent(startX, startY, x, y, current = "straight") {
-  const dx = x - startX;
-  const dy = y - startY;
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
+function quantizedDragSteps(
+  displacement,
+  currentSteps,
+  stepSize,
+  returnHysteresis,
+) {
+  let steps = currentSteps;
 
-  if (absX <= GESTURE_EXIT_DISTANCE && absY <= GESTURE_EXIT_DISTANCE) {
-    return "straight";
+  while (
+    steps > 0 &&
+    displacement <= steps * stepSize - returnHysteresis
+  ) {
+    steps--;
   }
 
-  if (current === "straight") {
-    if (absY >= GESTURE_ENTER_DISTANCE) return dy < 0 ? "cancel" : "down";
-    if (absX >= GESTURE_ENTER_DISTANCE) return dx < 0 ? "left" : "right";
-    return "straight";
+  while (
+    steps < 0 &&
+    displacement >= steps * stepSize + returnHysteresis
+  ) {
+    steps++;
   }
 
-  // Vertical intent takes priority as soon as it crosses the normal threshold.
-  if (absY >= GESTURE_ENTER_DISTANCE) {
-    const vertical = dy < 0 ? "cancel" : "down";
-    if (
-      current === "left" ||
-      current === "right" ||
-      vertical === current ||
-      absY >= GESTURE_SWITCH_DISTANCE
-    ) {
-      return vertical;
-    }
+  while (displacement >= (steps + 1) * stepSize && steps >= 0) steps++;
+  while (displacement <= (steps - 1) * stepSize && steps <= 0) steps--;
+
+  return steps;
+}
+
+export function cornerTargetAt(
+  x,
+  y,
+  viewportWidth,
+  viewportHeight,
+  cellSize,
+) {
+  const size = Math.max(CANCEL_TARGET_MIN_SIZE, cellSize * 1.35);
+  const horizontal = x <= size ? "left" : x >= viewportWidth - size ? "right" : null;
+  const vertical = y <= size ? "top" : y >= viewportHeight - size ? "bottom" : null;
+  return horizontal && vertical ? `${vertical}-${horizontal}` : null;
+}
+
+export function createTokopuyoGesture(x, y, options = null) {
+  return {
+    startX: x,
+    startY: y,
+    columnSteps: 0,
+    rotationSteps: 0,
+    cancelCorner: null,
+    ignoredCancelCorner: options
+      ? cornerTargetAt(
+          x,
+          y,
+          options.viewportWidth,
+          options.viewportHeight,
+          options.cellSize,
+        )
+      : null,
+  };
+}
+
+export function updateTokopuyoGesture(
+  current,
+  x,
+  y,
+  { cellSize, viewportWidth, viewportHeight },
+) {
+  const state = { ...current };
+  const result = {
+    state,
+    columnDelta: 0,
+    rotationSteps: null,
+    cancelChanged: false,
+  };
+
+  let corner = cornerTargetAt(
+    x,
+    y,
+    viewportWidth,
+    viewportHeight,
+    cellSize,
+  );
+  if (corner === state.ignoredCancelCorner) {
+    corner = null;
+  } else if (!corner) {
+    state.ignoredCancelCorner = null;
+  }
+  if (corner !== state.cancelCorner) {
+    result.cancelChanged = true;
+    state.cancelCorner = corner;
+  }
+  if (corner || result.cancelChanged) return result;
+
+  const stepSize = cellSize * DRAG_STEP_RATIO;
+  const returnHysteresis = cellSize * DRAG_RETURN_HYSTERESIS_RATIO;
+  const columnSteps = quantizedDragSteps(
+    x - state.startX,
+    state.columnSteps,
+    stepSize,
+    returnHysteresis,
+  );
+  const verticalSteps = quantizedDragSteps(
+    y - state.startY,
+    -state.rotationSteps,
+    stepSize,
+    returnHysteresis,
+  );
+
+  if (columnSteps !== state.columnSteps) {
+    result.columnDelta = columnSteps - state.columnSteps;
+    state.columnSteps = columnSteps;
+  }
+  const rotationSteps = verticalSteps === 0 ? 0 : -verticalSteps;
+  if (rotationSteps !== state.rotationSteps) {
+    state.rotationSteps = rotationSteps;
+    result.rotationSteps = rotationSteps;
   }
 
-  if (absX >= GESTURE_SWITCH_DISTANCE && absY < GESTURE_ENTER_DISTANCE) {
-    return dx < 0 ? "left" : "right";
-  }
-
-  return current;
+  return result;
 }

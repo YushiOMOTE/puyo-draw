@@ -14,7 +14,7 @@ Keep four concerns separate:
 official-style pattern data
   -> deterministic tsumo provider
   -> pure active-pair/session model
-  -> DOM rendering and flick controls
+  -> DOM rendering and direct gesture controls
   -> existing chain animation and scoring
 ```
 
@@ -60,14 +60,17 @@ Deliverable: a headless Tokopuyo run that can advance, undo, redo, reset, switch
 
 Deliverable: both modes render correctly and preserve the existing compact sidebar design.
 
-## Phase 5: Flick interaction and animation integration
+## Phase 5: Direct gesture interaction and animation integration
 
-1. Build a direct-manipulation column preview rather than showing a flick menu.
-2. Map horizontal movement to 90-degree rotation and vertical movement to cancel or 180-degree rotation, with vertical intent taking priority.
-3. Show split/chigiri landing positions during horizontal previews and restore the spawn preview on cancellation.
-4. On hard drop, animate placement, run the existing clear/gravity animation automatically when needed, then spawn the next pair.
-5. Disable pair and history input during lock and chain animation.
-6. Ensure stale pointer events cannot mutate a session after Reset or a mode switch.
+1. Build a direct-manipulation preview that starts in the pressed field column and falls back to the spawn column only when the upper pair cannot occupy that target.
+2. Quantize horizontal and vertical displacement independently in 0.7-cell steps, with return hysteresis on both axes.
+3. Map horizontal steps to columns, upward steps to clockwise quarter turns, and downward steps to counterclockwise quarter turns without a translation/rotation mode switch.
+4. Keep all rotation candidates kick-free and skip an invalid orientation while allowing later vertical steps to select the next valid orientation.
+5. Show four corner cancellation targets while a pair gesture is active and cancel only when the pointer is released inside an armed target.
+6. Keep the preview at spawn height, skip blocked orientations, and restore the spawn preview on cancellation.
+7. On hard drop, animate placement, run the existing clear/gravity animation automatically when needed, then spawn the next pair.
+8. Disable pair and history input during lock and chain animation.
+9. Ensure stale pointer events cannot mutate a session after Reset or a mode switch.
 
 Deliverable: the complete step-driven touch interaction.
 

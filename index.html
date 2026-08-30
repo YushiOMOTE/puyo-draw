@@ -52,6 +52,18 @@
           <p id="status" class="status" role="status"></p>
         </section>
 
+        <div
+          id="tokopuyoCancelTargets"
+          class="tokopuyo-cancel-targets"
+          aria-hidden="true"
+          hidden
+        >
+          <span data-corner="top-left">×</span>
+          <span data-corner="top-right">×</span>
+          <span data-corner="bottom-left">×</span>
+          <span data-corner="bottom-right">×</span>
+        </div>
+
         <section class="toolbar" aria-label="Controls">
           <div id="tokopuyoPreview" class="tokopuyo-preview" hidden>
             <div class="preview-pairs" aria-label="Upcoming pairs">
@@ -266,12 +278,14 @@
             </ul>
           </div>
           <div id="tokopuyoHelp" hidden>
-            <p>Press a cell to preview the pair in that column, then slide and release to place it.</p>
+            <p>Press a field column to move the preview there, drag the pair, then release to place it.</p>
             <ul>
-              <li>Release without moving to drop straight.</li>
-              <li>Slide left or right to rotate 90 degrees, if the pair fits.</li>
-              <li>Slide down to turn the pair upside down and drop.</li>
-              <li>Slide up to cancel and return the pair to its spawn position.</li>
+              <li>Drag horizontally to move the pair one column at a time.</li>
+              <li>Drag up to rotate right and down to rotate left.</li>
+              <li>Each vertical step turns 90 degrees; keep moving for 180, 270, or 360 degrees.</li>
+              <li>Diagonal movement can move and rotate the pair at the same time.</li>
+              <li>Blocked orientations are skipped without a wall or floor kick.</li>
+              <li>Release in a highlighted screen corner to cancel.</li>
               <li>Chains run automatically after a pair locks.</li>
               <li>Undo and Redo operate on complete placed pairs.</li>
               <li>Reset starts over with a new random pattern.</li>

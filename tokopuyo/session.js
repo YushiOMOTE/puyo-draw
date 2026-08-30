@@ -18,9 +18,8 @@ const PLACEMENT_ORIENTATIONS = Object.freeze({
   left: ORIENTATION.LEFT,
 });
 
-function pairAtColumn(session, col, direction) {
-  const orientation = PLACEMENT_ORIENTATIONS[direction];
-  if (orientation === undefined) return null;
+function pairAtPlacement(session, col, orientation) {
+  if (!Object.values(ORIENTATION).includes(orientation)) return null;
   const pair = {
     ...createActivePair(getTsumo(session.pattern, session.handIndex)),
     axis: { row: 0, col },
@@ -123,14 +122,32 @@ export function commitPairAtColumn(session, col, direction) {
     throw new RangeError(`Unsupported Tokopuyo drop direction: ${direction}`);
   }
 
-  const pair = pairAtColumn(session, col, direction);
+  const pair = pairAtPlacement(session, col, PLACEMENT_ORIENTATIONS[direction]);
   if (!pair) return null;
   return commitPair(session, pair);
 }
 
 export function previewPairAtColumn(session, col, direction) {
   if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
-  const pair = pairAtColumn(session, col, direction);
+  const pair = pairAtPlacement(session, col, PLACEMENT_ORIENTATIONS[direction]);
+  return pair ? pairCells(pair) : null;
+}
+
+export function commitPairAtPlacement(session, col, orientation) {
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) {
+    throw new RangeError("Tokopuyo target column is out of range");
+  }
+  if (!Object.values(ORIENTATION).includes(orientation)) {
+    throw new RangeError("Unsupported Tokopuyo placement orientation");
+  }
+
+  const pair = pairAtPlacement(session, col, orientation);
+  return pair ? commitPair(session, pair) : null;
+}
+
+export function previewPairAtPlacement(session, col, orientation) {
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
+  const pair = pairAtPlacement(session, col, orientation);
   return pair ? pairCells(pair) : null;
 }
 

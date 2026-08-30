@@ -26,10 +26,11 @@ import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { generatePattern, getTsumo } from "./tokopuyo/queue.js";
 import {
-  GESTURE_ENTER_DISTANCE,
-  GESTURE_EXIT_DISTANCE,
-  GESTURE_SWITCH_DISTANCE,
-  gestureIntent,
+  DRAG_RETURN_HYSTERESIS_RATIO,
+  DRAG_STEP_RATIO,
+  cornerTargetAt,
+  createTokopuyoGesture,
+  updateTokopuyoGesture,
 } from "./tokopuyo/gesture.js";
 import {
   ORIENTATION,
@@ -43,9 +44,11 @@ import {
   actOnPair,
   commitActivePair,
   commitPairAtColumn,
+  commitPairAtPlacement,
   createSession,
   previewHands,
   previewPairAtColumn,
+  previewPairAtPlacement,
   redoSession,
   undoSession,
 } from "./tokopuyo/session.js";
@@ -97,37 +100,98 @@ assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
 
-assert.equal(
-  gestureIntent(0, 0, GESTURE_ENTER_DISTANCE - 1, 0),
-  "straight",
+const gestureOptions = {
+  cellSize: 100,
+  viewportWidth: 400,
+  viewportHeight: 800,
+};
+const advanceGesture = (state, x, y) =>
+  updateTokopuyoGesture(state, x, y, gestureOptions);
+
+let dragState = createTokopuyoGesture(200, 300);
+let dragUpdate = advanceGesture(
+  dragState,
+  200 + 100 * DRAG_STEP_RATIO - 1,
+  300,
 );
-assert.equal(gestureIntent(0, 0, GESTURE_ENTER_DISTANCE, 0), "right");
-assert.equal(
-  gestureIntent(0, 0, GESTURE_EXIT_DISTANCE + 1, 0, "right"),
-  "right",
+assert.equal(dragUpdate.columnDelta, 0);
+dragUpdate = advanceGesture(
+  dragUpdate.state,
+  200 + 100 * DRAG_STEP_RATIO,
+  300,
 );
-assert.equal(
-  gestureIntent(0, 0, GESTURE_EXIT_DISTANCE, 0, "right"),
-  "straight",
+assert.equal(dragUpdate.columnDelta, 1);
+dragUpdate = advanceGesture(
+  dragUpdate.state,
+  200 + 100 * (DRAG_STEP_RATIO - DRAG_RETURN_HYSTERESIS_RATIO) + 1,
+  300,
 );
-assert.equal(
-  gestureIntent(0, 0, GESTURE_SWITCH_DISTANCE, 0, "down"),
-  "right",
+assert.equal(dragUpdate.columnDelta, 0);
+dragUpdate = advanceGesture(
+  dragUpdate.state,
+  200 + 100 * (DRAG_STEP_RATIO - DRAG_RETURN_HYSTERESIS_RATIO),
+  300,
 );
-assert.equal(
-  gestureIntent(
-    0,
-    0,
-    GESTURE_SWITCH_DISTANCE,
-    GESTURE_ENTER_DISTANCE,
-    "right",
-  ),
-  "down",
+assert.equal(dragUpdate.columnDelta, -1);
+
+let verticalState = createTokopuyoGesture(200, 300);
+let verticalUpdate = advanceGesture(verticalState, 200, 231);
+assert.equal(verticalUpdate.rotationSteps, null);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 230);
+assert.equal(verticalUpdate.rotationSteps, 1);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 160);
+assert.equal(verticalUpdate.rotationSteps, 2);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 90);
+assert.equal(verticalUpdate.rotationSteps, 3);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 20);
+assert.equal(verticalUpdate.rotationSteps, 4);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 300);
+assert.equal(verticalUpdate.rotationSteps, 0);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 370);
+assert.equal(verticalUpdate.rotationSteps, -1);
+verticalUpdate = advanceGesture(verticalUpdate.state, 200, 440);
+assert.equal(verticalUpdate.rotationSteps, -2);
+
+let verticalHysteresis = createTokopuyoGesture(200, 300);
+let hysteresisUpdate = advanceGesture(verticalHysteresis, 200, 230);
+hysteresisUpdate = advanceGesture(hysteresisUpdate.state, 200, 247);
+assert.equal(hysteresisUpdate.rotationSteps, null);
+hysteresisUpdate = advanceGesture(hysteresisUpdate.state, 200, 248);
+assert.equal(hysteresisUpdate.rotationSteps, 0);
+
+const combinedUpdate = advanceGesture(
+  createTokopuyoGesture(200, 300),
+  270,
+  230,
 );
-assert.equal(
-  gestureIntent(0, 0, -GESTURE_SWITCH_DISTANCE, 0, "right"),
-  "left",
+assert.equal(combinedUpdate.columnDelta, 1);
+assert.equal(combinedUpdate.rotationSteps, 1);
+
+let crossedAxes = advanceGesture(
+  createTokopuyoGesture(200, 300),
+  340,
+  300,
 );
+assert.equal(crossedAxes.columnDelta, 2);
+crossedAxes = advanceGesture(crossedAxes.state, 129, 300);
+assert.equal(crossedAxes.columnDelta, -3);
+
+assert.equal(cornerTargetAt(10, 10, 400, 800, 40), "top-left");
+assert.equal(cornerTargetAt(390, 790, 400, 800, 40), "bottom-right");
+let cancelState = createTokopuyoGesture(200, 300);
+let cancelUpdate = advanceGesture(cancelState, 10, 10);
+assert.equal(cancelUpdate.state.cancelCorner, "top-left");
+cancelUpdate = advanceGesture(cancelUpdate.state, 200, 200);
+assert.equal(cancelUpdate.state.cancelCorner, null);
+assert.equal(cancelUpdate.state.columnSteps, 0);
+assert.equal(cancelUpdate.state.rotationSteps, 0);
+
+let cornerStart = createTokopuyoGesture(10, 790, gestureOptions);
+let cornerStartUpdate = advanceGesture(cornerStart, 15, 785);
+assert.equal(cornerStartUpdate.state.cancelCorner, null);
+cornerStart = advanceGesture(cornerStartUpdate.state, 200, 600).state;
+cornerStartUpdate = advanceGesture(cornerStart, 10, 790);
+assert.equal(cornerStartUpdate.state.cancelCorner, "bottom-left");
 
 const seedZeroPattern = generatePattern(0);
 assert.equal(seedZeroPattern.number, 1);
@@ -211,6 +275,31 @@ const kickedSession = createSession(0);
 assert.equal(commitPairAtColumn(kickedSession, 0, "left"), null);
 assert.ok(commitPairAtColumn(kickedSession, 0, "right"));
 
+const skippedRotationSession = createSession(0);
+assert.equal(
+  previewPairAtPlacement(skippedRotationSession, 0, ORIENTATION.LEFT),
+  null,
+);
+assert.ok(
+  previewPairAtPlacement(skippedRotationSession, 0, ORIENTATION.DOWN),
+);
+
+const tappedColumnSession = createSession(0);
+assert.deepEqual(
+  previewPairAtPlacement(tappedColumnSession, 5, ORIENTATION.UP).map(
+    ({ row, col }) => ({ row, col }),
+  ),
+  [
+    { row: 0, col: 5 },
+    { row: -1, col: 5 },
+  ],
+);
+tappedColumnSession.board[0][5] = "green";
+assert.equal(
+  previewPairAtPlacement(tappedColumnSession, 5, ORIENTATION.UP),
+  null,
+);
+
 const splitPreviewSession = createSession(0);
 splitPreviewSession.board[ROWS - 1][2] = "green";
 const splitPreview = previewPairAtColumn(splitPreviewSession, 2, "right");
@@ -222,11 +311,19 @@ assert.deepEqual(
   ],
 );
 
-const floorKickSession = createSession(0);
-floorKickSession.board[ROWS - 1][2] = "green";
-assert.ok(commitPairAtColumn(floorKickSession, 2, "down"));
-assert.equal(floorKickSession.board[ROWS - 2][2], seedZeroPattern.hands[0].child);
-assert.equal(floorKickSession.board[ROWS - 3][2], seedZeroPattern.hands[0].axis);
+const upsideDownStackSession = createSession(0);
+upsideDownStackSession.board[ROWS - 1][2] = "green";
+assert.ok(
+  commitPairAtPlacement(upsideDownStackSession, 2, ORIENTATION.DOWN),
+);
+assert.equal(
+  upsideDownStackSession.board[ROWS - 2][2],
+  seedZeroPattern.hands[0].child,
+);
+assert.equal(
+  upsideDownStackSession.board[ROWS - 3][2],
+  seedZeroPattern.hands[0].axis,
+);
 
 const upsideDownSession = createSession(0);
 assert.ok(commitPairAtColumn(upsideDownSession, 0, "down"));

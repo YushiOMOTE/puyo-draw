@@ -11,13 +11,16 @@ import {
 } from "./engine.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
-import { pairCells } from "./tokopuyo/pair-engine.js";
-import { gestureIntent } from "./tokopuyo/gesture.js";
+import { ORIENTATION, pairCells } from "./tokopuyo/pair-engine.js";
+import {
+  createTokopuyoGesture,
+  updateTokopuyoGesture,
+} from "./tokopuyo/gesture.js";
 import { randomSeed } from "./tokopuyo/queue.js";
 import {
-  commitPairAtColumn,
+  commitPairAtPlacement,
   createSession,
-  previewPairAtColumn,
+  previewPairAtPlacement,
   previewHands,
   redoSession,
   undoSession,
@@ -40,6 +43,9 @@ const patternNumberEl = document.querySelector("#patternNumber");
 const toggleAppModeButton = document.querySelector("#toggleAppMode");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
+const tokopuyoCancelTargets = document.querySelector(
+  "#tokopuyoCancelTargets",
+);
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -171,6 +177,10 @@ let flick = {
   suppressClick: false,
   pointerId: null,
   intent: "straight",
+  orientation: ORIENTATION.UP,
+  gesture: null,
+  rotationBase: ORIENTATION.UP,
+  requestedRotationSteps: 0,
 };
 
 function renderPreviewPair(element, tsumo) {
@@ -652,7 +662,7 @@ async function showSuggestion() {
   }
 }
 
-function openTokopuyoFlick(event, targetCol = null) {
+function openTokopuyoFlick(event, targetCol) {
   if (
     appMode !== "tokopuyo" ||
     !tokopuyoSession ||
@@ -662,8 +672,23 @@ function openTokopuyoFlick(event, targetCol = null) {
 
   event.preventDefault();
   event.currentTarget.setPointerCapture?.(event.pointerId);
-  const col = targetCol ?? tokopuyoSession.activePair.axis.col;
-  tokopuyoPreviewCells = previewPairAtColumn(tokopuyoSession, col, "straight");
+  const spawnCol = tokopuyoSession.activePair.axis.col;
+  const orientation = tokopuyoSession.activePair.orientation;
+  const cellSize = boardEl.getBoundingClientRect().width / COLS;
+  const gestureOptions = {
+    cellSize,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  };
+  const targetPreview = previewPairAtPlacement(
+    tokopuyoSession,
+    targetCol,
+    orientation,
+  );
+  const col = targetPreview ? targetCol : spawnCol;
+  tokopuyoPreviewCells =
+    targetPreview ||
+    previewPairAtPlacement(tokopuyoSession, spawnCol, orientation);
   flick = {
     kind: "tokopuyo",
     row: 0,
@@ -671,47 +696,63 @@ function openTokopuyoFlick(event, targetCol = null) {
     startX: event.clientX,
     startY: event.clientY,
     moved: false,
-    choice: "straight",
+    choice: null,
     tools: [],
     suppressClick: true,
     pointerId: event.pointerId,
     intent: "straight",
+    orientation,
+    gesture: createTokopuyoGesture(
+      event.clientX,
+      event.clientY,
+      gestureOptions,
+    ),
+    cellSize,
+    dragBaseCol: col,
+    rotationBase: orientation,
+    requestedRotationSteps: 0,
   };
 
   flickMenu.hidden = true;
   flickMenu.classList.remove("tokopuyo-flick-menu");
+  tokopuyoCancelTargets.hidden = false;
+  tokopuyoCancelTargets.style.setProperty(
+    "--cancel-target-size",
+    `${Math.max(56, cellSize * 1.35)}px`,
+  );
   renderActivePair();
 }
 
-function updateTokopuyoPreview(action) {
-  let effectiveAction = action;
-  if (action === "cancel") {
-    tokopuyoPreviewCells = pairCells(tokopuyoSession.activePair);
-  } else {
-    const straightPreview = previewPairAtColumn(
-      tokopuyoSession,
-      flick.col,
-      "straight",
-    );
-    const requestedPreview = previewPairAtColumn(
-      tokopuyoSession,
-      flick.col,
-      action,
-    );
-    tokopuyoPreviewCells =
-      requestedPreview || straightPreview || pairCells(tokopuyoSession.activePair);
-    effectiveAction = requestedPreview ? action : "straight";
-  }
+function tryTokopuyoPreview(col, orientation) {
+  const preview = previewPairAtPlacement(tokopuyoSession, col, orientation);
+  if (!preview) return false;
+  flick.col = col;
+  flick.orientation = orientation;
+  tokopuyoPreviewCells = preview;
   renderActivePair();
-  return effectiveAction;
+  return true;
 }
 
-async function dropTokopuyoPair(direction, targetCol) {
+function setTokopuyoCancelCorner(corner) {
+  tokopuyoCancelTargets.querySelectorAll("[data-corner]").forEach((target) => {
+    target.classList.toggle("active", target.dataset.corner === corner);
+  });
+  tokopuyoPreviewCells = corner
+    ? pairCells(tokopuyoSession.activePair)
+    : previewPairAtPlacement(tokopuyoSession, flick.col, flick.orientation);
+  renderActivePair();
+}
+
+function normalizedOrientation(orientation) {
+  return ((orientation % 4) + 4) % 4;
+}
+
+async function dropTokopuyoPair(targetCol, orientation) {
   if (!tokopuyoSession || tokopuyoSession.busy) return;
-  const committed = commitPairAtColumn(
+  const committed = commitPairAtPlacement(
     tokopuyoSession,
     targetCol,
-    direction,
+    orientation,
   );
   if (!committed) return;
 
@@ -757,10 +798,6 @@ async function dropTokopuyoPair(direction, targetCol) {
   if (tokopuyoSession.gameOver) {
     showToast(messages.tokopuyoGameOver[locale], 3000);
   }
-}
-
-function performTokopuyoAction(action) {
-  void dropTokopuyoPair(action, flick.col);
 }
 
 function switchAppMode() {
@@ -837,6 +874,10 @@ function closeFlick() {
     .querySelectorAll(".flick-option")
     .forEach((button) => button.classList.remove("active"));
   if (wasTokopuyo) {
+    tokopuyoCancelTargets.hidden = true;
+    tokopuyoCancelTargets
+      .querySelectorAll("[data-corner]")
+      .forEach((target) => target.classList.remove("active"));
     tokopuyoPreviewCells = null;
     renderActivePair();
   }
@@ -889,17 +930,48 @@ window.addEventListener("pointermove", (event) => {
   if (event.pointerId !== flick.pointerId) return;
 
   if (flick.kind === "tokopuyo") {
-    const intent = gestureIntent(
-      flick.startX,
-      flick.startY,
+    event.preventDefault();
+    const update = updateTokopuyoGesture(
+      flick.gesture,
       event.clientX,
       event.clientY,
-      flick.intent,
+      {
+        cellSize: flick.cellSize,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      },
     );
-    if (intent === flick.intent) return;
-    flick.intent = intent;
-    flick.moved = intent !== "straight";
-    flick.choice = updateTokopuyoPreview(intent);
+    flick.gesture = update.state;
+    flick.moved = true;
+
+    if (update.cancelChanged) {
+      setTokopuyoCancelCorner(update.state.cancelCorner);
+      return;
+    }
+    if (update.state.cancelCorner) return;
+
+    if (update.columnDelta) {
+      const requestedCol = Math.max(
+        0,
+        Math.min(COLS - 1, flick.dragBaseCol + update.state.columnSteps),
+      );
+      const direction = Math.sign(requestedCol - flick.col);
+      while (direction && flick.col !== requestedCol) {
+        const candidate = flick.col + direction;
+        if (!tryTokopuyoPreview(candidate, flick.orientation)) break;
+      }
+    }
+
+    if (
+      update.rotationSteps !== null &&
+      update.rotationSteps !== flick.requestedRotationSteps
+    ) {
+      flick.requestedRotationSteps = update.rotationSteps;
+      tryTokopuyoPreview(
+        flick.col,
+        normalizedOrientation(flick.rotationBase + update.rotationSteps),
+      );
+    }
     return;
   }
 
@@ -916,11 +988,12 @@ window.addEventListener("pointerup", (event) => {
   if (event.pointerId !== flick.pointerId) return;
 
   if (flick.kind === "tokopuyo") {
-    const action = flick.choice || "straight";
     const targetCol = flick.col;
+    const orientation = flick.orientation;
+    const cancelled = Boolean(flick.gesture.cancelCorner);
     closeFlick();
     flick.row = -1;
-    if (action !== "cancel") dropTokopuyoPair(action, targetCol);
+    if (!cancelled) dropTokopuyoPair(targetCol, orientation);
     return;
   }
 
