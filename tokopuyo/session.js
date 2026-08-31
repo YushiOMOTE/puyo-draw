@@ -3,7 +3,7 @@ import {
   ORIENTATION,
   createActivePair,
   hardDrop,
-  isPairValid,
+  pairAtPlacement as createPairAtPlacement,
   pairCells,
   movePair,
   rotatePair,
@@ -19,14 +19,12 @@ const PLACEMENT_ORIENTATIONS = Object.freeze({
 });
 
 function pairAtPlacement(session, col, orientation) {
-  if (!Object.values(ORIENTATION).includes(orientation)) return null;
-  const pair = {
-    ...createActivePair(getTsumo(session.pattern, session.handIndex)),
-    axis: { row: 0, col },
+  return createPairAtPlacement(
+    session.board,
+    getTsumo(session.pattern, session.handIndex),
+    col,
     orientation,
-    blockedRotation: null,
-  };
-  return isPairValid(session.board, pair) ? pair : null;
+  );
 }
 
 function canonicalSnapshot(session) {

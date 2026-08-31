@@ -70,7 +70,7 @@ The Tokopuyo mode button is placed at the bottom of the drawing-mode sidebar, di
 
 Mode state is independent. Switching modes preserves the drawing board, drawing history, palette, garbage setting, suggestions, and score for later restoration. It also preserves the active Tokopuyo session unless the user explicitly resets or starts a new pattern. A mode switch is not an Undo/Redo history entry.
 
-Direct cell editing, color selection, garbage mode, manual simulation, Clear, and Suggestion are unavailable in Tokopuyo mode. Suggestion may be designed separately in a later phase.
+Direct cell editing, color selection, garbage mode, manual simulation, and Clear are unavailable in Tokopuyo mode. Suggestion is available as the separate long-chain construction planner described below.
 
 ## Tokopuyo layout
 
@@ -91,11 +91,24 @@ The Tokopuyo sidebar follows the current square-button visual language. Below th
 1. Chain count.
 2. Undo.
 3. Redo.
-4. Reset.
+4. Suggestion.
+5. Reset.
 
 The Drawing mode button is placed in the lower mode-switch area. The Help button remains pinned at the bottom and opens mode-appropriate instructions.
 
-Palette, garbage, Clear, Simulate, and Suggestion controls are hidden rather than merely disabled.
+Palette, garbage, Clear, and Simulate controls are hidden rather than merely disabled.
+
+## Long-chain construction suggestions
+
+Tokopuyo Suggestion is a receding-horizon construction aid. Its default objective is a thirteen-chain field, with the objective stored as replaceable configuration rather than embedded in the traversal code.
+
+The long-term planner uses verified chain fields supporting configurable goals from one through fourteen chains. It adapts each structural field through physical-color permutations and horizontal reflection, selects variants compatible with the locked board, and treats the firing cell specially so completing a small chain early is not mistaken for useful progress.
+
+The short-term planner exhausts legal pair shapes within a bounded beam for exactly the three visible hands: current, Next, and Next Next. It simulates split horizontal landings and automatic resolution after each pair. It must not use hands beyond Next Next even though the deterministic pattern is internally available.
+
+The result is advisory rather than an optimality proof. An arbitrary field or unfavorable future sequence may make the configured goal unreachable, and a bounded beam can discard a globally superior continuation.
+
+The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. A small set of still fainter circles shows the next accessible target cells after the visible plan; these roadmap cells may change after every committed hand as the planner adapts to the new field and visible queue.
 
 ## Active-pair interaction
 

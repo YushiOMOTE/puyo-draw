@@ -52,6 +52,71 @@ export function isPairValid(board, pair) {
   );
 }
 
+export function pairAtPlacement(board, tsumo, col, orientation) {
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
+  if (!Object.values(ORIENTATION).includes(orientation)) return null;
+
+  const pair = {
+    ...createActivePair(tsumo),
+    axis: { row: SPAWN_ROW, col },
+    orientation,
+  };
+  return isPairValid(board, pair) ? pair : null;
+}
+
+function landingCells(board, pair) {
+  const byColumn = new Map();
+  for (const cell of pairCells(pair)) {
+    const cells = byColumn.get(cell.col) || [];
+    cells.push(cell);
+    byColumn.set(cell.col, cells);
+  }
+
+  const landed = [];
+  for (const [col, cells] of byColumn) {
+    const topmostOccupied = board.findIndex((row) => row[col] !== null);
+    let row = topmostOccupied === -1 ? ROWS - 1 : topmostOccupied - 1;
+    cells
+      .sort((left, right) => right.row - left.row)
+      .forEach((cell) => landed.push({ ...cell, row: row-- }));
+  }
+  return landed;
+}
+
+export function dropTsumo(board, tsumo, col, orientation) {
+  const pair = pairAtPlacement(board, tsumo, col, orientation);
+  if (!pair) return null;
+
+  const cells = landingCells(board, pair);
+  if (cells.some(({ row }) => row < 0)) return null;
+  const locked = clone(board);
+  for (const { row, col: cellCol, color } of cells) {
+    locked[row][cellCol] = color;
+  }
+  return { board: locked, cells, pair };
+}
+
+export function enumerateTsumoPlacements(board, tsumo) {
+  const placements = [];
+  const seen = new Set();
+
+  for (let col = 0; col < COLS; col++) {
+    for (const orientation of Object.values(ORIENTATION)) {
+      const dropped = dropTsumo(board, tsumo, col, orientation);
+      if (!dropped) continue;
+      const key = dropped.cells
+        .map(({ row, col: cellCol, color }) => `${row},${cellCol},${color}`)
+        .sort()
+        .join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      placements.push({ col, orientation, ...dropped });
+    }
+  }
+
+  return placements;
+}
+
 export function movePair(board, pair, colDelta) {
   if (colDelta !== -1 && colDelta !== 1) {
     throw new RangeError("Pair movement must be exactly one column");

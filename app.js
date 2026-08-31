@@ -12,12 +12,13 @@ import {
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { ORIENTATION, pairCells } from "./tokopuyo/pair-engine.js";
+import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
   createTokopuyoGesture,
   tokopuyoStartColumnAt,
   updateTokopuyoGesture,
 } from "./tokopuyo/gesture.js";
-import { randomSeed } from "./tokopuyo/queue.js";
+import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
 import {
   commitPairAtPlacement,
   createSession,
@@ -68,6 +69,8 @@ let tokopuyoSession = null;
 let tokopuyoBoardOverride = null;
 let tokopuyoDisplayedChain = null;
 let tokopuyoPreviewCells = null;
+let tokopuyoSuggestionSession = null;
+let tokopuyoSuggestionMarks = new Map();
 const suggestionController = new SuggestionController();
 
 const colorFlickTools = [
@@ -155,6 +158,20 @@ const messages = {
   tokopuyoGameOver: {
     en: "Game over — reset or undo to continue",
     ja: "ゲームオーバー：リセットまたはUndoで続けられます",
+  },
+  tokopuyoSuggestionSearching: {
+    en: (chains) => `Planning toward a ${chains}-chain field…`,
+    ja: (chains) => `${chains}連鎖を目標に構築手順を探索中…`,
+  },
+  tokopuyoSuggestionNone: {
+    en: "No safe construction move was found",
+    ja: "安全な構築手が見つかりませんでした",
+  },
+  tokopuyoSuggestion: {
+    en: (index, total, target, progress, predicted) =>
+      `Plan ${index}/${total}: ${progress}% toward ${target} chains${predicted ? `; ${predicted} chains within preview` : ""}`,
+    ja: (index, total, target, progress, predicted) =>
+      `構築案 ${index}/${total}：${target}連鎖目標の進捗${progress}%${predicted ? `、見えているツモ内で${predicted}連鎖` : ""}`,
   },
 };
 
@@ -248,6 +265,11 @@ function updateModeUi() {
   toggleAppModeButton.innerHTML = isTokopuyo
     ? '<span class="drawing-mode-icon" aria-hidden="true">✎</span>'
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
+  const suggestButton = document.querySelector("#suggest");
+  suggestButton.ariaLabel = isTokopuyo
+    ? `Suggest a move toward ${TOKOPUYO_SUGGESTION_CONFIG.targetChains} chains`
+    : "Suggest chain extensions";
+  suggestButton.title = suggestButton.ariaLabel;
   resetButton.ariaLabel = isTokopuyo ? "Start a new Tokopuyo pattern" : "Reset";
   resetButton.title = resetButton.ariaLabel;
 
@@ -298,13 +320,15 @@ function render() {
         cell.append(puyo);
       }
 
-      const suggestion =
-        appMode === "drawing" ? suggestionMarks.get(`${r},${c}`) : null;
+      const suggestion = appMode === "drawing"
+        ? suggestionMarks.get(`${r},${c}`)
+        : tokopuyoSuggestionMarks.get(`${r},${c}`);
       if (suggestion) {
         const marker = document.createElement("span");
         marker.className = `suggestion-marker ${suggestion.color}${
           suggestion.isTrigger ? " trigger" : ""
-        }`;
+        }${suggestion.kind ? ` ${suggestion.kind}` : ""}`;
+        if (suggestion.step) marker.dataset.step = suggestion.step;
         marker.ariaHidden = "true";
         cell.append(marker);
       }
@@ -323,16 +347,18 @@ function render() {
 
   const tokopuyoBusy = tokopuyoSession?.busy || false;
   document.querySelector("#undo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.history.length || tokopuyoBusy
+    ? !tokopuyoSession?.history.length || tokopuyoBusy || isSuggesting
     : !history.length || isSimulating || isSuggesting;
   document.querySelector("#redo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.future.length || tokopuyoBusy
+    ? !tokopuyoSession?.future.length || tokopuyoBusy || isSuggesting
     : !future.length || isSimulating || isSuggesting;
   document.querySelector("#simulate").disabled = isSimulating || isSuggesting;
   document.querySelector("#reset").disabled = appMode === "tokopuyo"
-    ? tokopuyoBusy
+    ? tokopuyoBusy || isSuggesting
     : isSimulating || isSuggesting;
-  document.querySelector("#suggest").disabled = isSimulating || isSuggesting;
+  document.querySelector("#suggest").disabled = appMode === "tokopuyo"
+    ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver
+    : isSimulating || isSuggesting;
   toggleAppModeButton.disabled =
     isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
   suggestionLoadingEl.hidden = !isSuggesting;
@@ -387,6 +413,12 @@ function clearSuggestionAt(row, col) {
 function clearSuggestions() {
   suggestionMarks.clear();
   suggestionSession = null;
+  suggestionRevision++;
+}
+
+function clearTokopuyoSuggestions() {
+  tokopuyoSuggestionMarks.clear();
+  tokopuyoSuggestionSession = null;
   suggestionRevision++;
 }
 
@@ -459,7 +491,9 @@ function cyclePalette() {
 
 function undo() {
   if (appMode === "tokopuyo") {
+    if (isSuggesting) return;
     if (!tokopuyoSession || !undoSession(tokopuyoSession)) return;
+    clearTokopuyoSuggestions();
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
     render();
@@ -477,7 +511,9 @@ function undo() {
 
 function redo() {
   if (appMode === "tokopuyo") {
+    if (isSuggesting) return;
     if (!tokopuyoSession || !redoSession(tokopuyoSession)) return;
+    clearTokopuyoSuggestions();
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
     render();
@@ -603,7 +639,124 @@ function displaySuggestion(candidate, index, total) {
   );
 }
 
+function tokopuyoSuggestionKey() {
+  if (!tokopuyoSession) return "";
+  const field = tokopuyoSession.board
+    .map((row) => row.map((cell) => cell || "-").join(""))
+    .join("/");
+  return [
+    TOKOPUYO_SUGGESTION_CONFIG.targetChains,
+    tokopuyoSession.seed,
+    tokopuyoSession.handIndex,
+    field,
+  ].join(":");
+}
+
+function displayTokopuyoSuggestion(candidate, index, total) {
+  tokopuyoSuggestionMarks = new Map();
+  for (const cell of candidate.goalCells || []) {
+    if (!tokopuyoSession.board[cell.row][cell.col]) {
+      tokopuyoSuggestionMarks.set(`${cell.row},${cell.col}`, {
+        color: cell.color,
+        kind: "goal",
+      });
+    }
+  }
+  [...candidate.moves].reverse().forEach((move) => {
+    const step = move.handOffset + 1;
+    move.cells.forEach(({ row, col, color }) => {
+      tokopuyoSuggestionMarks.set(`${row},${col}`, {
+        color,
+        kind: step === 1 ? "current" : "future",
+        step: step > 1 ? String(step) : null,
+      });
+    });
+  });
+  render();
+  showToast(
+    localizedMessage(
+      messages.tokopuyoSuggestion,
+      index + 1,
+      total,
+      candidate.targetChains,
+      Math.round(candidate.progress * 100),
+      candidate.predictedChains,
+    ),
+    3000,
+  );
+}
+
+async function showTokopuyoSuggestion() {
+  if (
+    !tokopuyoSession ||
+    tokopuyoSession.busy ||
+    tokopuyoSession.gameOver ||
+    isSuggesting
+  ) return;
+
+  const key = tokopuyoSuggestionKey();
+  if (
+    tokopuyoSuggestionSession &&
+    tokopuyoSuggestionSession.key === key &&
+    tokopuyoSuggestionSession.candidates.length
+  ) {
+    tokopuyoSuggestionSession.index =
+      (tokopuyoSuggestionSession.index + 1) %
+      tokopuyoSuggestionSession.candidates.length;
+    displayTokopuyoSuggestion(
+      tokopuyoSuggestionSession.candidates[tokopuyoSuggestionSession.index],
+      tokopuyoSuggestionSession.index,
+      tokopuyoSuggestionSession.candidates.length,
+    );
+    return;
+  }
+
+  isSuggesting = true;
+  const requestRevision = suggestionRevision;
+  render();
+  showToast(
+    localizedMessage(
+      messages.tokopuyoSuggestionSearching,
+      TOKOPUYO_SUGGESTION_CONFIG.targetChains,
+    ),
+    1600,
+  );
+  try {
+    const hands = Array.from(
+      { length: TOKOPUYO_SUGGESTION_CONFIG.lookaheadHands },
+      (_, offset) =>
+        getTsumo(tokopuyoSession.pattern, tokopuyoSession.handIndex + offset),
+    );
+    const { candidates } = await suggestionController.solve({
+      kind: "tokopuyo",
+      board: clone(tokopuyoSession.board),
+      hands,
+      colors: [...tokopuyoSession.pattern.colors],
+      ...TOKOPUYO_SUGGESTION_CONFIG,
+    });
+    if (
+      suggestionRevision !== requestRevision ||
+      tokopuyoSuggestionKey() !== key
+    ) {
+      return;
+    }
+    if (!candidates.length) {
+      showToast(messages.tokopuyoSuggestionNone[locale]);
+      return;
+    }
+    tokopuyoSuggestionSession = { key, candidates, index: 0 };
+    displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
+  } catch (error) {
+    console.error("Tokopuyo suggestion search failed", error);
+    showToast(messages.suggestionError[locale]);
+  } finally {
+    isSuggesting = false;
+    render();
+  }
+}
+
 async function showSuggestion() {
+  if (appMode === "tokopuyo") return showTokopuyoSuggestion();
   if (isSimulating || isSuggesting) return;
 
   if (!isSettled(board)) {
@@ -669,7 +822,8 @@ function openTokopuyoFlick(event, targetCol) {
     appMode !== "tokopuyo" ||
     !tokopuyoSession ||
     tokopuyoSession.busy ||
-    tokopuyoSession.gameOver
+    tokopuyoSession.gameOver ||
+    isSuggesting
   ) return;
 
   event.preventDefault();
@@ -750,13 +904,14 @@ function normalizedOrientation(orientation) {
 }
 
 async function dropTokopuyoPair(targetCol, orientation) {
-  if (!tokopuyoSession || tokopuyoSession.busy) return;
+  if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
   const committed = commitPairAtPlacement(
     tokopuyoSession,
     targetCol,
     orientation,
   );
   if (!committed) return;
+  clearTokopuyoSuggestions();
 
   tokopuyoSession.busy = true;
   tokopuyoBoardOverride = committed.lockedBoard;
@@ -1075,7 +1230,8 @@ document.querySelector("#clear").addEventListener("click", () => {
 });
 document.querySelector("#reset").addEventListener("click", () => {
   if (appMode === "tokopuyo") {
-    if (tokopuyoSession?.busy) return;
+    if (tokopuyoSession?.busy || isSuggesting) return;
+    clearTokopuyoSuggestions();
     tokopuyoSession = createSession(randomSeed());
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;

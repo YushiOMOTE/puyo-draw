@@ -37,6 +37,8 @@ import {
 import {
   ORIENTATION,
   createActivePair,
+  dropTsumo,
+  enumerateTsumoPlacements,
   hardDrop,
   movePair,
   pairCells,
@@ -54,6 +56,9 @@ import {
   redoSession,
   undoSession,
 } from "./tokopuyo/session.js";
+import { createChainGoals } from "./tokopuyo/chain-templates.js";
+import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
+import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 
 const solveWithAma = (request) =>
   solveSuggestion({ ...request, solver: "ama" });
@@ -280,6 +285,44 @@ const horizontalPair = {
 const splitDrop = hardDrop(splitBoard, horizontalPair);
 assert.equal(splitDrop.board[ROWS - 2][2], "red");
 assert.equal(splitDrop.board[ROWS - 3][3], "blue");
+const pureSplitDrop = dropTsumo(
+  splitBoard,
+  { axis: "red", child: "blue" },
+  2,
+  ORIENTATION.RIGHT,
+);
+assert.deepEqual(pureSplitDrop.board, splitDrop.board);
+assert.deepEqual(
+  pureSplitDrop.cells.map(({ row, col, role }) => ({ row, col, role })),
+  [
+    { row: ROWS - 2, col: 2, role: "axis" },
+    { row: ROWS - 3, col: 3, role: "child" },
+  ],
+);
+const emptyPairPlacements = enumerateTsumoPlacements(
+  emptyBoard(),
+  { axis: "red", child: "blue" },
+);
+assert.ok(emptyPairPlacements.length > 0);
+assert.equal(
+  new Set(emptyPairPlacements.map(({ cells }) =>
+    cells.map(({ row, col, color }) => `${row},${col},${color}`).sort().join("|"),
+  )).size,
+  emptyPairPlacements.length,
+);
+const solverTopOutBoard = emptyBoard();
+for (let row = HIDDEN_ROWS; row < ROWS; row++) {
+  solverTopOutBoard[row][0] = row % 2 ? "red" : "blue";
+}
+assert.equal(
+  dropTsumo(
+    solverTopOutBoard,
+    { axis: "green", child: "yellow" },
+    0,
+    ORIENTATION.UP,
+  ),
+  null,
+);
 
 const tokopuyoSession = createSession(0);
 assert.deepEqual(previewHands(tokopuyoSession), [
@@ -383,6 +426,26 @@ gameOverSession.activePair = createActivePair({ axis: "green", child: "yellow" }
 assert.ok(commitActivePair(gameOverSession));
 assert.equal(gameOverSession.gameOver, true);
 assert.equal(actOnPair(gameOverSession, "left"), false);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.targetChains, 13);
+const thirteenChainGoal = createChainGoals(13, seedZeroPattern.colors)[0];
+const fourteenChainGoal = createChainGoals(14, seedZeroPattern.colors)[0];
+assert.equal(simulate(thirteenChainGoal.board).chains, 13);
+assert.equal(simulate(fourteenChainGoal.board).chains, 14);
+assert.throws(
+  () => createChainGoals(15, seedZeroPattern.colors),
+  RangeError,
+);
+const tokopuyoSuggestion = solveTokopuyoSuggestion({
+  kind: "tokopuyo",
+  board: emptyBoard(),
+  hands: seedZeroPattern.hands.slice(0, 3),
+  colors: seedZeroPattern.colors,
+  ...TOKOPUYO_SUGGESTION_CONFIG,
+});
+assert.ok(tokopuyoSuggestion.candidates.length > 0);
+assert.equal(tokopuyoSuggestion.candidates[0].targetChains, 13);
+assert.equal(tokopuyoSuggestion.candidates[0].moves.length, 3);
+assert.equal(tokopuyoSuggestion.candidates[0].moves[0].cells.length, 2);
 assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
 assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
 assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);

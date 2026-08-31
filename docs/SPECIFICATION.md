@@ -6,7 +6,7 @@
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
 - The Tokopuyo button is directly above Help at the bottom of the Drawing-mode sidebar. The same position contains the Drawing-mode button while Tokopuyo is active.
 - Switching modes preserves each mode's board, history, score, and mode-specific state. Switching modes does not create a history entry.
-- Direct board editing, palette selection, garbage mode, Clear, manual Simulate, and Suggestion are unavailable in Tokopuyo mode.
+- Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides its own long-chain construction Suggestion behavior.
 
 ## Board Model
 
@@ -73,7 +73,7 @@ The Help (`i`) button is pinned to the bottom of the rail.
 - The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero.
 - Tokopuyo Undo/Redo is independent from Drawing mode. One committed pair and its complete chain result form one atomic history entry; pre-lock movement and rotation are not history entries. Redo restores the resolved state without replaying animation.
 - After chain resolution, occupancy of the marked third-column choke point ends the session. Reset, Undo, Drawing mode, and Help remain available at game over.
-- The Tokopuyo sidebar contains, below the previews: Chain count, Undo, Redo, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
+- The Tokopuyo sidebar contains, below the previews: Chain count, Undo, Redo, Suggestion, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
 - The Help overlay shows instructions for the active mode.
 
 The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
@@ -95,6 +95,8 @@ Toast notifications use the browser language: Japanese for Japanese locales and 
 Suggestion precondition errors also use localized toasts. A floating board asks the user to land every puyo, while a board that already contains a clearing group explains that it can already fire.
 
 ## Chain Suggestions
+
+The following requirements describe Drawing-mode suggestions. Tokopuyo uses the separate long-chain planner below.
 
 - The Suggestion button searches for additions that produce a chain from the current board and shows one candidate at a time as colored, dashed circles in the field.
 - Suggestions are calculated only when every puyo is already resting at the bottom of its column or on another puyo. A board with any floating puyo is rejected before search.
@@ -123,12 +125,25 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 - While a suggestion search is running, board cells, Undo, Redo, Simulate, and Reset are disabled, and a translucent spinner overlay is centered over the field. The board and controls become available again when the search succeeds or fails.
 - Suggestions run in a Web Worker and stale results are ignored when the board or palette has changed. The worker is created lazily on the first Suggestion action, so loading the page never initializes the solver or blocks board rendering. The search timeout starts only after the worker reports that its modules are ready, so initial loading time on a mobile device does not consume the search budget. A failed or unresponsive worker is discarded and may be started fresh by the next Suggestion action. Solver code is never run on the UI thread.
 
+## Tokopuyo Long-Chain Suggestions
+
+- Tokopuyo Suggestion recommends the current pair placement as part of a long-chain construction plan. It does not prioritize a small chain merely because that chain can fire within the visible three hands.
+- The requested chain goal is centralized as `targetChains` in `tokopuyo/suggestion-config.js`. The default is thirteen chains, and verified goal fields support values from one through fourteen without changing the search implementation.
+- Goal fields are derived from verified fourteen-chain templates. The planner can advance a template to a smaller requested chain count, map its four abstract colors to the session's four physical colors, and reflect it horizontally.
+- The planner ranks the goal variants against the current field, then searches legal placements for the current, Next, and Next Next pairs. It uses only these three visible pairs and does not inspect later hands from the deterministic pattern.
+- Pair search observes axis/child colors, all legal columns and orientations, independent landing of horizontal puyos, automatic chain resolution after every hand, the hidden area, and the choke point.
+- Building the selected goal, preserving field capacity, and avoiding premature firing rank ahead of short immediate chains. Reaching the configured goal is rewarded, but the bounded beam remains heuristic and does not guarantee that the goal is reachable.
+- The current pair's two landing cells use colored dashed circles with centered sparkles. The searched Next and Next Next placements use progressively lighter dashed circles with step numbers `2` and `3`.
+- The long-term roadmap shows a bounded set of faint colored dashed circles. These are the next accessible cells of the currently selected goal structure, not promises about unseen future pairs.
+- Pressing Suggestion again cycles through cached alternatives with distinct current-pair placements. Committing a pair, Undo, Redo, or Reset removes the Tokopuyo suggestion and its cache.
+- Tokopuyo suggestion work uses the existing lazy Web Worker and stale-result protection. Pair input and relevant controls are disabled while it runs.
+
 ## Technical Constraints
 
 - Use plain HTML, CSS, and JavaScript modules.
 - Keep the chain engine independent from the DOM so it can be tested with Node.js.
 - Keep suggestion solvers independent from the DOM. The worker-facing solver contract lives in `solver/contract.js`. `solver/solver-registry.js` selects a traversal implementation, `solver/search-policy.js` applies shared search rules and records raw milestones, and `solver/candidate-pipeline.js` creates public display candidates.
-- Keep Tokopuyo queue generation, active-pair movement, and session history independent from the DOM in `tokopuyo/queue.js`, `tokopuyo/pair-engine.js`, and `tokopuyo/session.js`.
+- Keep Tokopuyo queue generation, active-pair movement, pure pair placement, long-chain planning, and session history independent from the DOM in `tokopuyo/queue.js`, `tokopuyo/pair-engine.js`, `tokopuyo/suggestion-solver.js`, and `tokopuyo/session.js`.
 - Do not add a build step or runtime dependency without an explicit product decision.
 - GitHub Pages deployment is provided by `.github/workflows/deploy.yml`.
 - The Pages workflow appends the deployment commit SHA to every local JavaScript and CSS reference, including transitive module imports and the suggestion worker URL, so a browser cannot combine modules from different releases.
@@ -136,4 +151,4 @@ Suggestion precondition errors also use localized toasts. A floating board asks 
 
 ## Verification
 
-The logic tests cover four-puyo clearing, gravity, settled and floating board detection, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, clean failure when workers are unavailable, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, hybrid long-chain discovery, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, six-column board width, deterministic Tokopuyo generation and wraparound, independent horizontal and vertical drag steps, drag hysteresis, skipped blocked orientations, corner cancellation, split hard drops, automatic chains, atomic history, and choke-point game over. UI changes should also be checked in a mobile-sized browser viewport.
+The logic tests cover four-puyo clearing, gravity, settled and floating board detection, a gravity-created second chain, direct garbage clearing, one-puyo and configurable two-puyo latent triggers, rejection of suggestions for already confirmed triggers, clean failure when workers are unavailable, shared stable-state policy, preservation of full raw search paths, meaningful display-candidate minimization, hybrid long-chain discovery, beam and Ama-inspired traversal, trigger display data, complete-suggestion deduplication, configurable extension-goal ranking, six-column board width, deterministic Tokopuyo generation and wraparound, independent horizontal and vertical drag steps, drag hysteresis, skipped blocked orientations, corner cancellation, pure split-pair placement, verified configurable long-chain goal fields, visible-three-hand Tokopuyo planning, automatic chains, atomic history, and choke-point game over. UI changes should also be checked in a mobile-sized browser viewport.
