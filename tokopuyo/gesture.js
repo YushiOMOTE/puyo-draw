@@ -1,6 +1,31 @@
 export const DRAG_STEP_RATIO = 0.7;
 export const DRAG_RETURN_HYSTERESIS_RATIO = 0.18;
 export const CANCEL_TARGET_MIN_SIZE = 56;
+export const START_HIT_SLOP_RATIO = 0.35;
+
+export function tokopuyoStartColumnAt(
+  x,
+  y,
+  fieldRect,
+  columnCount,
+) {
+  const cellSize = fieldRect.width / columnCount;
+  const hitSlop = cellSize * START_HIT_SLOP_RATIO;
+  const right = fieldRect.left + fieldRect.width;
+  const bottom = fieldRect.top + fieldRect.height;
+
+  if (
+    x < fieldRect.left - hitSlop ||
+    x > right + hitSlop ||
+    y < fieldRect.top - hitSlop ||
+    y > bottom + hitSlop
+  ) {
+    return null;
+  }
+
+  const column = Math.floor((x - fieldRect.left) / cellSize);
+  return Math.max(0, Math.min(columnCount - 1, column));
+}
 
 function quantizedDragSteps(
   displacement,

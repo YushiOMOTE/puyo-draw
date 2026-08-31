@@ -76,6 +76,10 @@ button {
   box-shadow: none;
 }
 
+body[data-mode="tokopuyo"] .board-card {
+  touch-action: none;
+}
+
 .board-wrap {
   position: relative;
   width: min(100%, calc((100svh - 16px) * 0.4615));

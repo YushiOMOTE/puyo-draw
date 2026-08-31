@@ -101,7 +101,7 @@ Palette, garbage, Clear, Simulate, and Suggestion controls are hidden rather tha
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing anywhere in the field begins direct manipulation and targets the pressed column. The upper pair preview moves directly from its spawn column to that column while retaining its current orientation. If locked puyos prevent the pair from occupying the target column at spawn height, the preview retains its current spawn column. Subsequent horizontal pointer travel moves the upper preview left or right one column at a time. Column thresholds are based on the rendered cell size and use hysteresis so small reversals near a boundary do not make the preview oscillate.
+Pressing anywhere in the field, including the visual gaps between cells, begins direct manipulation and targets the pressed column. The start area extends by 0.35 cell around the field within the board card, so it does not overlap the sidebar controls. A press in this extension beyond the left or right field edge targets the nearest outer column. The upper pair preview moves directly from its spawn column to that column while retaining its current orientation. If locked puyos prevent the pair from occupying the target column at spawn height, the preview retains its current spawn column. Subsequent horizontal pointer travel moves the upper preview left or right one column at a time. Column thresholds are based on the rendered cell size and use hysteresis so small reversals near a boundary do not make the preview oscillate.
 
 Pointer displacement controls movement and rotation on independent axes for the complete gesture:
 

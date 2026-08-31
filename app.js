@@ -14,6 +14,7 @@ import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { ORIENTATION, pairCells } from "./tokopuyo/pair-engine.js";
 import {
   createTokopuyoGesture,
+  tokopuyoStartColumnAt,
   updateTokopuyoGesture,
 } from "./tokopuyo/gesture.js";
 import { randomSeed } from "./tokopuyo/queue.js";
@@ -27,6 +28,7 @@ import {
 } from "./tokopuyo/session.js";
 
 const boardEl = document.querySelector("#board");
+const boardCard = document.querySelector(".board-card");
 const boardWrap = document.querySelector(".board-wrap");
 const statusEl = document.querySelector("#status");
 const chainEl = document.querySelector("#chainNumber");
@@ -817,10 +819,7 @@ function switchAppMode() {
 
 function openFlick(row, col, event) {
   if (flick.row >= 0) return;
-  if (appMode === "tokopuyo") {
-    openTokopuyoFlick(event, col);
-    return;
-  }
+  if (appMode === "tokopuyo") return;
   if (appMode !== "drawing" || isSimulating || isSuggesting) return;
 
   const tools = getFlickTools();
@@ -924,6 +923,20 @@ function buildFlickMenu(tools) {
 function closeHelp() {
   helpOverlay.hidden = true;
 }
+
+boardCard.addEventListener("pointerdown", (event) => {
+  if (appMode !== "tokopuyo" || flick.row >= 0) return;
+
+  const targetCol = tokopuyoStartColumnAt(
+    event.clientX,
+    event.clientY,
+    boardEl.getBoundingClientRect(),
+    COLS,
+  );
+  if (targetCol === null) return;
+
+  openTokopuyoFlick(event, targetCol);
+});
 
 window.addEventListener("pointermove", (event) => {
   if (flick.row < 0) return;

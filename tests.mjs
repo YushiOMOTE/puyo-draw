@@ -28,8 +28,10 @@ import { generatePattern, getTsumo } from "./tokopuyo/queue.js";
 import {
   DRAG_RETURN_HYSTERESIS_RATIO,
   DRAG_STEP_RATIO,
+  START_HIT_SLOP_RATIO,
   cornerTargetAt,
   createTokopuyoGesture,
+  tokopuyoStartColumnAt,
   updateTokopuyoGesture,
 } from "./tokopuyo/gesture.js";
 import {
@@ -105,6 +107,30 @@ const gestureOptions = {
   viewportWidth: 400,
   viewportHeight: 800,
 };
+
+const fieldRect = { left: 100, top: 50, width: 600, height: 1300 };
+const startHitSlop = 100 * START_HIT_SLOP_RATIO;
+assert.equal(tokopuyoStartColumnAt(100, 100, fieldRect, COLS), 0);
+assert.equal(tokopuyoStartColumnAt(699, 100, fieldRect, COLS), 5);
+assert.equal(tokopuyoStartColumnAt(98, 100, fieldRect, COLS), 0);
+assert.equal(tokopuyoStartColumnAt(702, 100, fieldRect, COLS), 5);
+assert.equal(
+  tokopuyoStartColumnAt(100 - startHitSlop, 100, fieldRect, COLS),
+  0,
+);
+assert.equal(
+  tokopuyoStartColumnAt(700 + startHitSlop, 100, fieldRect, COLS),
+  5,
+);
+assert.equal(
+  tokopuyoStartColumnAt(100 - startHitSlop - 1, 100, fieldRect, COLS),
+  null,
+);
+assert.equal(
+  tokopuyoStartColumnAt(100, 50 - startHitSlop - 1, fieldRect, COLS),
+  null,
+);
+
 const advanceGesture = (state, x, y) =>
   updateTokopuyoGesture(state, x, y, gestureOptions);
 
