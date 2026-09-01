@@ -104,6 +104,8 @@ Tokopuyo Suggestion is a receding-horizon construction aid. Its default objectiv
 
 The long-term planner uses verified chain fields supporting configurable goals from one through fourteen chains. Each goal includes a stable construction board made by removing one legally reachable ignition puyo. The construction board must not clear by itself, and restoring that puyo must reproduce the goal's verified chain count. The planner adapts each structural field through physical-color permutations and horizontal reflection, then selects variants compatible with the locked board.
 
+The safety layer separately identifies the current field's greatest chain reachable through one legal single-puyo drop. A non-clearing recommendation cannot reduce that one-puyo-accessible main chain. After the searched current, Next, and Next Next route, all sixteen ordered four-color pairs are tested as the first unknown hand beyond the preview. Coverage counts the pairs with at least one legal placement that fires the horizon's main chain or preserves one of its best ignition routes. Coverage ranks ahead of goal-template progress, while usable columns, left/right capacity, roughness, and peak height provide a secondary balance score.
+
 The short-term planner exhausts legal pair shapes within a bounded beam for exactly the three visible hands: current, Next, and Next Next. It simulates split horizontal landings and automatic resolution after each pair. It must not use hands beyond Next Next even though the deterministic pattern is internally available.
 
 The ignition cell and the space required to reach it are protected construction constraints. A non-firing move that occupies the ignition cell or raises its column above that cell is rejected. A clear below ninety percent of the requested chain count is rejected while any non-clearing continuation remains; if every continuation clears early, the best result may be returned as an explicitly labeled emergency clear.
@@ -114,7 +116,7 @@ The result is advisory rather than an optimality proof. An arbitrary field or un
 
 The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. A small set of still fainter circles shows the next accessible target cells after the visible plan; these roadmap cells may change after every committed hand as the planner adapts to the new field and visible queue.
 
-The protected ignition cell is always visible as a colored double dashed circle with a centered lightning mark. It pulses when it can fire now or through one of the visible planned hands. When the current placement and ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states the ignition color, column, readiness, and whether the result is an emergency-clear fallback.
+The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. The long-term goal ignition remains visible as a lighter lightning marker. When the current placement and an ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states the current main-chain size and ignition, unknown-pair coverage, the goal ignition, and whether the result is an emergency-clear fallback.
 
 ## Active-pair interaction
 
