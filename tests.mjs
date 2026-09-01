@@ -510,6 +510,11 @@ assert.equal(safetyMain.chains, 1);
 assert.ok(safetyMain.routes.some(({ row, col, color }) =>
   row === ROWS - 1 && col === 3 && color === "red"
 ));
+assert.deepEqual(safetyMain.primary.targetCells, [
+  { row: ROWS - 1, col: 0 },
+  { row: ROWS - 1, col: 1 },
+  { row: ROWS - 1, col: 2 },
+]);
 assert.equal(preservesMainChain(safetyBoard, safetyMain), true);
 const coveredSafety = evaluateUnknownAcceptance(
   safetyBoard,
@@ -580,12 +585,21 @@ for (const candidate of tokopuyoSuggestion.candidates) {
       TOKOPUYO_SUGGESTION_CONFIG.maximumConstructionHeight,
   );
 }
+const ignitionTargetBoard = emptyBoard();
+for (let col = 0; col < 3; col++) {
+  ignitionTargetBoard[ROWS - 1][col] = "blue";
+}
 const overlappingIgnitionMarks = createTokopuyoSuggestionMarks({
   mainTrigger: {
     row: ROWS - 1,
     col: 3,
     color: "blue",
     state: "building",
+    targetCells: [
+      { row: ROWS - 1, col: 0 },
+      { row: ROWS - 1, col: 1 },
+      { row: ROWS - 1, col: 2 },
+    ],
   },
   moves: [
     {
@@ -594,15 +608,21 @@ const overlappingIgnitionMarks = createTokopuyoSuggestionMarks({
     },
     {
       handOffset: 1,
-      cells: [{ row: ROWS - 1, col: 3, color: "purple" }],
+      cells: [{ row: ROWS - 1, col: 2, color: "purple" }],
     },
   ],
-}, emptyBoard());
-assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},3`), {
+}, ignitionTargetBoard);
+assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},2`), {
   color: "purple",
   kind: "future",
   step: "2",
 });
+assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},0`), {
+  color: "blue",
+  isIgnitionTarget: true,
+  ignitionState: "building",
+});
+assert.equal(overlappingIgnitionMarks.has(`${ROWS - 1},3`), false);
 assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},4`), {
   color: "green",
   kind: "current",

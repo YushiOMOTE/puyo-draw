@@ -3,6 +3,7 @@ import {
   HIDDEN_ROWS,
   ROWS,
   clone,
+  findGroups,
   simulate,
 } from "../engine.js";
 import { enumerateTsumoPlacements } from "./pair-engine.js";
@@ -28,6 +29,11 @@ export function analyzeMainChain(board, colors) {
       if (!canUseCell(row, col)) continue;
       const firingBoard = clone(board);
       firingBoard[row][col] = color;
+      const ignitionGroup = findGroups(firingBoard).find((group) =>
+        group.some(([groupRow, groupCol]) =>
+          groupRow === row && groupCol === col
+        )
+      );
       const result = simulate(firingBoard);
       if (!result.chains) continue;
       routes.push({
@@ -36,6 +42,14 @@ export function analyzeMainChain(board, colors) {
         color,
         chains: result.chains,
         cleared: result.cleared,
+        targetCells: (ignitionGroup || [])
+          .filter(([groupRow, groupCol]) =>
+            groupRow !== row || groupCol !== col
+          )
+          .map(([groupRow, groupCol]) => ({
+            row: groupRow,
+            col: groupCol,
+          })),
       });
     }
   }

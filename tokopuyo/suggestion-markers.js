@@ -2,10 +2,11 @@ export function createTokopuyoSuggestionMarks(candidate, board) {
   const marks = new Map();
   const mainTrigger = candidate.mainTrigger || null;
 
-  if (mainTrigger && !board[mainTrigger.row][mainTrigger.col]) {
-    marks.set(`${mainTrigger.row},${mainTrigger.col}`, {
+  for (const cell of mainTrigger?.targetCells || []) {
+    if (board[cell.row][cell.col] !== mainTrigger.color) continue;
+    marks.set(`${cell.row},${cell.col}`, {
       color: mainTrigger.color,
-      isIgnition: true,
+      isIgnitionTarget: true,
       ignitionState: mainTrigger.state,
     });
   }

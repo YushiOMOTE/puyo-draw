@@ -347,15 +347,15 @@ function render() {
         marker.className = `suggestion-marker ${suggestion.color}${
           suggestion.isTrigger ? " trigger" : ""
         }${suggestion.kind ? ` ${suggestion.kind}` : ""}${
-          suggestion.isIgnition
-            ? ` ignition ignition-${suggestion.ignitionState}`
+          suggestion.isIgnitionTarget
+            ? ` ignition-target ignition-${suggestion.ignitionState}`
             : ""
         }`;
         if (suggestion.step) marker.dataset.step = suggestion.step;
         marker.ariaHidden = "true";
         cell.append(marker);
-        if (suggestion.isIgnition) {
-          cell.ariaLabel += ` current main-chain ${suggestion.color} ignition point`;
+        if (suggestion.isIgnitionTarget) {
+          cell.ariaLabel += ` current main-chain ${suggestion.color} ignition target`;
         }
       }
 
@@ -711,13 +711,13 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     ? localizedColors[candidate.mainTrigger.color]?.[locale] ||
       candidate.mainTrigger.color
     : null;
-  const mainColumn = candidate.mainTrigger?.col + 1;
+  const targetCount = candidate.mainTrigger?.targetCells?.length || 0;
   const ignition = locale === "ja"
     ? candidate.mainTrigger
-      ? `現在${candidate.mainTrigger.chains}連鎖：${mainColumn}列目に${mainColor}（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : "1ぷよ発火形"}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
+      ? `現在${candidate.mainTrigger.chains}連鎖：${mainColor}${targetCount}個組が発火対象（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : `${mainColor}1ぷよで発火`}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
       : `未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
     : candidate.mainTrigger
-      ? `Current ${candidate.mainTrigger.chains}-chain: ${mainColor} in column ${mainColumn} (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : "one-puyo ignition"}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
+      ? `Current ${candidate.mainTrigger.chains}-chain: ${targetCount} connected ${mainColor} puyos are the ignition target (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : `fires with one ${mainColor} puyo`}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
       : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`;
   showToast(
     localizedMessage(
