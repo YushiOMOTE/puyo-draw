@@ -922,6 +922,26 @@ body[data-mode="tokopuyo"] .board-card {
   transform: translate(-50%, -50%) scale(1.18) !important;
 }
 
+.flick-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  background: #fff;
+  border: 2px solid #dbe0ea;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.flick-center.active {
+  outline: 3px solid #fff8;
+  transform: translate(-50%, -50%) scale(1.18);
+}
+
 .tokopuyo-flick-menu { background: #172033e8; }
 .tokopuyo-flick-menu::after {
   position: absolute;
@@ -945,6 +965,11 @@ body[data-mode="tokopuyo"] .board-card {
   font-weight: 900;
 }
 
+.tokopuyo-flick-option.cancel {
+  color: #d75a6d;
+  font-size: 27px;
+}
+
 .tokopuyo-mini-pair {
   position: relative;
   display: block;
@@ -952,7 +977,8 @@ body[data-mode="tokopuyo"] .board-card {
   height: 30px;
 }
 
-.tokopuyo-flick-option .mini-puyo {
+.tokopuyo-flick-option .mini-puyo,
+.tokopuyo-flick-center .mini-puyo {
   position: absolute;
   display: block;
   box-sizing: border-box;

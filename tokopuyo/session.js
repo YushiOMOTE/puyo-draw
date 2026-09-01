@@ -23,8 +23,8 @@ function pairAtPlacement(session, col, orientation) {
 function pairAtColumn(session, col, direction) {
   const pair = pairAtPlacement(session, col, ORIENTATION.UP);
   if (!pair) return null;
-  if (direction === "down" || direction === "straight") return pair;
-  if (direction === "up") return pairAtPlacement(session, col, ORIENTATION.DOWN);
+  if (direction === "straight") return pair;
+  if (direction === "down") return pairAtPlacement(session, col, ORIENTATION.DOWN);
   const rotated = rotatePair(
     session.board,
     pair,
@@ -122,7 +122,7 @@ export function commitPairAtColumn(session, col, direction) {
   if (!Number.isInteger(col) || col < 0 || col >= COLS) {
     throw new RangeError("Tokopuyo target column is out of range");
   }
-  if (!["up", "straight", "right", "down", "left"].includes(direction)) {
+  if (!["straight", "right", "down", "left"].includes(direction)) {
     throw new RangeError(`Unsupported Tokopuyo drop direction: ${direction}`);
   }
 

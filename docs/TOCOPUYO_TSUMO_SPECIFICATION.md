@@ -122,14 +122,14 @@ The current main-chain ignition cell is visible as a colored double dashed circl
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing a field cell targets its column and opens a four-direction flick menu. The upper pair preview moves to the selected column. Moving onto a menu option updates that preview to the selected placement orientation, including a quarter-turn wall-kick adjustment when applicable; returning to the menu center restores the normal orientation.
+Pressing a field cell targets its column and opens a flick menu. The upper pair preview moves to the selected column. The center previews the normal orientation, while down and the two horizontal options update the preview to the selected placement orientation, including a quarter-turn wall-kick adjustment when applicable. Moving up shows cancellation and restores the spawn preview.
 
 The four flick directions behave as follows:
 
-- Down flick keeps the spawn orientation.
+- Releasing in the center keeps the spawn orientation and drops the pair.
 - Right and left flicks rotate the child 90 degrees clockwise or counterclockwise.
-- Up flick rotates the pair 180 degrees.
-- Releasing without crossing the flick threshold cancels without changing session state.
+- Down flick rotates the pair 180 degrees.
+- Up flick cancels without changing session state.
 
 Quarter-turn placements use the existing wall-kick behavior. The 180-degree placement intentionally skips wall kicks. A placement that cannot fit is rejected.
 
@@ -137,7 +137,7 @@ The menu preview remains visible while the originating pointer is held, and the 
 
 ### Lock and automatic simulation
 
-1. A flick computes the lowest valid position for the selected orientation, applying the established quarter-turn wall-kick behavior where applicable.
+1. Releasing in the center or on a placement flick computes the lowest valid position for the selected orientation, applying the established quarter-turn wall-kick behavior where applicable.
 2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported.
 3. The current hand is consumed only after both puyos have successfully locked.
 4. If the locked board contains a connected group of four or more, chain simulation begins automatically. No Simulate button is shown.

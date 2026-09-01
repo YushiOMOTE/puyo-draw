@@ -885,7 +885,7 @@ function openTokopuyoFlick(event, targetCol = null) {
     startX: event.clientX,
     startY: event.clientY,
     moved: false,
-    choice: null,
+    choice: "straight",
     tools: [],
     suppressClick: true,
     pointerId: event.pointerId,
@@ -899,15 +899,16 @@ function openTokopuyoFlick(event, targetCol = null) {
   flickMenu.style.left = `${event.clientX}px`;
   flickMenu.style.top = `${event.clientY}px`;
   flickMenu.hidden = false;
+  highlightTokopuyoFlick("straight");
   renderActivePair();
-  setStatus("Flick up, down, left, or right to place this pair in the selected column");
+  setStatus("Release in the center to drop straight, flick down to flip, or flick left or right to rotate");
 }
 
 function buildTokopuyoFlickMenu() {
   const actions = [
-    ["up", ORIENTATION.DOWN, 0, -62, "Rotate 180 degrees and drop"],
+    ["cancel", null, 0, -62, "Cancel placement"],
     ["left", ORIENTATION.LEFT, -62, 0, "Rotate left and drop"],
-    ["down", ORIENTATION.UP, 0, 62, "Drop straight"],
+    ["down", ORIENTATION.DOWN, 0, 62, "Rotate 180 degrees and drop"],
     ["right", ORIENTATION.RIGHT, 62, 0, "Rotate right and drop"],
   ];
   flickMenu.innerHTML = "";
@@ -915,14 +916,27 @@ function buildTokopuyoFlickMenu() {
   for (const [action, orientation, x, y, label] of actions) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "flick-option tokopuyo-flick-option";
+    button.className = `flick-option tokopuyo-flick-option${
+      action === "cancel" ? " cancel" : ""
+    }`;
     button.dataset.action = action;
     button.ariaLabel = label;
     button.style.left = `calc(50% + ${x}px)`;
     button.style.top = `calc(50% + ${y}px)`;
-    button.append(createTokopuyoMiniPair(orientation));
+    if (orientation === null) {
+      button.textContent = "×";
+    } else {
+      button.append(createTokopuyoMiniPair(orientation));
+    }
     flickMenu.append(button);
   }
+
+  const center = document.createElement("span");
+  center.className = "flick-center tokopuyo-flick-center";
+  center.dataset.action = "straight";
+  center.ariaLabel = "Drop straight";
+  center.append(createTokopuyoMiniPair(ORIENTATION.UP));
+  flickMenu.append(center);
 }
 
 function createTokopuyoMiniPair(orientation) {
@@ -942,22 +956,27 @@ function createTokopuyoMiniPair(orientation) {
 function tokopuyoFlickChoice(x, y) {
   const dx = x - flick.startX;
   const dy = y - flick.startY;
-  if (Math.hypot(dx, dy) < 24) return null;
+  if (Math.hypot(dx, dy) < 24) return "straight";
   if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? "left" : "right";
-  return dy < 0 ? "up" : "down";
+  return dy < 0 ? "cancel" : "down";
 }
 
 function highlightTokopuyoFlick(action) {
-  flickMenu.querySelectorAll(".flick-option").forEach((button) => {
+  flickMenu.querySelectorAll("[data-action]").forEach((button) => {
     button.classList.toggle("active", button.dataset.action === action);
   });
 }
 
 function previewTokopuyoFlick(action) {
+  if (action === "cancel") {
+    tokopuyoPreviewCells = pairCells(tokopuyoSession.activePair);
+    renderActivePair();
+    return;
+  }
   tokopuyoPreviewCells = previewPairAtColumn(
     tokopuyoSession,
     flick.col,
-    action || "straight",
+    action,
   ) || previewPairAtColumn(tokopuyoSession, flick.col, "straight");
   renderActivePair();
 }
@@ -1087,7 +1106,7 @@ function closeFlick() {
   flickMenu.hidden = true;
   flickMenu.classList.remove("tokopuyo-flick-menu");
   flickMenu
-    .querySelectorAll(".flick-option")
+    .querySelectorAll("[data-action]")
     .forEach((button) => button.classList.remove("active"));
   if (wasTokopuyo) {
     tokopuyoPreviewCells = null;
@@ -1144,7 +1163,7 @@ window.addEventListener("pointermove", (event) => {
   if (flick.kind === "tokopuyo") {
     const action = tokopuyoFlickChoice(event.clientX, event.clientY);
     if (action === flick.choice) return;
-    flick.moved = Boolean(action);
+    flick.moved = action !== "straight";
     flick.choice = action;
     highlightTokopuyoFlick(action);
     previewTokopuyoFlick(action);
@@ -1164,7 +1183,7 @@ window.addEventListener("pointerup", (event) => {
   if (event.pointerId !== flick.pointerId) return;
 
   if (flick.kind === "tokopuyo") {
-    const action = flick.choice || "cancel";
+    const action = flick.choice || "straight";
     const targetCol = flick.col;
     closeFlick();
     flick.row = -1;

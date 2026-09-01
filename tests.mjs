@@ -386,7 +386,7 @@ assert.equal(rightWallKick.droppedPair.axis.col, 4);
 assert.equal(rightWallKick.droppedPair.orientation, ORIENTATION.RIGHT);
 
 const upsideDownFlickSession = createSession(0);
-const upsideDownFlick = commitPairAtColumn(upsideDownFlickSession, 2, "up");
+const upsideDownFlick = commitPairAtColumn(upsideDownFlickSession, 2, "down");
 assert.ok(upsideDownFlick);
 assert.equal(upsideDownFlick.droppedPair.orientation, ORIENTATION.DOWN);
 
