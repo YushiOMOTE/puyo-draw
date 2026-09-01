@@ -371,6 +371,15 @@ assert.ok(
 
 const tappedColumnSession = createSession(0);
 assert.deepEqual(
+  previewPairAtColumn(tappedColumnSession, 5, "straight").map(
+    ({ row, col }) => ({ row, col }),
+  ),
+  [
+    { row: 0, col: 5 },
+    { row: -1, col: 5 },
+  ],
+);
+assert.deepEqual(
   previewPairAtPlacement(tappedColumnSession, 5, ORIENTATION.UP).map(
     ({ row, col }) => ({ row, col }),
   ),
