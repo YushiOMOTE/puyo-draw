@@ -124,7 +124,7 @@ Tokopuyo is step-driven and has no real-time gravity or movement timer. The acti
 
 Pressing a field cell targets its column and opens a four-direction flick menu. The upper pair preview moves to the selected column and each menu option shows the pair in its resulting orientation.
 
-Pointer displacement controls movement and rotation on independent axes for the complete gesture:
+The four flick directions behave as follows:
 
 - Down flick keeps the spawn orientation.
 - Right and left flicks rotate the child 90 degrees clockwise or counterclockwise.

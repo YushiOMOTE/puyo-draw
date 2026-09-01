@@ -945,6 +945,51 @@ body[data-mode="tokopuyo"] .board-card {
   font-weight: 900;
 }
 
+.tokopuyo-mini-pair {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+
+.mini-puyo {
+  position: absolute;
+  display: block;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  box-shadow: inset -3px -3px 0 #0002, inset 2px 2px 0 #fff6;
+}
+
+.mini-puyo.axis,
+.mini-puyo.child {
+  top: 8px;
+  left: 8px;
+}
+
+.orientation-0 .mini-puyo.child { top: -2px; }
+.orientation-1 .mini-puyo.child { left: 18px; }
+.orientation-2 .mini-puyo.child { top: 18px; }
+.orientation-3 .mini-puyo.child { left: -2px; }
+
+.mini-puyo.red { background: var(--red); }
+.mini-puyo.green { background: var(--green); }
+.mini-puyo.blue { background: var(--blue); }
+.mini-puyo.yellow { background: var(--yellow); }
+.mini-puyo.purple { background: var(--purple); }
+
+.mini-puyo::after {
+  position: absolute;
+  top: 17%;
+  left: 20%;
+  width: 26%;
+  height: 17%;
+  content: "";
+  background: #fff9;
+  border-radius: 50%;
+  transform: rotate(-25deg);
+}
+
 .flick-delete {
   position: absolute;
   top: 50%;

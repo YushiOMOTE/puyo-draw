@@ -349,8 +349,16 @@ assert.equal(redoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 1);
 
 const kickedSession = createSession(0);
-assert.equal(commitPairAtColumn(kickedSession, 0, "left"), null);
-assert.ok(commitPairAtColumn(kickedSession, 0, "right"));
+const leftWallKick = commitPairAtColumn(kickedSession, 0, "left");
+assert.ok(leftWallKick);
+assert.equal(leftWallKick.droppedPair.axis.col, 1);
+assert.equal(leftWallKick.droppedPair.orientation, ORIENTATION.LEFT);
+
+const rightWallKickSession = createSession(0);
+const rightWallKick = commitPairAtColumn(rightWallKickSession, 5, "right");
+assert.ok(rightWallKick);
+assert.equal(rightWallKick.droppedPair.axis.col, 4);
+assert.equal(rightWallKick.droppedPair.orientation, ORIENTATION.RIGHT);
 
 const skippedRotationSession = createSession(0);
 assert.equal(

@@ -11,13 +11,6 @@ import {
 import { generatePattern, getTsumo } from "./queue.js";
 
 const CHOKE_COL = 2;
-const PLACEMENT_ORIENTATIONS = Object.freeze({
-  straight: ORIENTATION.UP,
-  right: ORIENTATION.RIGHT,
-  down: ORIENTATION.DOWN,
-  left: ORIENTATION.LEFT,
-});
-
 function pairAtPlacement(session, col, orientation) {
   return createPairAtPlacement(
     session.board,
@@ -25,6 +18,19 @@ function pairAtPlacement(session, col, orientation) {
     col,
     orientation,
   );
+}
+
+function pairAtColumn(session, col, direction) {
+  const pair = pairAtPlacement(session, col, ORIENTATION.UP);
+  if (!pair) return null;
+  if (direction === "down") return pair;
+  if (direction === "up") return pairAtPlacement(session, col, ORIENTATION.DOWN);
+  const rotated = rotatePair(
+    session.board,
+    pair,
+    direction === "right" ? 1 : -1,
+  );
+  return rotated.orientation === ORIENTATION.UP ? null : rotated;
 }
 
 function canonicalSnapshot(session) {
@@ -120,14 +126,14 @@ export function commitPairAtColumn(session, col, direction) {
     throw new RangeError(`Unsupported Tokopuyo drop direction: ${direction}`);
   }
 
-  const pair = pairAtPlacement(session, col, PLACEMENT_ORIENTATIONS[direction]);
+  const pair = pairAtColumn(session, col, direction);
   if (!pair) return null;
   return commitPair(session, pair);
 }
 
 export function previewPairAtColumn(session, col, direction) {
   if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
-  const pair = pairAtPlacement(session, col, PLACEMENT_ORIENTATIONS[direction]);
+  const pair = pairAtColumn(session, col, direction);
   return pair ? pairCells(pair) : null;
 }
 

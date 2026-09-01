@@ -11,7 +11,7 @@ import {
 } from "./engine.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
-import { pairCells } from "./tokopuyo/pair-engine.js";
+import { ORIENTATION, pairCells } from "./tokopuyo/pair-engine.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
 import {
@@ -884,7 +884,7 @@ function openTokopuyoFlick(event, targetCol = null) {
     startX: event.clientX,
     startY: event.clientY,
     moved: false,
-    choice: "straight",
+    choice: null,
     tools: [],
     suppressClick: true,
     pointerId: event.pointerId,
@@ -904,24 +904,38 @@ function openTokopuyoFlick(event, targetCol = null) {
 
 function buildTokopuyoFlickMenu() {
   const actions = [
-    ["up", "↑", 0, -62, "Rotate 180 degrees and drop"],
-    ["left", "←", -62, 0, "Rotate left and drop"],
-    ["down", "↓", 0, 62, "Drop straight"],
-    ["right", "→", 62, 0, "Rotate right and drop"],
+    ["up", ORIENTATION.DOWN, 0, -62, "Rotate 180 degrees and drop"],
+    ["left", ORIENTATION.LEFT, -62, 0, "Rotate left and drop"],
+    ["down", ORIENTATION.UP, 0, 62, "Drop straight"],
+    ["right", ORIENTATION.RIGHT, 62, 0, "Rotate right and drop"],
   ];
   flickMenu.innerHTML = "";
   flickMenu.classList.add("tokopuyo-flick-menu");
-  for (const [action, icon, x, y, label] of actions) {
+  for (const [action, orientation, x, y, label] of actions) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "flick-option tokopuyo-flick-option";
     button.dataset.action = action;
-    button.textContent = icon;
     button.ariaLabel = label;
     button.style.left = `calc(50% + ${x}px)`;
     button.style.top = `calc(50% + ${y}px)`;
+    button.append(createTokopuyoMiniPair(orientation));
     flickMenu.append(button);
   }
+}
+
+function createTokopuyoMiniPair(orientation) {
+  const pair = document.createElement("span");
+  pair.className = `tokopuyo-mini-pair orientation-${orientation}`;
+  for (const [color, role] of [
+    [tokopuyoSession.activePair.axisColor, "axis"],
+    [tokopuyoSession.activePair.childColor, "child"],
+  ]) {
+    const puyo = document.createElement("i");
+    puyo.className = `mini-puyo ${role} ${color}`;
+    pair.append(puyo);
+  }
+  return pair;
 }
 
 function tokopuyoFlickChoice(x, y) {
