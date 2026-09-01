@@ -17,6 +17,39 @@
   <body>
     <main class="app-shell">
       <div class="play-area">
+        <aside class="left-sidebar" aria-label="App controls">
+          <button
+            id="reset"
+            class="secondary-btn reset-btn"
+            aria-label="Reset"
+            title="Reset"
+          >
+            <svg
+              class="history-icon reset-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M7 8v12h10V8" />
+              <path d="M5 8h14M9 8V5h6v3M10 11v6M14 11v6" />
+            </svg>
+          </button>
+          <button
+            id="toggleAppMode"
+            class="secondary-btn sidebar-btn app-mode-btn"
+            aria-label="Open Tokopuyo mode"
+            title="Open Tokopuyo mode"
+          >
+            <span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>
+          </button>
+          <button
+            id="help"
+            class="secondary-btn help-btn"
+            aria-label="How to use"
+            title="How to use"
+          >
+            i
+          </button>
+        </aside>
         <section class="board-card" aria-label="Puyo Puyo board">
           <div class="board-wrap">
             <div
@@ -74,8 +107,8 @@
             title="Show cumulative score"
             aria-live="polite"
           >
-            <span id="chainNumber">0</span>
-            <small>chains</small>
+            <span class="chain-line"><span id="chainNumber">0</span><small>chains</small></span>
+            <span class="chain-line"><span id="chainScore">0</span><small>points</small></span>
           </button>
 
           <div class="sidebar-actions" aria-label="History controls">
@@ -190,21 +223,6 @@
               <path d="M13.5 2 6 13h5l-.5 9L18 10h-5l.5-8Z" />
             </svg>
           </button>
-          <button
-            id="reset"
-            class="secondary-btn reset-btn"
-            aria-label="Reset"
-            title="Reset"
-          >
-            <svg
-              class="history-icon reset-icon"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path d="M7 8v12h10V8" />
-              <path d="M5 8h14M9 8V5h6v3M10 11v6M14 11v6" />
-            </svg>
-          </button>
           <div class="sidebar-actions mode-actions drawing-only" aria-label="Flick menu modes">
             <button
               id="cyclePalette"
@@ -224,22 +242,6 @@
               <span class="mode-garbage-icon" aria-hidden="true"></span>
             </button>
           </div>
-          <button
-            id="toggleAppMode"
-            class="secondary-btn sidebar-btn app-mode-btn"
-            aria-label="Open Tokopuyo mode"
-            title="Open Tokopuyo mode"
-          >
-            <span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>
-          </button>
-          <button
-            id="help"
-            class="secondary-btn help-btn"
-            aria-label="How to use"
-            title="How to use"
-          >
-            i
-          </button>
         </section>
       </div>
 

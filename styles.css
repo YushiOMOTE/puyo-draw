@@ -323,8 +323,22 @@ body[data-mode="tokopuyo"] .board-card {
   text-shadow: 0 1px 3px #11182799;
 }
 
+.left-sidebar,
 .toolbar {
   --sidebar-size: clamp(44px, 12vw, 58px);
+}
+
+.left-sidebar {
+  display: flex;
+  flex: 0 0 var(--sidebar-size);
+  flex-direction: column;
+  align-items: center;
+  width: var(--sidebar-size);
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.toolbar {
   display: flex;
   flex: 0 0 calc(var(--sidebar-size) + 4px);
   flex-direction: column;
@@ -403,7 +417,7 @@ body[data-mode="tokopuyo"] .board-card {
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
-  width: var(--sidebar-size);
+  width: calc(var(--sidebar-size) * 1.5);
   padding: 5px 3px;
   background: #fff;
   border-radius: 13px;
@@ -445,8 +459,8 @@ body[data-mode="tokopuyo"] .board-card {
 .preview-puyo {
   position: relative;
   display: block;
-  width: 15px;
-  height: 15px;
+  width: 22px;
+  height: 22px;
   margin-top: -1px;
   overflow: hidden;
   border-radius: 50%;
@@ -454,8 +468,8 @@ body[data-mode="tokopuyo"] .board-card {
 }
 
 .next-next .preview-puyo {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
 }
 
 .pattern-number {
@@ -470,10 +484,13 @@ body[data-mode="tokopuyo"] .board-card {
   appearance: none;
   border: 0;
   padding: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   place-content: center;
-  width: var(--sidebar-size);
-  height: var(--sidebar-size);
+  width: calc(var(--sidebar-size) * 1.5);
+  min-height: calc(var(--sidebar-size) * 1.35);
+  height: auto;
   color: #fff;
   text-align: center;
   background: linear-gradient(145deg, #556584, #293650);
@@ -481,14 +498,24 @@ body[data-mode="tokopuyo"] .board-card {
   box-shadow: 0 8px 18px #29365030;
 }
 
-.chain-badge span {
-  font-size: 23px;
-  font-weight: 900;
+.chain-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
   line-height: 1;
 }
 
-.chain-badge small {
-  margin-top: 3px;
+.chain-line span {
+  min-width: 0;
+  font-size: clamp(16px, 3.8vw, 22px);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chain-line small {
+  flex: 0 0 auto;
   font-size: 8px;
   font-weight: 700;
 }
@@ -502,6 +529,7 @@ body[data-mode="tokopuyo"] .board-card {
 
 .sidebar-btn,
 .help-btn,
+.left-sidebar .reset-btn,
 .toolbar .primary-btn,
 .toolbar .reset-btn {
   width: var(--sidebar-size);
@@ -575,16 +603,6 @@ body[data-mode="tokopuyo"] .board-card {
 
 .app-mode-btn {
   position: relative;
-  margin-top: 10px;
-}
-
-.app-mode-btn::before {
-  position: absolute;
-  top: -10px;
-  right: 0;
-  left: 0;
-  content: "";
-  border-top: 1px solid #b9c1d080;
 }
 
 .palette-icon {
@@ -698,10 +716,24 @@ body[data-mode="tokopuyo"] .board-card {
 }
 
 .help-btn {
+  position: relative;
   color: #4f5b73;
   background: #fff;
   border: 0;
   box-shadow: 0 5px 12px #28344d20;
+}
+
+.left-sidebar .help-btn {
+  margin-top: auto;
+}
+
+.left-sidebar .help-btn::before {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 5px);
+  left: 0;
+  content: "";
+  border-top: 1px solid #b9c1d080;
 }
 
 .history-icon {
@@ -1119,6 +1151,7 @@ body[data-mode="tokopuyo"] .board-card {
       width: min(100cqw, 42.857cqh);
     }
   }
+  .left-sidebar { gap: 7px; padding-top: 2px; }
   .toolbar { gap: 7px; padding-top: 2px; }
   .tokopuyo-controls {
     min-height: 74px;
@@ -1133,6 +1166,6 @@ body[data-mode="tokopuyo"] .board-card {
   .help-btn { border-radius: 12px; }
   .toolbar .simulation-row,
   .sidebar-actions { gap: 7px; }
-  .chain-badge span { font-size: 21px; }
+  .chain-line span { font-size: 18px; }
   .sidebar-btn { font-size: 21px; }
 }

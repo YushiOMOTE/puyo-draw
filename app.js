@@ -33,6 +33,7 @@ const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
 const statusEl = document.querySelector("#status");
 const chainEl = document.querySelector("#chainNumber");
+const chainScoreEl = document.querySelector("#chainScore");
 const suggestionLoadingEl = document.querySelector("#suggestionLoading");
 const flickMenu = document.querySelector("#flickMenu");
 const toastEl = document.querySelector("#toast");
@@ -406,6 +407,11 @@ function render() {
       ? tokopuyoDisplayedChain ?? tokopuyoSession?.chainCount ?? 0
       : chainCount,
   );
+  chainScoreEl.textContent = Number(
+    appMode === "tokopuyo"
+      ? tokopuyoSession?.cumulativeScore ?? 0
+      : cumulativeScore,
+  ).toLocaleString();
   updateModeUi();
   renderActivePair();
 }
@@ -618,10 +624,6 @@ async function runSimulation() {
   for (const round of result.rounds) {
     chainCount = ++step;
     cumulativeScore = round.cumulativeScore;
-    showToast(
-      localizedMessage(messages.chain, step, round.count, round.score, cumulativeScore),
-      1100,
-    );
 
     const cells = [...boardEl.children];
     findClearingCells(board)
@@ -638,10 +640,6 @@ async function runSimulation() {
   board = result.state;
   chainCount = result.chains;
   cumulativeScore = result.score;
-  showToast(
-    `${localizedMessage(messages.complete, result.chains, result.cleared)} ${localizedMessage(messages.score, result.chains, result.score)}`,
-    2600,
-  );
   isSimulating = false;
   document.querySelector("#simulate").disabled = false;
   render();
@@ -662,17 +660,6 @@ function displaySuggestion(candidate, index, total) {
     suggestionMarks.set(`${row},${col}`, { color, isTrigger: true });
   });
   render();
-  showToast(
-    localizedMessage(
-      messages.suggestion,
-      index + 1,
-      total,
-      candidate.chains,
-      suggestionMarks.size,
-      candidate.chainGain,
-    ),
-    2600,
-  );
 }
 
 function tokopuyoSuggestionKey() {
@@ -719,18 +706,6 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     : candidate.mainTrigger
       ? `Current ${candidate.mainTrigger.chains}-chain: ${targetCount} connected ${mainColor} puyos are the ignition target (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : `fires with one ${mainColor} puyo`}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
       : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`;
-  showToast(
-    localizedMessage(
-      messages.tokopuyoSuggestion,
-      index + 1,
-      total,
-      candidate.potentialChains,
-      Math.round(candidate.construction.resourceEfficiency * 100),
-      ignition,
-      candidate.emergency,
-    ),
-    3000,
-  );
 }
 
 function displayTokopuyoAttackSuggestion(candidate, index, total) {
@@ -746,20 +721,6 @@ function displayTokopuyoAttackSuggestion(candidate, index, total) {
     });
   });
   render();
-  const timing = locale === "ja"
-    ? ["ツモ", "ネクスト", "ネクネク"][candidate.fireHandOffset]
-    : ["Current", "Next", "Next Next"][candidate.fireHandOffset];
-  showToast(
-    localizedMessage(
-      messages.tokopuyoAttack,
-      index + 1,
-      total,
-      candidate.score,
-      candidate.chains,
-      timing,
-    ),
-    3000,
-  );
 }
 
 async function showTokopuyoSuggestion() {
@@ -790,7 +751,6 @@ async function showTokopuyoSuggestion() {
   isSuggesting = true;
   const requestRevision = suggestionRevision;
   render();
-  showToast(messages.tokopuyoSuggestionSearching[locale], 1600);
   try {
     const hands = Array.from(
       { length: TOKOPUYO_SUGGESTION_CONFIG.lookaheadHands },
@@ -811,14 +771,12 @@ async function showTokopuyoSuggestion() {
       return;
     }
     if (!candidates.length) {
-      showToast(messages.tokopuyoSuggestionNone[locale]);
       return;
     }
     tokopuyoSuggestionSession = { key, candidates, index: 0 };
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Tokopuyo suggestion search failed", error);
-    showToast(messages.suggestionError[locale]);
   } finally {
     isSuggesting = false;
     render();
@@ -856,7 +814,6 @@ async function showTokopuyoAttackSuggestion() {
   isSuggesting = true;
   const requestRevision = suggestionRevision;
   render();
-  showToast(messages.tokopuyoAttackSearching[locale], 1600);
   try {
     const hands = Array.from(
       { length: TOKOPUYO_ATTACK_SUGGESTION_CONFIG.lookaheadHands },
@@ -877,14 +834,12 @@ async function showTokopuyoAttackSuggestion() {
     }
     if (timedOut) throw new Error("Emergency-attack search timed out");
     if (!candidates.length) {
-      showToast(messages.tokopuyoAttackNone[locale]);
       return;
     }
     tokopuyoAttackSuggestionSession = { key, candidates, index: 0 };
     displayTokopuyoAttackSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Tokopuyo emergency-attack search failed", error);
-    showToast(messages.suggestionError[locale]);
   } finally {
     isSuggesting = false;
     render();
@@ -896,12 +851,10 @@ async function showSuggestion() {
   if (isSimulating || isSuggesting) return;
 
   if (!isSettled(board)) {
-    showToast(messages.suggestionFloating[locale]);
     return;
   }
 
   if (findClearingCells(board).length) {
-    showToast(messages.suggestionAlreadyFiring[locale]);
     return;
   }
 
@@ -925,7 +878,6 @@ async function showSuggestion() {
   isSuggesting = true;
   const requestRevision = suggestionRevision;
   render();
-  showToast(messages.suggestionSearching[locale], 1300);
   try {
     const { candidates } = await suggestionController.solve({
       board: clone(board),
@@ -939,14 +891,12 @@ async function showSuggestion() {
       return;
     }
     if (!candidates.length) {
-      showToast(messages.suggestionNone[locale]);
       return;
     }
     suggestionSession = { boardKey, candidates, index: 0, stale: false };
     displaySuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Suggestion search failed", error);
-    showToast(messages.suggestionError[locale]);
   } finally {
     isSuggesting = false;
     render();
@@ -967,16 +917,6 @@ async function dropTokopuyoPair() {
   let step = 0;
   for (const round of committed.result.rounds) {
     tokopuyoDisplayedChain = ++step;
-    showToast(
-      localizedMessage(
-        messages.chain,
-        step,
-        round.count,
-        round.score,
-        round.cumulativeScore,
-      ),
-      1100,
-    );
     const cells = [...boardEl.children];
     findClearingCells(tokopuyoBoardOverride).forEach(([row, col]) => {
       cells[row * COLS + col]?.classList.add("clearing");
@@ -992,12 +932,6 @@ async function dropTokopuyoPair() {
   tokopuyoSession.busy = false;
   render();
 
-  if (committed.result.chains) {
-    showToast(
-      `${localizedMessage(messages.complete, committed.result.chains, committed.result.cleared)} ${localizedMessage(messages.score, committed.result.chains, committed.result.score)}`,
-      2600,
-    );
-  }
   if (tokopuyoSession.gameOver) {
     showToast(messages.tokopuyoGameOver[locale], 3000);
   }
@@ -1174,15 +1108,6 @@ document
   );
 document.querySelector("#undo").addEventListener("click", undo);
 document.querySelector("#redo").addEventListener("click", redo);
-document.querySelector("#chainBadge").addEventListener("click", () => {
-  const chains =
-    appMode === "tokopuyo" ? tokopuyoSession?.chainCount || 0 : chainCount;
-  const score =
-    appMode === "tokopuyo"
-      ? tokopuyoSession?.cumulativeScore || 0
-      : cumulativeScore;
-  showToast(localizedMessage(messages.score, chains, score));
-});
 document.querySelector("#clear").addEventListener("click", () => {
   if (appMode !== "drawing" || isSimulating) return;
 

@@ -42,22 +42,27 @@
 
 ## Simulation UI
 
-- The chain count button shows the current chain count and displays the cumulative chain-clear score in a toast when tapped. Each chain toast displays that step's score and the cumulative score.
+- The chain count box shows the current chain count and cumulative points on two separate lines. Both values remain visible without requiring a toast.
 - Reset and Clear reset the chain count and cumulative score to zero. Undo and Redo restore the board, chain count, and cumulative score together.
+
+The left-side rail is ordered from top to bottom:
+
+1. Reset (trash).
+2. Drawing/Tokopuyo mode.
+3. Help (`i`).
 
 The right-side rail is ordered from top to bottom:
 
-1. Chain count.
-2. Undo.
-3. Redo.
-4. Simulate.
-5. Suggestion.
-6. Reset.
+1. Next and Next Next preview (Tokopuyo only), approximately 1.5 times the compact button width.
+2. Chain count and cumulative points, matching the preview width.
+3. Undo.
+4. Redo.
+5. Simulate.
+6. Suggestion.
 7. Palette.
 8. Garbage puyo mode.
-9. Tokopuyo mode.
 
-The Help (`i`) button is pinned to the bottom of the rail.
+The Help (`i`) button is pinned to the bottom of the left rail. The reset and mode buttons have no divider between them; the help button remains visually separated.
 
 ## Tokopuyo Mode
 
@@ -70,10 +75,10 @@ The Help (`i`) button is pinned to the bottom of the rail.
 - Quarter-turn rotations use the existing Tsu-style wall kicks.
 - On lock, horizontally separated puyos fall independently when their columns have different heights. The current hand advances only after lock.
 - Groups of four or more trigger the existing chain animation and scoring automatically. Pair input and history controls are disabled until resolution finishes.
-- The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero.
+- The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero, and both values are shown in the two-line chain box.
 - Tokopuyo Undo/Redo is independent from Drawing mode. One committed pair and its complete chain result form one atomic history entry; pre-lock movement and rotation are not history entries. Redo restores the resolved state without replaying animation.
 - After chain resolution, occupancy of the marked third-column choke point ends the session. Reset, Undo, Drawing mode, and Help remain available at game over.
-- The Tokopuyo sidebar ends above the bottom control bar and contains, below the previews: Chain count, Undo, Redo, long-chain Suggestion, emergency-attack Suggestion, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
+- The Tokopuyo right-side rail ends above the bottom control bar and contains, below the previews: Chain count, Undo, Redo, long-chain Suggestion, emergency-attack Suggestion, and Palette/Garbage controls are hidden. Reset and the Drawing mode switch are on the left rail, with Help pinned at the bottom.
 - The Help overlay shows instructions for the active mode.
 
 The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
@@ -90,9 +95,9 @@ The document itself must not scroll on mobile; the field and controls fit within
 
 The Help button opens a modal instruction overlay. The overlay contains a visual example of the radial flick menu and short explanations for color placement, garbage placement, deletion, Suggestion, Palette, and Garbage mode. It closes from the top-right close button, by clicking outside the card, or with the Escape key. The help card scrolls internally when its content exceeds the viewport; the page behind it must not scroll.
 
-Toast notifications use the browser language: Japanese for Japanese locales and English otherwise. Toasts are used for chains, reset, undo, redo, clear, and no-chain feedback. Cell placement messages are not shown as toasts.
+Toast notifications use the browser language: Japanese for Japanese locales and English otherwise. Toasts are used for reset, undo, redo, clear, and no-chain feedback. Chain progress/completion and suggestion searches, results, and precondition feedback are shown without toasts. Cell placement messages are not shown as toasts.
 
-Suggestion precondition errors also use localized toasts. A floating board asks the user to land every puyo, while a board that already contains a clearing group explains that it can already fire.
+Suggestion precondition errors do not use toasts; the suggestion action leaves the current board unchanged when it is floating or already able to fire.
 
 ## Chain Suggestions
 
