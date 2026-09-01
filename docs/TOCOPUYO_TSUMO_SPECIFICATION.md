@@ -122,24 +122,22 @@ The current main-chain ignition cell is visible as a colored double dashed circl
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing anywhere in the field, including the visual gaps between cells, begins direct manipulation and targets the pressed column. The start area extends by 0.35 cell around the field within the board card, so it does not overlap the sidebar controls. A press in this extension beyond the left or right field edge targets the nearest outer column. The upper pair preview moves directly from its spawn column to that column while retaining its current orientation. If locked puyos prevent the pair from occupying the target column at spawn height, the preview retains its current spawn column. Subsequent horizontal pointer travel moves the upper preview left or right one column at a time. Column thresholds are based on the rendered cell size and use hysteresis so small reversals near a boundary do not make the preview oscillate.
+Pressing a field cell targets its column and opens a four-direction flick menu. The upper pair preview moves to the selected column and each menu option shows the pair in its resulting orientation.
 
 Pointer displacement controls movement and rotation on independent axes for the complete gesture:
 
-- Every 0.7-cell horizontal step from the press point requests one column of movement in the same direction.
-- Every 0.7-cell upward step requests one 90-degree clockwise rotation.
-- Every 0.7-cell downward step requests one 90-degree counterclockwise rotation.
-- Continued vertical travel requests successive quarter turns at 180, 270, and 360 degrees. Four steps return to the initial orientation.
-- A diagonal drag can change the requested column and orientation in the same pointer update. There is no translation/rotation mode switch.
-- Returning toward the press position reverses the corresponding horizontal or vertical steps. After a step is entered, the pointer must return 0.18 cell past its entry boundary before that step is removed, preventing boundary jitter.
+- Down flick keeps the spawn orientation.
+- Right and left flicks rotate the child 90 degrees clockwise or counterclockwise.
+- Up flick rotates the pair 180 degrees.
+- Releasing without crossing the flick threshold cancels without changing session state.
 
-All rotation candidates are constructed directly at the upper preview position. Tokopuyo placement applies no wall kicks or floor kicks. If a requested quarter-turn orientation would put either puyo outside the active-pair area or over a locked puyo, that orientation is skipped and the last valid preview remains visible. Continued vertical movement still evaluates the next quarter-turn, so a blocked 90-degree orientation may jump directly to a valid 180-degree orientation. Horizontal movement similarly retains the last valid column if the current orientation does not fit in a requested adjacent column.
+Quarter-turn placements use the existing wall-kick behavior. The 180-degree placement intentionally skips wall kicks. A placement that cannot fit is rejected.
 
-The pair preview updates continuously, while the hand advances only when the originating pointer is released. Additional simultaneous pointers are ignored. Releasing normally commits the last valid column and orientation. Four visible corner targets appear during manipulation. Entering one arms cancellation and previews the original spawn state; releasing inside it cancels, while moving back out disarms cancellation and restores the last valid preview. A gesture that begins inside a corner target must leave and re-enter it before the target can arm, preserving the ability to start anywhere in the field. A browser `pointercancel` also cancels safely.
+The menu preview remains visible while the originating pointer is held, and the hand advances only when that pointer is released. Additional simultaneous pointers are ignored. A browser `pointercancel` also cancels safely.
 
 ### Lock and automatic simulation
 
-1. A normal release computes the lowest valid position for the last accepted upper-preview orientation without applying a rotation kick.
+1. A flick computes the lowest valid position for the selected orientation, applying the established quarter-turn wall-kick behavior where applicable.
 2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported.
 3. The current hand is consumed only after both puyos have successfully locked.
 4. If the locked board contains a connected group of four or more, chain simulation begins automatically. No Simulate button is shown.
@@ -242,7 +240,7 @@ The active pair cannot be committed if there is no legal landing position for bo
 - Returning to Drawing mode preserves the Tokopuyo session; switching back resumes it.
 - Reset starts a new random pattern rather than replaying the current seed.
 - The pattern number is always shown in compact form near Next and Next Next.
-- No Tokopuyo rotation uses wall kicks or floor kicks in the direct-manipulation interaction variant.
+- Tokopuyo quarter-turn rotations use wall kicks; the 180-degree flick intentionally skips wall kicks.
 - Game over is checked at the standard third-column choke point after chain resolution.
 - Undo/Redo operates on one committed hand plus its complete automatic chain result, not on individual pre-lock moves or rotations.
 
