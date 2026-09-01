@@ -52,18 +52,6 @@
           <p id="status" class="status" role="status"></p>
         </section>
 
-        <div
-          id="tokopuyoCancelTargets"
-          class="tokopuyo-cancel-targets"
-          aria-hidden="true"
-          hidden
-        >
-          <span data-corner="top-left">×</span>
-          <span data-corner="top-right">×</span>
-          <span data-corner="bottom-left">×</span>
-          <span data-corner="bottom-right">×</span>
-        </div>
-
         <section class="toolbar" aria-label="Controls">
           <div id="tokopuyoPreview" class="tokopuyo-preview" hidden>
             <div class="preview-pairs" aria-label="Upcoming pairs">
@@ -244,6 +232,44 @@
         </section>
       </div>
 
+      <section id="tokopuyoControls" class="tokopuyo-controls" aria-label="Tokopuyo pair controls" hidden>
+        <div class="pair-movement-controls" aria-label="Move pair">
+          <button id="movePairLeft" type="button" class="pair-control-btn" aria-label="Move pair left" title="Move left">
+            <svg class="pair-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 12H4" />
+              <path d="m10 6-6 6 6 6" />
+            </svg>
+          </button>
+          <button id="movePairRight" type="button" class="pair-control-btn" aria-label="Move pair right" title="Move right">
+            <svg class="pair-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12h16" />
+              <path d="m14 6 6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="pair-action-controls" aria-label="Rotate or drop pair">
+          <button id="rotatePairLeft" type="button" class="pair-control-btn" aria-label="Rotate pair counterclockwise" title="Rotate counterclockwise">
+            <svg class="pair-control-icon rotate-left-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 10a7 7 0 1 1 2.1 8.1" />
+              <path d="M5 4v6h6" />
+            </svg>
+          </button>
+          <button id="dropPair" type="button" class="pair-control-btn pair-drop-btn" aria-label="Drop pair" title="Drop pair">
+            <svg class="pair-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4v12" />
+              <path d="m6 11 6 6 6-6" />
+              <path d="M5 20h14" />
+            </svg>
+          </button>
+          <button id="rotatePairRight" type="button" class="pair-control-btn" aria-label="Rotate pair clockwise" title="Rotate clockwise">
+            <svg class="pair-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 10a7 7 0 1 0-2.1 8.1" />
+              <path d="M19 4v6h-6" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
       <div id="helpOverlay" class="help-overlay" hidden>
         <section
           class="help-card"
@@ -278,10 +304,10 @@
             </ul>
           </div>
           <div id="tokopuyoHelp" hidden>
-            <p>Tap a field column, then use the center or a flick direction to choose the pair placement.</p>
+            <p>Use the bottom controls to move or rotate the active pair, then drop it.</p>
             <ul>
-              <li>Release in the center to drop straight; down rotates the pair 180 degrees.</li>
-              <li>Right and left rotate the pair 90 degrees; up cancels.</li>
+              <li>The left controls move the pair horizontally.</li>
+              <li>The right controls rotate the pair counterclockwise or clockwise, or drop it.</li>
               <li>Chains run automatically after a pair locks.</li>
               <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair; numbered circles show the visible follow-up pairs.</li>
               <li>The double dotted circle with a lightning mark is the current main-chain ignition point. It pulses when the current pair can fire it.</li>
