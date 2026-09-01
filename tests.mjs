@@ -61,6 +61,13 @@ import { createChainGoals } from "./tokopuyo/chain-templates.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
+  TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+} from "./tokopuyo/attack-suggestion-config.js";
+import {
+  compareAttackCandidates,
+  solveTokopuyoAttackSuggestion,
+} from "./tokopuyo/attack-suggestion-solver.js";
+import {
   analyzeMainChain,
   enumerateUnknownHands,
   evaluateFieldBalance,
@@ -597,6 +604,152 @@ assert.ok(
       color === thirteenChainGoal.triggerPlan.cell.color,
   ),
 );
+assert.equal(TOKOPUYO_ATTACK_SUGGESTION_CONFIG.lookaheadHands, 3);
+assert.equal(TOKOPUYO_ATTACK_SUGGESTION_CONFIG.resultLimit, 10);
+
+const attackTieCandidates = [
+  {
+    score: 1_000,
+    fireHandOffset: 1,
+    chains: 1,
+    moves: [{ cells: [{ row: 12, col: 1, color: "red" }] }],
+  },
+  {
+    score: 1_000,
+    fireHandOffset: 0,
+    chains: 3,
+    moves: [{ cells: [{ row: 12, col: 2, color: "red" }] }],
+  },
+  {
+    score: 1_000,
+    fireHandOffset: 0,
+    chains: 2,
+    moves: [{ cells: [{ row: 12, col: 3, color: "red" }] }],
+  },
+];
+attackTieCandidates.sort(compareAttackCandidates);
+assert.deepEqual(
+  attackTieCandidates.map(({ fireHandOffset, chains }) => [
+    fireHandOffset,
+    chains,
+  ]),
+  [[0, 2], [0, 3], [1, 1]],
+);
+
+const attackBoard = emptyBoard();
+for (let col = 0; col < 3; col++) attackBoard[ROWS - 1][col] = "red";
+const immediateAttack = solveTokopuyoAttackSuggestion({
+  board: attackBoard,
+  hands: [
+    { axis: "red", child: "blue" },
+    { axis: "green", child: "yellow" },
+    { axis: "blue", child: "green" },
+  ],
+  ...TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+  timeBudgetMs: 5_000,
+});
+assert.equal(immediateAttack.timedOut, false);
+assert.ok(immediateAttack.candidates.length > 0);
+assert.ok(immediateAttack.candidates.length <= 10);
+assert.equal(immediateAttack.candidates[0].fireHandOffset, 0);
+assert.equal(immediateAttack.candidates[0].moves.length, 1);
+for (let index = 1; index < immediateAttack.candidates.length; index++) {
+  assert.ok(
+    compareAttackCandidates(
+      immediateAttack.candidates[index - 1],
+      immediateAttack.candidates[index],
+    ) <= 0,
+  );
+}
+
+const delayedAttackHands = [
+  { axis: "blue", child: "green" },
+  { axis: "red", child: "yellow" },
+  { axis: "green", child: "blue" },
+];
+const delayedAttack = solveTokopuyoAttackSuggestion({
+  board: attackBoard,
+  hands: delayedAttackHands,
+  ...TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+  timeBudgetMs: 5_000,
+});
+assert.equal(delayedAttack.timedOut, false);
+assert.ok(delayedAttack.candidates.some(
+  ({ fireHandOffset, moves }) => fireHandOffset === 1 && moves.length === 2,
+));
+for (const candidate of delayedAttack.candidates) {
+  assert.equal(candidate.moves.length, candidate.fireHandOffset + 1);
+  let replayBoard = clone(attackBoard);
+  candidate.moves.forEach((move, handOffset) => {
+    const placement = dropTsumo(
+      replayBoard,
+      delayedAttackHands[handOffset],
+      move.col,
+      move.orientation,
+    );
+    assert.ok(placement);
+    const replayResult = simulate(placement.board);
+    assert.equal(Boolean(replayResult.state[HIDDEN_ROWS][2]), false);
+    assert.equal(replayResult.chains > 0, handOffset === candidate.fireHandOffset);
+    replayBoard = replayResult.state;
+  });
+}
+
+const nextNextAttack = solveTokopuyoAttackSuggestion({
+  board: attackBoard,
+  hands: [
+    { axis: "blue", child: "green" },
+    { axis: "yellow", child: "purple" },
+    { axis: "red", child: "blue" },
+  ],
+  ...TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+  timeBudgetMs: 5_000,
+});
+assert.equal(nextNextAttack.timedOut, false);
+assert.ok(nextNextAttack.candidates.length > 0);
+assert.ok(nextNextAttack.candidates.every(
+  ({ fireHandOffset, moves }) => fireHandOffset === 2 && moves.length === 3,
+));
+
+const chokeAttackBoard = emptyBoard();
+chokeAttackBoard[ROWS - 1][3] = "red";
+chokeAttackBoard[ROWS - 2][3] = "red";
+chokeAttackBoard[ROWS - 3][3] = "red";
+const chokeColumnColors = [
+  "purple", "blue", "green", "yellow", "blue", "green",
+  "yellow", "blue", "green", "yellow", "blue",
+];
+chokeColumnColors.forEach((color, index) => {
+  chokeAttackBoard[ROWS - 1 - index][2] = color;
+});
+const chokeAttackHand = { axis: "yellow", child: "red" };
+const doomedFiringPlacements = enumerateTsumoPlacements(
+  chokeAttackBoard,
+  chokeAttackHand,
+).filter((placement) => {
+  const firing = simulate(placement.board);
+  return firing.chains > 0 && Boolean(firing.state[HIDDEN_ROWS][2]);
+});
+assert.ok(doomedFiringPlacements.length > 0);
+const safeChokeAttack = solveTokopuyoAttackSuggestion({
+  board: chokeAttackBoard,
+  hands: [chokeAttackHand],
+  lookaheadHands: 1,
+  resultLimit: 10,
+  timeBudgetMs: 5_000,
+});
+assert.ok(safeChokeAttack.candidates.length > 0);
+for (const candidate of safeChokeAttack.candidates) {
+  const move = candidate.moves[0];
+  const placement = dropTsumo(
+    chokeAttackBoard,
+    chokeAttackHand,
+    move.col,
+    move.orientation,
+  );
+  assert.ok(placement);
+  assert.equal(Boolean(simulate(placement.board).state[HIDDEN_ROWS][2]), false);
+}
 assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
 assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
 assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);

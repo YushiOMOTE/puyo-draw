@@ -13,6 +13,9 @@ import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { pairCells } from "./tokopuyo/pair-engine.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
+import {
+  TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+} from "./tokopuyo/attack-suggestion-config.js";
 import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
 import {
   actOnPair,
@@ -41,6 +44,7 @@ const toggleAppModeButton = document.querySelector("#toggleAppMode");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
 const tokopuyoControls = document.querySelector("#tokopuyoControls");
+const attackSuggestButton = document.querySelector("#attackSuggest");
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -61,6 +65,7 @@ let tokopuyoSession = null;
 let tokopuyoBoardOverride = null;
 let tokopuyoDisplayedChain = null;
 let tokopuyoSuggestionSession = null;
+let tokopuyoAttackSuggestionSession = null;
 let tokopuyoSuggestionMarks = new Map();
 const suggestionController = new SuggestionController();
 
@@ -164,6 +169,20 @@ const messages = {
     ja: (index, total, target, progress, predicted, ignition, emergency) =>
       `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${target}連鎖目標の進捗${progress}%${predicted ? `、見えているツモ内で${predicted}連鎖` : ""} · ${ignition}`,
   },
+  tokopuyoAttackSearching: {
+    en: "Finding the strongest visible attacks…",
+    ja: "見えているツモから最大攻撃を探索中…",
+  },
+  tokopuyoAttackNone: {
+    en: "No safe attack was found within the visible pairs",
+    ja: "見えているツモ内に安全な発火手順がありません",
+  },
+  tokopuyoAttack: {
+    en: (index, total, score, chains, timing) =>
+      `Attack ${index}/${total}: ${score.toLocaleString()} points · ${chains} chain${chains === 1 ? "" : "s"} · fires on ${timing}`,
+    ja: (index, total, score, chains, timing) =>
+      `攻撃候補 ${index}/${total}：${score.toLocaleString()}点・${chains}連鎖・${timing}で発火`,
+  },
 };
 
 const localizedColors = {
@@ -250,6 +269,7 @@ function updateModeUi() {
   });
   tokopuyoPreview.hidden = !isTokopuyo;
   tokopuyoControls.hidden = !isTokopuyo;
+  attackSuggestButton.hidden = !isTokopuyo;
   drawingHelp.hidden = isTokopuyo;
   tokopuyoHelp.hidden = !isTokopuyo;
 
@@ -262,7 +282,7 @@ function updateModeUi() {
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
   const suggestButton = document.querySelector("#suggest");
   suggestButton.ariaLabel = isTokopuyo
-    ? `Suggest a move toward ${TOKOPUYO_SUGGESTION_CONFIG.targetChains} chains`
+    ? `Suggest long-chain construction toward ${TOKOPUYO_SUGGESTION_CONFIG.targetChains} chains`
     : "Suggest chain extensions";
   suggestButton.title = suggestButton.ariaLabel;
   resetButton.ariaLabel = isTokopuyo ? "Start a new Tokopuyo pattern" : "Reset";
@@ -366,6 +386,12 @@ function render() {
   document.querySelector("#suggest").disabled = appMode === "tokopuyo"
     ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver
     : isSimulating || isSuggesting;
+  attackSuggestButton.disabled =
+    appMode !== "tokopuyo" ||
+    isSuggesting ||
+    tokopuyoBusy ||
+    !tokopuyoSession ||
+    tokopuyoSession.gameOver;
   toggleAppModeButton.disabled =
     isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
@@ -429,6 +455,7 @@ function clearSuggestions() {
 function clearTokopuyoSuggestions() {
   tokopuyoSuggestionMarks.clear();
   tokopuyoSuggestionSession = null;
+  tokopuyoAttackSuggestionSession = null;
   suggestionRevision++;
 }
 
@@ -662,6 +689,19 @@ function tokopuyoSuggestionKey() {
   ].join(":");
 }
 
+function tokopuyoAttackSuggestionKey() {
+  if (!tokopuyoSession) return "";
+  const field = tokopuyoSession.board
+    .map((row) => row.map((cell) => cell || "-").join(""))
+    .join("/");
+  return [
+    "attack",
+    tokopuyoSession.seed,
+    tokopuyoSession.handIndex,
+    field,
+  ].join(":");
+}
+
 function displayTokopuyoSuggestion(candidate, index, total) {
   tokopuyoSuggestionMarks = new Map();
   for (const cell of candidate.goalCells || []) {
@@ -741,6 +781,35 @@ function displayTokopuyoSuggestion(candidate, index, total) {
   );
 }
 
+function displayTokopuyoAttackSuggestion(candidate, index, total) {
+  tokopuyoSuggestionMarks = new Map();
+  [...candidate.moves].reverse().forEach((move) => {
+    const step = move.handOffset + 1;
+    move.cells.forEach(({ row, col, color }) => {
+      tokopuyoSuggestionMarks.set(`${row},${col}`, {
+        color,
+        kind: step === 1 ? "current" : "future",
+        step: step > 1 ? String(step) : null,
+      });
+    });
+  });
+  render();
+  const timing = locale === "ja"
+    ? ["ツモ", "ネクスト", "ネクネク"][candidate.fireHandOffset]
+    : ["Current", "Next", "Next Next"][candidate.fireHandOffset];
+  showToast(
+    localizedMessage(
+      messages.tokopuyoAttack,
+      index + 1,
+      total,
+      candidate.score,
+      candidate.chains,
+      timing,
+    ),
+    3000,
+  );
+}
+
 async function showTokopuyoSuggestion() {
   if (
     !tokopuyoSession ||
@@ -803,6 +872,72 @@ async function showTokopuyoSuggestion() {
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Tokopuyo suggestion search failed", error);
+    showToast(messages.suggestionError[locale]);
+  } finally {
+    isSuggesting = false;
+    render();
+  }
+}
+
+async function showTokopuyoAttackSuggestion() {
+  if (
+    appMode !== "tokopuyo" ||
+    !tokopuyoSession ||
+    tokopuyoSession.busy ||
+    tokopuyoSession.gameOver ||
+    isSuggesting
+  ) return;
+
+  const key = tokopuyoAttackSuggestionKey();
+  if (
+    tokopuyoAttackSuggestionSession &&
+    tokopuyoAttackSuggestionSession.key === key &&
+    tokopuyoAttackSuggestionSession.candidates.length
+  ) {
+    tokopuyoAttackSuggestionSession.index =
+      (tokopuyoAttackSuggestionSession.index + 1) %
+      tokopuyoAttackSuggestionSession.candidates.length;
+    displayTokopuyoAttackSuggestion(
+      tokopuyoAttackSuggestionSession.candidates[
+        tokopuyoAttackSuggestionSession.index
+      ],
+      tokopuyoAttackSuggestionSession.index,
+      tokopuyoAttackSuggestionSession.candidates.length,
+    );
+    return;
+  }
+
+  isSuggesting = true;
+  const requestRevision = suggestionRevision;
+  render();
+  showToast(messages.tokopuyoAttackSearching[locale], 1600);
+  try {
+    const hands = Array.from(
+      { length: TOKOPUYO_ATTACK_SUGGESTION_CONFIG.lookaheadHands },
+      (_, offset) =>
+        getTsumo(tokopuyoSession.pattern, tokopuyoSession.handIndex + offset),
+    );
+    const { candidates, timedOut } = await suggestionController.solve({
+      kind: "tokopuyo-attack",
+      board: clone(tokopuyoSession.board),
+      hands,
+      ...TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
+    });
+    if (
+      suggestionRevision !== requestRevision ||
+      tokopuyoAttackSuggestionKey() !== key
+    ) {
+      return;
+    }
+    if (timedOut) throw new Error("Emergency-attack search timed out");
+    if (!candidates.length) {
+      showToast(messages.tokopuyoAttackNone[locale]);
+      return;
+    }
+    tokopuyoAttackSuggestionSession = { key, candidates, index: 0 };
+    displayTokopuyoAttackSuggestion(candidates[0], 0, candidates.length);
+  } catch (error) {
+    console.error("Tokopuyo emergency-attack search failed", error);
     showToast(messages.suggestionError[locale]);
   } finally {
     isSuggesting = false;
@@ -1160,6 +1295,7 @@ document.querySelector("#reset").addEventListener("click", () => {
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
 document.querySelector("#suggest").addEventListener("click", showSuggestion);
+attackSuggestButton.addEventListener("click", showTokopuyoAttackSuggestion);
 document.querySelector("#movePairLeft").addEventListener("click", () => performTokopuyoAction("left"));
 document.querySelector("#movePairRight").addEventListener("click", () => performTokopuyoAction("right"));
 document.querySelector("#rotatePairLeft").addEventListener("click", () => performTokopuyoAction("counterclockwise"));

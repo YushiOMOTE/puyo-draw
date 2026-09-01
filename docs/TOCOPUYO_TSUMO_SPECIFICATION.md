@@ -70,7 +70,7 @@ The Tokopuyo mode button is placed at the bottom of the drawing-mode sidebar, di
 
 Mode state is independent. Switching modes preserves the drawing board, drawing history, palette, garbage setting, suggestions, and score for later restoration. It also preserves the active Tokopuyo session unless the user explicitly resets or starts a new pattern. A mode switch is not an Undo/Redo history entry.
 
-Direct cell editing, color selection, garbage mode, manual simulation, and Clear are unavailable in Tokopuyo mode. Suggestion is available as the separate long-chain construction planner described below.
+Direct cell editing, color selection, garbage mode, manual simulation, and Clear are unavailable in Tokopuyo mode. Separate long-chain construction and emergency-attack Suggestion actions are available as described below.
 
 ## Tokopuyo layout
 
@@ -91,8 +91,9 @@ The Tokopuyo sidebar follows the current square-button visual language. Below th
 1. Chain count.
 2. Undo.
 3. Redo.
-4. Suggestion.
-5. Reset.
+4. Long-chain Suggestion.
+5. Emergency-attack Suggestion.
+6. Reset.
 
 The Drawing mode button is placed in the lower mode-switch area. The Help button remains pinned at the bottom and opens mode-appropriate instructions.
 
@@ -117,6 +118,14 @@ The result is advisory rather than an optimality proof. An arbitrary field or un
 The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. A small set of still fainter circles shows the next accessible target cells after the visible plan; these roadmap cells may change after every committed hand as the planner adapts to the new field and visible queue.
 
 The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. The long-term goal ignition remains visible as a lighter lightning marker. When the current placement and an ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states the current main-chain size and ignition, unknown-pair coverage, the goal ignition, and whether the result is an emergency-clear fallback.
+
+## Emergency-attack suggestions
+
+The separate emergency-attack Suggestion searches only the current, Next, and Next Next pairs for the highest-scoring safe firing routes. It exhaustively enumerates legal pair placements within its time budget and stops each route at its first clear. Later visible hands are not placed after that clear.
+
+Routes rank by the existing Tsu chain-clear point total. Equal-point routes rank by the earliest firing hand and then by fewer chains, favoring speed over chain length. Routes that leave the third-column choke point occupied after any committed hand, including after the attack resolves, are excluded. Display-identical routes are collapsed and the best ten are cached in rank order.
+
+The current placement uses colored dashed circles with centered sparkles. Next and Next Next placements use the same progressively lighter numbered circles as the long-chain planner. No ignition, lightning, or roadmap markers are added because following the complete displayed route directly produces the attack. Repeated presses rotate through the cached routes. Committing a pair, Undo, Redo, or Reset clears both Suggestion caches.
 
 ## Active-pair interaction
 

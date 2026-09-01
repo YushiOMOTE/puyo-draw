@@ -6,7 +6,7 @@
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
 - The Tokopuyo button is directly above Help at the bottom of the Drawing-mode sidebar. The same position contains the Drawing-mode button while Tokopuyo is active.
 - Switching modes preserves each mode's board, history, score, and mode-specific state. Switching modes does not create a history entry.
-- Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides its own long-chain construction Suggestion behavior.
+- Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
 ## Board Model
 
@@ -73,7 +73,7 @@ The Help (`i`) button is pinned to the bottom of the rail.
 - The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero.
 - Tokopuyo Undo/Redo is independent from Drawing mode. One committed pair and its complete chain result form one atomic history entry; pre-lock movement and rotation are not history entries. Redo restores the resolved state without replaying animation.
 - After chain resolution, occupancy of the marked third-column choke point ends the session. Reset, Undo, Drawing mode, and Help remain available at game over.
-- The Tokopuyo sidebar ends above the bottom control bar and contains, below the previews: Chain count, Undo, Redo, Suggestion, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
+- The Tokopuyo sidebar ends above the bottom control bar and contains, below the previews: Chain count, Undo, Redo, long-chain Suggestion, emergency-attack Suggestion, and Reset. Drawing mode is in the lower mode-switch position and Help remains pinned at the bottom.
 - The Help overlay shows instructions for the active mode.
 
 The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
@@ -144,6 +144,15 @@ The following requirements describe Drawing-mode suggestions. Tokopuyo uses the 
 - The toast reports the current main-chain size, whether the current pair can fire it, unknown-pair coverage out of sixteen, and the long-term goal ignition. When no one-puyo main chain exists yet, it identifies the move as main-chain base construction.
 - Pressing Suggestion again cycles through cached alternatives with distinct current-pair placements. Committing a pair, Undo, Redo, or Reset removes the Tokopuyo suggestion and its cache.
 - Tokopuyo suggestion work uses the existing lazy Web Worker and stale-result protection. Pair input and relevant controls are disabled while it runs.
+
+## Tokopuyo Emergency-Attack Suggestions
+
+- Tokopuyo provides a separate emergency-attack Suggestion button below the long-chain construction Suggestion. It searches only the current, Next, and Next Next pairs and recommends ways to produce the highest chain-clear score visible within those hands.
+- Search exhaustively considers legal pair placements until the configured time budget. A route stops at its first firing hand; hands after that clear are neither searched nor displayed. A route that reaches game over after any committed hand, including after its attack resolves, is excluded.
+- Candidates rank by total chain-clear points. Equal-point candidates rank by an earlier firing hand, then by fewer chains, then by a deterministic placement order.
+- The current pair uses the existing colored dashed circles with centered sparkles. Next and Next Next use the existing progressively lighter numbered circles. Emergency-attack suggestions do not add ignition or roadmap markers.
+- Display-identical routes are collapsed and up to ten candidates are cached. Pressing the emergency-attack Suggestion again rotates through them from strongest to weakest. Its cache is independent from the long-chain construction cache, but only the most recently requested suggestion type is drawn.
+- Committing a pair, Undo, Redo, or Reset removes both Tokopuyo suggestion caches. Both Suggestion buttons and pair input are disabled while either search runs. Worker results are ignored when the field or visible queue has changed.
 
 ## Technical Constraints
 

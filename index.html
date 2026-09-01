@@ -180,6 +180,17 @@
             </svg>
           </button>
           <button
+            id="attackSuggest"
+            class="secondary-btn sidebar-btn suggestion-btn"
+            aria-label="Suggest strongest visible attack"
+            title="Suggest strongest visible attack"
+            hidden
+          >
+            <svg class="suggestion-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M13.5 2 6 13h5l-.5 9L18 10h-5l.5-8Z" />
+            </svg>
+          </button>
+          <button
             id="reset"
             class="secondary-btn reset-btn"
             aria-label="Reset"
@@ -310,6 +321,7 @@
               <li>The right controls rotate the pair counterclockwise or clockwise, or drop it.</li>
               <li>Chains run automatically after a pair locks.</li>
               <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair; numbered circles show the visible follow-up pairs.</li>
+              <li>Emergency Attack finds the highest-scoring safe firing routes within the current pair, Next, and Next Next. Press it again to rotate through up to ten routes.</li>
               <li>The double dotted circle with a lightning mark is the current main-chain ignition point. It pulses when the current pair can fire it.</li>
               <li>The lighter lightning marker is the long-term goal ignition point. The status also reports unknown-pair coverage out of 16 possible color pairs.</li>
               <li>Fainter dotted circles show the next adaptable cells in the long-term construction roadmap.</li>
