@@ -953,6 +953,15 @@ function highlightTokopuyoFlick(action) {
   });
 }
 
+function previewTokopuyoFlick(action) {
+  tokopuyoPreviewCells = previewPairAtColumn(
+    tokopuyoSession,
+    flick.col,
+    action || "straight",
+  ) || previewPairAtColumn(tokopuyoSession, flick.col, "straight");
+  renderActivePair();
+}
+
 async function dropTokopuyoPair(direction, targetCol) {
   if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
   const committed = commitPairAtColumn(tokopuyoSession, targetCol, direction);
@@ -1134,11 +1143,11 @@ window.addEventListener("pointermove", (event) => {
 
   if (flick.kind === "tokopuyo") {
     const action = tokopuyoFlickChoice(event.clientX, event.clientY);
-    if (action) {
-      flick.moved = true;
-      flick.choice = action;
-      highlightTokopuyoFlick(action);
-    }
+    if (action === flick.choice) return;
+    flick.moved = Boolean(action);
+    flick.choice = action;
+    highlightTokopuyoFlick(action);
+    previewTokopuyoFlick(action);
     return;
   }
 

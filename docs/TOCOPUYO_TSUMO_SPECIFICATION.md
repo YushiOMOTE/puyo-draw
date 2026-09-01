@@ -122,7 +122,7 @@ The current main-chain ignition cell is visible as a colored double dashed circl
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing a field cell targets its column and opens a four-direction flick menu. The upper pair preview moves to the selected column and each menu option shows the pair in its resulting orientation.
+Pressing a field cell targets its column and opens a four-direction flick menu. The upper pair preview moves to the selected column. Moving onto a menu option updates that preview to the selected placement orientation, including a quarter-turn wall-kick adjustment when applicable; returning to the menu center restores the normal orientation.
 
 The four flick directions behave as follows:
 
