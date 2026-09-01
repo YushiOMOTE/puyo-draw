@@ -115,6 +115,28 @@ assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
 
+const hiddenOnlyGroup = emptyBoard();
+for (let col = 0; col < 4; col++) hiddenOnlyGroup[0][col] = "red";
+assert.equal(findGroups(hiddenOnlyGroup).length, 0);
+assert.equal(findClearingCells(hiddenOnlyGroup).length, 0);
+assert.equal(simulate(hiddenOnlyGroup).chains, 0);
+assert.deepEqual(applyGravity(hiddenOnlyGroup), hiddenOnlyGroup);
+
+const hiddenBridge = emptyBoard();
+hiddenBridge[0][0] = "red";
+for (let row = 1; row <= 4; row++) hiddenBridge[row][0] = "red";
+const hiddenBridgeGroups = findGroups(hiddenBridge);
+assert.equal(hiddenBridgeGroups.length, 1);
+assert.deepEqual([...hiddenBridgeGroups[0]], [
+  [1, 0],
+  [2, 0],
+  [3, 0],
+  [4, 0],
+]);
+const hiddenBridgeResult = simulate(hiddenBridge);
+assert.equal(hiddenBridgeResult.chains, 1);
+assert.equal(hiddenBridgeResult.state[0][0], "red");
+
 const gestureOptions = {
   cellSize: 100,
   viewportWidth: 400,

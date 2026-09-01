@@ -21,6 +21,7 @@ export function isSettled(state) {
     let foundEmptyCell = false;
 
     for (let row = ROWS - 1; row >= 0; row--) {
+      if (row < HIDDEN_ROWS) continue;
       if (!state[row][col]) {
         foundEmptyCell = true;
       } else if (foundEmptyCell) {
@@ -36,7 +37,7 @@ export function findGroups(state) {
   const seen = new Set();
   const groups = [];
 
-  for (let row = 0; row < ROWS; row++) {
+  for (let row = HIDDEN_ROWS; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       if (
         !state[row][col] ||
@@ -64,7 +65,7 @@ export function findGroups(state) {
           const key = `${nextRow},${nextCol}`;
 
           if (
-            nextRow >= 0 &&
+            nextRow >= HIDDEN_ROWS &&
             nextRow < ROWS &&
             nextCol >= 0 &&
             nextCol < COLS &&
@@ -90,10 +91,16 @@ export function findGroups(state) {
 export function applyGravity(state) {
   const next = emptyBoard();
 
+  // The hidden area is outside the playable field. It must not fall into the
+  // visible rows, otherwise a hidden puyo could trigger a chain indirectly.
+  for (let row = 0; row < HIDDEN_ROWS; row++) {
+    next[row] = [...state[row]];
+  }
+
   for (let col = 0; col < COLS; col++) {
     let targetRow = ROWS - 1;
 
-    for (let row = ROWS - 1; row >= 0; row--) {
+    for (let row = ROWS - 1; row >= HIDDEN_ROWS; row--) {
       if (state[row][col]) next[targetRow--][col] = state[row][col];
     }
   }
@@ -116,7 +123,7 @@ function findAdjacentGarbage(state, clearedCells) {
       const key = `${nextRow},${nextCol}`;
 
       if (
-        nextRow >= 0 &&
+        nextRow >= HIDDEN_ROWS &&
         nextRow < ROWS &&
         nextCol >= 0 &&
         nextCol < COLS &&
