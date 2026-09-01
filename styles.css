@@ -948,29 +948,29 @@ body[data-mode="tokopuyo"] .board-card {
 .tokopuyo-mini-pair {
   position: relative;
   display: block;
-  width: 38px;
-  height: 38px;
+  width: 24px;
+  height: 24px;
 }
 
 .mini-puyo {
   position: absolute;
   display: block;
-  width: 14px;
-  height: 14px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  box-shadow: inset -3px -3px 0 #0002, inset 2px 2px 0 #fff6;
+  box-shadow: inset -1px -1px 0 #0002, inset 1px 1px 0 #fff6;
 }
 
 .mini-puyo.axis,
 .mini-puyo.child {
-  top: 12px;
-  left: 12px;
+  top: 8px;
+  left: 8px;
 }
 
-.orientation-0 .mini-puyo.child { top: -2px; }
-.orientation-1 .mini-puyo.child { left: 26px; }
-.orientation-2 .mini-puyo.child { top: 26px; }
-.orientation-3 .mini-puyo.child { left: -2px; }
+.orientation-0 .mini-puyo.child { top: 0; }
+.orientation-1 .mini-puyo.child { left: 16px; }
+.orientation-2 .mini-puyo.child { top: 16px; }
+.orientation-3 .mini-puyo.child { left: 0; }
 
 .mini-puyo.red { background: var(--red); }
 .mini-puyo.green { background: var(--green); }
