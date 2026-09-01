@@ -117,7 +117,7 @@ The result is advisory rather than an optimality proof. An unfavorable future se
 
 The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. No post-preview roadmap cells are displayed.
 
-The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. No projected horizon ignition is displayed. When the current placement and the current ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states horizon main-chain potential, connected-resource efficiency, current ignition, evaluated unknown-pair coverage, and whether the result is an emergency-clear fallback.
+The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. No projected horizon ignition is displayed. When any current, Next, or Next Next recommendation occupies the same cell, that recommendation replaces the ignition marker; the ignition decoration is never transferred to a differently colored recommendation. The suggestion toast states horizon main-chain potential, connected-resource efficiency, current ignition, evaluated unknown-pair coverage, and whether the result is an emergency-clear fallback.
 
 ## Emergency-attack suggestions
 

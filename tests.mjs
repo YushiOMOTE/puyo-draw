@@ -64,6 +64,9 @@ import {
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
+  createTokopuyoSuggestionMarks,
+} from "./tokopuyo/suggestion-markers.js";
+import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
 import {
@@ -577,6 +580,34 @@ for (const candidate of tokopuyoSuggestion.candidates) {
       TOKOPUYO_SUGGESTION_CONFIG.maximumConstructionHeight,
   );
 }
+const overlappingIgnitionMarks = createTokopuyoSuggestionMarks({
+  mainTrigger: {
+    row: ROWS - 1,
+    col: 3,
+    color: "blue",
+    state: "building",
+  },
+  moves: [
+    {
+      handOffset: 0,
+      cells: [{ row: ROWS - 1, col: 4, color: "green" }],
+    },
+    {
+      handOffset: 1,
+      cells: [{ row: ROWS - 1, col: 3, color: "purple" }],
+    },
+  ],
+}, emptyBoard());
+assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},3`), {
+  color: "purple",
+  kind: "future",
+  step: "2",
+});
+assert.deepEqual(overlappingIgnitionMarks.get(`${ROWS - 1},4`), {
+  color: "green",
+  kind: "current",
+  step: null,
+});
 assert.equal(TOKOPUYO_ATTACK_SUGGESTION_CONFIG.lookaheadHands, 3);
 assert.equal(TOKOPUYO_ATTACK_SUGGESTION_CONFIG.resultLimit, 10);
 

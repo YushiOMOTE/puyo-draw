@@ -12,6 +12,9 @@ import {
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import { pairCells } from "./tokopuyo/pair-engine.js";
+import {
+  createTokopuyoSuggestionMarks,
+} from "./tokopuyo/suggestion-markers.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
@@ -699,34 +702,10 @@ function tokopuyoAttackSuggestionKey() {
 }
 
 function displayTokopuyoSuggestion(candidate, index, total) {
-  tokopuyoSuggestionMarks = new Map();
-  const mainIgnitionKey = candidate.mainTrigger
-    ? `${candidate.mainTrigger.row},${candidate.mainTrigger.col}`
-    : null;
-  if (
-    candidate.mainTrigger &&
-    !tokopuyoSession.board[candidate.mainTrigger.row][candidate.mainTrigger.col]
-  ) {
-    tokopuyoSuggestionMarks.set(mainIgnitionKey, {
-      color: candidate.mainTrigger.color,
-      isIgnition: true,
-      ignitionState: candidate.mainTrigger.state,
-    });
-  }
-  [...candidate.moves].reverse().forEach((move) => {
-    const step = move.handOffset + 1;
-    move.cells.forEach(({ row, col, color }) => {
-      const key = `${row},${col}`;
-      const isIgnition = key === mainIgnitionKey;
-      tokopuyoSuggestionMarks.set(key, {
-        color,
-        kind: step === 1 ? "current" : "future",
-        step: step > 1 ? String(step) : null,
-        isIgnition,
-        ignitionState: isIgnition ? candidate.mainTrigger.state : null,
-      });
-    });
-  });
+  tokopuyoSuggestionMarks = createTokopuyoSuggestionMarks(
+    candidate,
+    tokopuyoSession.board,
+  );
   render();
   const mainColor = candidate.mainTrigger
     ? localizedColors[candidate.mainTrigger.color]?.[locale] ||
