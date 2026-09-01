@@ -119,12 +119,15 @@ const hiddenOnlyGroup = emptyBoard();
 for (let col = 0; col < 4; col++) hiddenOnlyGroup[0][col] = "red";
 assert.equal(findGroups(hiddenOnlyGroup).length, 0);
 assert.equal(findClearingCells(hiddenOnlyGroup).length, 0);
-assert.equal(simulate(hiddenOnlyGroup).chains, 0);
-assert.deepEqual(applyGravity(hiddenOnlyGroup), hiddenOnlyGroup);
+assert.equal(simulate(hiddenOnlyGroup).chains, 1);
+assert.equal(simulate(hiddenOnlyGroup).state.flat().filter(Boolean).length, 0);
 
 const hiddenBridge = emptyBoard();
 hiddenBridge[0][0] = "red";
 for (let row = 1; row <= 4; row++) hiddenBridge[row][0] = "red";
+for (let row = 5; row < ROWS; row++) {
+  hiddenBridge[row][0] = row % 2 ? "blue" : "green";
+}
 const hiddenBridgeGroups = findGroups(hiddenBridge);
 assert.equal(hiddenBridgeGroups.length, 1);
 assert.deepEqual([...hiddenBridgeGroups[0]], [
@@ -135,7 +138,7 @@ assert.deepEqual([...hiddenBridgeGroups[0]], [
 ]);
 const hiddenBridgeResult = simulate(hiddenBridge);
 assert.equal(hiddenBridgeResult.chains, 1);
-assert.equal(hiddenBridgeResult.state[0][0], "red");
+assert.equal(hiddenBridgeResult.state[4][0], "red");
 
 const gestureOptions = {
   cellSize: 100,

@@ -91,16 +91,10 @@ export function findGroups(state) {
 export function applyGravity(state) {
   const next = emptyBoard();
 
-  // The hidden area is outside the playable field. It must not fall into the
-  // visible rows, otherwise a hidden puyo could trigger a chain indirectly.
-  for (let row = 0; row < HIDDEN_ROWS; row++) {
-    next[row] = [...state[row]];
-  }
-
   for (let col = 0; col < COLS; col++) {
     let targetRow = ROWS - 1;
 
-    for (let row = ROWS - 1; row >= HIDDEN_ROWS; row--) {
+    for (let row = ROWS - 1; row >= 0; row--) {
       if (state[row][col]) next[targetRow--][col] = state[row][col];
     }
   }
