@@ -353,6 +353,44 @@ body[data-mode="tokopuyo"] .board-card {
   opacity: 0.32;
 }
 
+.suggestion-marker.ignition {
+  inset: 8%;
+  border-width: 3px;
+  opacity: 1;
+  outline: 2px dashed currentColor;
+  outline-offset: 2px;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.suggestion-marker.ignition::before {
+  position: absolute;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  content: "⚡";
+  color: #fff;
+  font-size: clamp(12px, 3.2vw, 19px);
+  line-height: 1;
+  text-shadow: 0 1px 2px #101827cc, 0 0 3px currentColor;
+}
+
+.suggestion-marker.current.ignition::before {
+  inset: -8px -8px auto auto;
+  width: 17px;
+  height: 17px;
+  color: #fff;
+  font-size: 10px;
+  background: currentColor;
+  border: 1px solid #fff;
+  border-radius: 50%;
+}
+
+.suggestion-marker.ignition-ready,
+.suggestion-marker.ignition-soon,
+.suggestion-marker.ignition-firing {
+  animation: ignition-pulse 1.25s ease-in-out infinite alternate;
+}
+
 .red { background: var(--red); }
 .green { background: var(--green); }
 .blue { background: var(--blue); }
@@ -1057,6 +1095,13 @@ body[data-mode="tokopuyo"] .board-card {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes ignition-pulse {
+  to {
+    filter: drop-shadow(0 0 8px currentColor);
+    transform: scale(1.08);
+  }
 }
 
 @media (max-width: 599px) {

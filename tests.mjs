@@ -4,6 +4,7 @@ import {
   ROWS,
   HIDDEN_ROWS,
   GARBAGE,
+  clone,
   emptyBoard,
   isSettled,
   findGroups,
@@ -427,10 +428,22 @@ assert.ok(commitActivePair(gameOverSession));
 assert.equal(gameOverSession.gameOver, true);
 assert.equal(actOnPair(gameOverSession, "left"), false);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.targetChains, 13);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.minimumTriggerChainRatio, 0.9);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.allowEmergencyClearFallback, true);
 const thirteenChainGoal = createChainGoals(13, seedZeroPattern.colors)[0];
 const fourteenChainGoal = createChainGoals(14, seedZeroPattern.colors)[0];
 assert.equal(simulate(thirteenChainGoal.board).chains, 13);
 assert.equal(simulate(fourteenChainGoal.board).chains, 14);
+for (let targetChains = 1; targetChains <= 14; targetChains++) {
+  const goal = createChainGoals(targetChains, seedZeroPattern.colors)[0];
+  assert.equal(simulate(goal.board).chains, targetChains);
+  assert.equal(isSettled(goal.triggerPlan.constructionBoard), true);
+  assert.equal(findClearingCells(goal.triggerPlan.constructionBoard).length, 0);
+  const firingBoard = clone(goal.triggerPlan.constructionBoard);
+  const { row, col, color } = goal.triggerPlan.cell;
+  firingBoard[row][col] = color;
+  assert.equal(simulate(firingBoard).chains, targetChains);
+}
 assert.throws(
   () => createChainGoals(15, seedZeroPattern.colors),
   RangeError,
@@ -446,6 +459,45 @@ assert.ok(tokopuyoSuggestion.candidates.length > 0);
 assert.equal(tokopuyoSuggestion.candidates[0].targetChains, 13);
 assert.equal(tokopuyoSuggestion.candidates[0].moves.length, 3);
 assert.equal(tokopuyoSuggestion.candidates[0].moves[0].cells.length, 2);
+assert.equal(tokopuyoSuggestion.candidates[0].trigger.state, "building");
+for (const candidate of tokopuyoSuggestion.candidates) {
+  const occupiesIgnition = candidate.moves.some((move) =>
+    move.cells.some(({ row, col }) =>
+      row === candidate.trigger.row && col === candidate.trigger.col,
+    ),
+  );
+  assert.equal(
+    occupiesIgnition && candidate.predictedChains < 12,
+    false,
+  );
+}
+const triggerColor = thirteenChainGoal.triggerPlan.color;
+const partnerColor = seedZeroPattern.colors.find(
+  (color) => color !== triggerColor,
+);
+const readyTokopuyoSuggestion = solveTokopuyoSuggestion({
+  kind: "tokopuyo",
+  board: clone(thirteenChainGoal.triggerPlan.constructionBoard),
+  hands: [
+    { axis: triggerColor, child: partnerColor },
+    { axis: partnerColor, child: partnerColor },
+    { axis: partnerColor, child: triggerColor },
+  ],
+  colors: seedZeroPattern.colors,
+  ...TOKOPUYO_SUGGESTION_CONFIG,
+});
+assert.ok(readyTokopuyoSuggestion.candidates.length > 0);
+assert.equal(readyTokopuyoSuggestion.candidates[0].predictedChains, 13);
+assert.equal(readyTokopuyoSuggestion.candidates[0].trigger.state, "firing");
+assert.equal(readyTokopuyoSuggestion.candidates[0].trigger.visibleHandOffset, 0);
+assert.ok(
+  readyTokopuyoSuggestion.candidates[0].moves[0].cells.some(
+    ({ row, col, color }) =>
+      row === thirteenChainGoal.triggerPlan.cell.row &&
+      col === thirteenChainGoal.triggerPlan.cell.col &&
+      color === thirteenChainGoal.triggerPlan.cell.color,
+  ),
+);
 assert.equal(SUGGESTION_SEARCH_CONFIG.maxAdditions, 20);
 assert.equal(SUGGESTION_SEARCH_CONFIG.resultLimit, 8);
 assert.equal(SUGGESTION_SEARCH_CONFIG.timeBudgetMs, 5_000);

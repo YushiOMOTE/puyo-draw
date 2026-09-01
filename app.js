@@ -168,11 +168,19 @@ const messages = {
     ja: "安全な構築手が見つかりませんでした",
   },
   tokopuyoSuggestion: {
-    en: (index, total, target, progress, predicted) =>
-      `Plan ${index}/${total}: ${progress}% toward ${target} chains${predicted ? `; ${predicted} chains within preview` : ""}`,
-    ja: (index, total, target, progress, predicted) =>
-      `構築案 ${index}/${total}：${target}連鎖目標の進捗${progress}%${predicted ? `、見えているツモ内で${predicted}連鎖` : ""}`,
+    en: (index, total, target, progress, predicted, ignition, emergency) =>
+      `${emergency ? "Emergency clear · " : ""}Plan ${index}/${total}: ${progress}% toward ${target} chains${predicted ? `; ${predicted} chains within preview` : ""} · ${ignition}`,
+    ja: (index, total, target, progress, predicted, ignition, emergency) =>
+      `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${target}連鎖目標の進捗${progress}%${predicted ? `、見えているツモ内で${predicted}連鎖` : ""} · ${ignition}`,
   },
+};
+
+const localizedColors = {
+  red: { en: "red", ja: "赤" },
+  green: { en: "green", ja: "緑" },
+  blue: { en: "blue", ja: "青" },
+  yellow: { en: "yellow", ja: "黄" },
+  purple: { en: "purple", ja: "紫" },
 };
 
 function getFlickTools() {
@@ -327,10 +335,17 @@ function render() {
         const marker = document.createElement("span");
         marker.className = `suggestion-marker ${suggestion.color}${
           suggestion.isTrigger ? " trigger" : ""
-        }${suggestion.kind ? ` ${suggestion.kind}` : ""}`;
+        }${suggestion.kind ? ` ${suggestion.kind}` : ""}${
+          suggestion.isIgnition
+            ? ` ignition ignition-${suggestion.ignitionState}`
+            : ""
+        }`;
         if (suggestion.step) marker.dataset.step = suggestion.step;
         marker.ariaHidden = "true";
         cell.append(marker);
+        if (suggestion.isIgnition) {
+          cell.ariaLabel += ` planned ${suggestion.color} ignition point`;
+        }
       }
 
       if (r === HIDDEN_ROWS && c === 2) {
@@ -662,17 +677,48 @@ function displayTokopuyoSuggestion(candidate, index, total) {
       });
     }
   }
+  const ignitionKey = `${candidate.trigger.row},${candidate.trigger.col}`;
+  if (!tokopuyoSession.board[candidate.trigger.row][candidate.trigger.col]) {
+    tokopuyoSuggestionMarks.set(ignitionKey, {
+      color: candidate.trigger.color,
+      kind: "ignition",
+      isIgnition: true,
+      ignitionState: candidate.trigger.state,
+    });
+  }
   [...candidate.moves].reverse().forEach((move) => {
     const step = move.handOffset + 1;
     move.cells.forEach(({ row, col, color }) => {
-      tokopuyoSuggestionMarks.set(`${row},${col}`, {
+      const key = `${row},${col}`;
+      const isIgnition = key === ignitionKey;
+      tokopuyoSuggestionMarks.set(key, {
         color,
         kind: step === 1 ? "current" : "future",
         step: step > 1 ? String(step) : null,
+        isIgnition,
+        ignitionState: isIgnition ? candidate.trigger.state : null,
       });
     });
   });
   render();
+  const color = localizedColors[candidate.trigger.color]?.[locale] ||
+    candidate.trigger.color;
+  const column = candidate.trigger.col + 1;
+  const ignition = locale === "ja"
+    ? candidate.trigger.state === "firing"
+      ? `発火：${column}列目に${color}（この手）`
+      : candidate.trigger.state === "ready"
+        ? `発火点：${column}列目に${color}（発火可能）`
+        : candidate.trigger.state === "soon"
+          ? `発火点：${column}列目に${color}（${candidate.trigger.visibleHandOffset + 1}手目で可能）`
+          : `発火点：${column}列目に${color}（保護中）`
+    : candidate.trigger.state === "firing"
+      ? `Ignition: ${color} in column ${column} (this hand)`
+      : candidate.trigger.state === "ready"
+        ? `Ignition: ${color} in column ${column} (ready)`
+        : candidate.trigger.state === "soon"
+          ? `Ignition: ${color} in column ${column} (hand ${candidate.trigger.visibleHandOffset + 1})`
+          : `Ignition: ${color} in column ${column} (protected)`;
   showToast(
     localizedMessage(
       messages.tokopuyoSuggestion,
@@ -681,6 +727,8 @@ function displayTokopuyoSuggestion(candidate, index, total) {
       candidate.targetChains,
       Math.round(candidate.progress * 100),
       candidate.predictedChains,
+      ignition,
+      candidate.emergency,
     ),
     3000,
   );

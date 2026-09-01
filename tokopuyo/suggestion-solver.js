@@ -15,93 +15,173 @@ function boardKey(board) {
     .join("/");
 }
 
-function goalMetrics(board, goal) {
+function nextLandingRow(board, col) {
+  const topmostOccupied = board.findIndex((row) => row[col] !== null);
+  return topmostOccupied === -1 ? ROWS - 1 : topmostOccupied - 1;
+}
+
+function triggerStatus(board, goal, minimumTriggerChains) {
+  const { row, col, color } = goal.triggerPlan.cell;
+  const actual = board[row][col];
+  const landingRow = nextLandingRow(board, col);
+  const blocked = Boolean(actual) || landingRow < row;
+  const accessible = !blocked && landingRow === row;
+  let chainsIfTriggered = 0;
+  if (accessible) {
+    const firingBoard = board.map((boardRow) => [...boardRow]);
+    firingBoard[row][col] = color;
+    chainsIfTriggered = simulate(firingBoard).chains;
+  }
+  return {
+    blocked,
+    accessible,
+    chainsIfTriggered,
+    ready: chainsIfTriggered >= minimumTriggerChains,
+  };
+}
+
+function goalMetrics(board, goal, minimumTriggerChains) {
   let matched = 0;
-  let constructionMatched = 0;
   let conflicts = 0;
   let outside = 0;
   let required = 0;
-  let occupiedTrigger = false;
 
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
-      const expected = goal.board[row][col];
+      const expected = goal.triggerPlan.constructionBoard[row][col];
       const actual = board[row][col];
-      const isTrigger =
-        row === goal.triggerCell.row && col === goal.triggerCell.col;
-      if (expected && !isTrigger) required++;
+      if (expected) required++;
       if (!actual) continue;
-      if (isTrigger && actual === expected) occupiedTrigger = true;
       if (actual === expected) {
         matched++;
-        if (!isTrigger) constructionMatched++;
       } else if (expected) conflicts++;
       else outside++;
     }
   }
 
-  const completion = required ? constructionMatched / required : 1;
-  const triggerPenalty = occupiedTrigger && completion < 0.86 ? 18_000 : 0;
+  const trigger = triggerStatus(board, goal, minimumTriggerChains);
+  const completion = required ? matched / required : 1;
   const chokePenalty = board[HIDDEN_ROWS][2] ? 1_000_000 : 0;
   const hiddenPenalty = board[0].filter(Boolean).length * 45_000;
   const score =
     matched * 1_600 -
     conflicts * 2_200 -
     outside * 420 -
-    triggerPenalty -
+    Number(trigger.blocked) * 1_000_000 -
     chokePenalty -
     hiddenPenalty +
     evaluateAmaField(board) * 2;
 
-  return { score, matched, conflicts, outside, required, completion };
+  return {
+    score,
+    matched,
+    conflicts,
+    outside,
+    required,
+    completion,
+    trigger,
+  };
 }
 
-function selectGoals(board, goals, limit) {
+function selectGoals(board, goals, limit, minimumTriggerChains) {
   return goals
-    .map((goal) => ({ goal, metrics: goalMetrics(board, goal) }))
+    .map((goal) => ({
+      goal,
+      metrics: goalMetrics(board, goal, minimumTriggerChains),
+    }))
+    .filter(({ metrics }) => !metrics.trigger.blocked)
     .sort((left, right) => right.metrics.score - left.metrics.score)
     .slice(0, limit)
     .map(({ goal }) => goal);
 }
 
-function scoreNode(node) {
-  const metrics = goalMetrics(node.board, node.goal);
+function scoreNode(node, minimumTriggerChains) {
+  const metrics = goalMetrics(
+    node.board,
+    node.goal,
+    minimumTriggerChains,
+  );
   const chainAdjustment = node.maxChains
     ? node.maxChains >= node.goal.targetChains
       ? 2_000_000 + node.maxChains * 80_000
       : -(1_200_000 + node.maxChains * 80_000)
     : 0;
+  const emergencyPenalty = node.emergency ? 2_000_000 : 0;
   return {
     ...metrics,
-    value: metrics.score + chainAdjustment,
+    value: metrics.score + chainAdjustment - emergencyPenalty,
   };
 }
 
 function frontierGoalCells(board, goal, limit) {
   const cells = [];
-  const metrics = goalMetrics(board, goal);
   for (let col = 0; col < COLS; col++) {
     const topmost = board.findIndex((row) => row[col] !== null);
     const row = topmost === -1 ? ROWS - 1 : topmost - 1;
     if (row < HIDDEN_ROWS) continue;
-    const color = goal.board[row][col];
+    const color = goal.triggerPlan.constructionBoard[row][col];
     if (!color) continue;
-    const isTrigger =
-      row === goal.triggerCell.row && col === goal.triggerCell.col;
-    if (isTrigger && metrics.completion < 0.86) continue;
     cells.push({ row, col, color, kind: "goal" });
   }
   return cells.slice(0, limit);
 }
 
-function toCandidate(node, roadmapCellLimit) {
-  const metrics = goalMetrics(node.board, node.goal);
+function findTriggerOpportunity(board, hand, goal, minimumTriggerChains) {
+  const status = triggerStatus(board, goal, minimumTriggerChains);
+  if (status.blocked) return null;
+  const triggerCell = goal.triggerPlan.cell;
+  let best = null;
+  for (const placement of enumerateTsumoPlacements(board, hand)) {
+    if (!placement.cells.some(({ row, col, color }) =>
+      row === triggerCell.row &&
+      col === triggerCell.col &&
+      color === triggerCell.color
+    )) continue;
+    const result = simulate(placement.board);
+    if (result.chains < minimumTriggerChains) continue;
+    if (!best || result.chains > best.chains) {
+      best = {
+        col: placement.col,
+        orientation: placement.orientation,
+        cells: placement.cells,
+        chains: result.chains,
+      };
+    }
+  }
+  return best;
+}
+
+function toCandidate(node, roadmapCellLimit, minimumTriggerChains) {
+  const metrics = goalMetrics(
+    node.board,
+    node.goal,
+    minimumTriggerChains,
+  );
+  const visibleOpportunity = node.triggerOpportunities.find(Boolean) || null;
+  const visibleHandOffset = node.triggerOpportunities.findIndex(Boolean);
+  const triggerState = node.maxChains >= minimumTriggerChains
+    ? "firing"
+    : visibleOpportunity
+      ? visibleHandOffset === 0 ? "ready" : "soon"
+      : metrics.trigger.ready ? "ready" : "building";
   return {
     moves: node.moves,
     targetChains: node.goal.targetChains,
     predictedChains: node.maxChains,
     progress: metrics.completion,
-    goalCells: frontierGoalCells(node.board, node.goal, roadmapCellLimit),
+    goalCells: frontierGoalCells(
+      node.board,
+      node.goal,
+      roadmapCellLimit,
+    ),
+    trigger: {
+      ...node.goal.triggerPlan.cell,
+      state: triggerState,
+      chainsIfTriggered: visibleOpportunity?.chains ||
+        metrics.trigger.chainsIfTriggered,
+      visibleHandOffset: visibleOpportunity ? visibleHandOffset : null,
+    },
+    emergency: node.emergency,
     score: node.score,
   };
 }
@@ -126,7 +206,12 @@ export function solveTokopuyoSuggestion(request) {
     timeBudgetMs = 2_500,
     goalVariantLimit = 16,
     roadmapCellLimit = 8,
+    minimumTriggerChainRatio = 0.9,
+    allowEmergencyClearFallback = true,
   } = request;
+  const minimumTriggerChains = Math.ceil(
+    targetChains * minimumTriggerChainRatio,
+  );
   const selectedHands = hands.slice(0, lookaheadHands);
   if (!selectedHands.length) return { candidates: [], timedOut: false };
 
@@ -134,20 +219,29 @@ export function solveTokopuyoSuggestion(request) {
     board,
     createChainGoals(targetChains, colors),
     goalVariantLimit,
+    minimumTriggerChains,
   );
   let frontier = goals.map((goal) => ({
     board: applyGravity(board),
     goal,
     moves: [],
     maxChains: 0,
-    score: goalMetrics(board, goal).score,
+    emergency: false,
+    triggerOpportunities: [],
+    score: goalMetrics(board, goal, minimumTriggerChains).score,
   }));
   let timedOut = false;
 
   for (let depth = 0; depth < selectedHands.length; depth++) {
-    const next = [];
-    const seen = new Map();
+    const safeSeen = new Map();
+    const emergencySeen = new Map();
     for (const node of frontier) {
+      const triggerOpportunity = findTriggerOpportunity(
+        node.board,
+        selectedHands[depth],
+        node.goal,
+        minimumTriggerChains,
+      );
       for (const placement of enumerateTsumoPlacements(
         node.board,
         selectedHands[depth],
@@ -157,6 +251,17 @@ export function solveTokopuyoSuggestion(request) {
           break;
         }
         const result = simulate(placement.board);
+        const prematureClear =
+          result.chains > 0 && result.chains < minimumTriggerChains;
+        const usesPlannedTrigger = placement.cells.some(({ row, col, color }) =>
+          row === node.goal.triggerPlan.cell.row &&
+          col === node.goal.triggerPlan.cell.col &&
+          color === node.goal.triggerPlan.cell.color
+        );
+        if (
+          result.chains >= minimumTriggerChains &&
+          !usesPlannedTrigger
+        ) continue;
         const child = {
           board: result.state,
           goal: node.goal,
@@ -171,16 +276,31 @@ export function solveTokopuyoSuggestion(request) {
             },
           ],
           maxChains: Math.max(node.maxChains, result.chains),
+          emergency: node.emergency || prematureClear,
+          triggerOpportunities: [
+            ...node.triggerOpportunities,
+            triggerOpportunity
+              ? { handOffset: depth, ...triggerOpportunity }
+              : null,
+          ],
         };
-        const scored = scoreNode(child);
+        const scored = scoreNode(child, minimumTriggerChains);
+        if (!result.chains && scored.trigger.blocked) continue;
         child.score = scored.value;
         const key = `${node.goal.id}:${boardKey(child.board)}`;
-        const existing = seen.get(key);
-        if (!existing || child.score > existing.score) seen.set(key, child);
+        const destination = prematureClear ? emergencySeen : safeSeen;
+        const existing = destination.get(key);
+        if (!existing || child.score > existing.score) {
+          destination.set(key, child);
+        }
       }
       if (timedOut) break;
     }
-    next.push(...seen.values());
+    const next = [
+      ...(safeSeen.size || !allowEmergencyClearFallback
+        ? safeSeen.values()
+        : emergencySeen.values()),
+    ];
     next.sort((left, right) => right.score - left.score);
     frontier = next.slice(0, beamWidth);
     if (!frontier.length || timedOut) break;
@@ -189,7 +309,11 @@ export function solveTokopuyoSuggestion(request) {
   const unique = new Map();
   for (const node of frontier.sort((left, right) => right.score - left.score)) {
     if (!node.moves.length) continue;
-    const candidate = toCandidate(node, roadmapCellLimit);
+    const candidate = toCandidate(
+      node,
+      roadmapCellLimit,
+      minimumTriggerChains,
+    );
     const key = candidateFirstMoveKey(candidate);
     if (!unique.has(key)) unique.set(key, candidate);
     if (unique.size >= resultLimit) break;

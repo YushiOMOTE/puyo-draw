@@ -6,4 +6,6 @@ export const TOKOPUYO_SUGGESTION_CONFIG = Object.freeze({
   timeBudgetMs: 2_500,
   goalVariantLimit: 16,
   roadmapCellLimit: 8,
+  minimumTriggerChainRatio: 0.9,
+  allowEmergencyClearFallback: true,
 });

@@ -1,8 +1,11 @@
 import {
   COLS,
+  HIDDEN_ROWS,
   ROWS,
-  applyGravity,
+  clone,
   findClearingCells,
+  findGroups,
+  isSettled,
   simulate,
 } from "../engine.js";
 
@@ -15,39 +18,98 @@ const SYMBOLS = {
   ".": null,
 };
 
-// Each template is a verified fourteen-chain field. Smaller goals are derived
-// by advancing the field until only the requested number of rounds remains.
-const FOURTEEN_CHAIN_TEMPLATES = [
-  [
-    "......", "......", ".y....", ".rr.y.", ".rg.rg", "gyrrgb", "byrbgr",
-    "ybyggr", "yybbrb", "bgygyy", "bgbrry", "grgrbb",
-    "rgrggg",
+// Every field is independently verified to have a stable, empty one-puyo
+// trigger that can be filled legally from above. The long-chain defaults keep
+// several structural alternatives because compatibility matters most there.
+const CHAIN_TEMPLATES = {
+  1: [[
+    "......", "......", "......", "......", "......", "......", "......",
+    "......", "......", "......", "......", "......", "rrrr..",
+  ]],
+  2: [[
+    "......", "......", "......", "......", "......", "......", "......",
+    "......", "......", "......", "...r..", "..gg..", "rrrgg.",
+  ]],
+  3: [[
+    "......", "......", "......", "......", "......", "......", "......",
+    "......", "......", "...r..", "...gg.", "..gbb.", "rrrgbb",
+  ]],
+  4: [[
+    "......", "......", "......", "......", "......", "......", "......",
+    "......", "...rg.", "...gb.", "...by.", "..gyyy", "rrrgbb",
+  ]],
+  5: [[
+    "......", "......", "......", "......", "......", "......", "...r..",
+    "...g..", "..rbg.", "..ryb.", "..rry.", "..gyy.", "rrrgbb",
+  ]],
+  6: [[
+    "......", "......", "......", "......", "....g.", "....b.", "....y.",
+    "...ry.", "...grg", "...bgg", "...ygb", "..gyrr", "rrrgbr",
+  ]],
+  7: [[
+    "......", "......", "......", "......", ".....b", ".....r", "...rgr",
+    "...gbg", "...byg", "...yrg", "..bbbb", "..gyyg", "rrrgbr",
+  ]],
+  8: [[
+    "......", "......", "......", "......", "...r.b", "...g.r", "...bgr",
+    "...ybg", "...byg", "..gbrg", "..rybb", ".yygyg", "rryybr",
+  ]],
+  9: [[
+    "......", "......", "......", "......", "...r.b", "...g.r", "...bgr",
+    "..gybg", "..rbyg", ".rybrg", ".rrybb", ".yrgyg", "rryybr",
+  ]],
+  10: [[
+    "......", "......", "......", "......", "...r.b", "...g.r", "..gbgr",
+    ".rrybg", ".yybyg", ".rrbrg", ".ggybb", "ggrgyg", "ryrybr",
+  ]],
+  11: [[
+    "......", "......", "......", "......", "...r.b", "...g.r", ".rgbgr",
+    ".yrybg", "brybyg", "bgrbrg", "bbgybb", "ggrgyg", "ryrybr",
+  ]],
+  12: [[
+    "......", "......", ".r....", ".y....", ".r.r.b", ".g.g.r", ".ggbgr",
+    ".yrybg", "ybybyg", "yyrbrg", "gygybb", "rbrgyg", "bbrybr",
+  ]],
+  13: [
+    [
+      "......", "......", "..b...", "..br..", "..gyy.", ".ybrrg", ".rbbrg",
+      "rryrgb", "yryrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", "......", "......", ".g.r..", ".b.yy.", ".ybrrg", "rrbbrg",
+      "yrgrgb", "yrbrrg", "rybyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", "......", "......", "..br..", ".gbyy.", ".ygrrg", ".rbbrg",
+      "rryrgb", "yryrrg", "rbbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", "......", "......", "y..r..", "y..yy.", "r.brrg", "rrbbrg",
+      "rbgrgb", "yybrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
   ],
-  [
-    "......", "......", ".y....", ".rr..g", ".rgr.b", "gyrbyr", "byrgrr",
-    "ybyggg", "yybbrb", "bgygyy", "bgbrry", "grgrbb",
-    "rgrggg",
+  14: [
+    [
+      "......", ".y....", ".yb...", ".ybr..", ".rgyy.", ".rbrrg", ".rybrg",
+      "gggrgb", "grbrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", ".y....", ".y....", ".ybr..", ".rbyy.", ".rgrrg", "ggbbrg",
+      "gryrgb", "grbrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", "..b...", "..b...", ".ygr..", ".rbyy.", ".ggrrg", "ggbbrg",
+      "rryrgb", "yryrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
+    [
+      "......", "......", "..b...", ".ybr..", ".rgyy.", "ggbrrg", "ggbbrg",
+      "rryrgb", "yryrrg", "rgbyyy", "grbgrr", "gbygby", "gbrgby",
+    ],
   ],
-  [
-    "......", ".y....", ".rr...", ".rgr..", ".yrb..", "gyrb.g", "bbyryb",
-    "yybgrb", "yrrryy", "bgygry", "bgbggg", "grgrbb",
-    "rgrggg",
-  ],
-  [
-    "......", ".y....", ".rr...", ".rg..g", ".yr..b", "gyrr.b", "bbybyy",
-    "yybbry", "yrrryg", "bgygrg", "bgbrgg", "grgrbb",
-    "rgrggg",
-  ],
-];
+};
 
 function parseTemplate(rows) {
   return rows.map((row) => [...row].map((symbol) => SYMBOLS[symbol]));
-}
-
-function boardAfterRounds(board, rounds) {
-  if (!rounds) return board;
-  const result = simulate(board);
-  return applyGravity(result.rounds[rounds - 1].state);
 }
 
 function permutations(values) {
@@ -66,17 +128,55 @@ function remapBoard(board, colorMap, reflected) {
   });
 }
 
-function triggerCellFor(board) {
-  const clearing = findClearingCells(board);
-  const clearKeys = new Set(clearing.map(([row, col]) => `${row},${col}`));
-  const candidates = clearing.filter(([row, col]) => {
-    for (let above = 0; above < row; above++) {
-      if (board[above][col] && !clearKeys.has(`${above},${col}`)) return false;
-    }
-    return true;
-  });
-  const [row, col] = candidates[0] || clearing[0];
-  return { row, col, color: board[row][col] };
+function nextLandingRow(board, col) {
+  const topmostOccupied = board.findIndex((row) => row[col] !== null);
+  return topmostOccupied === -1 ? ROWS - 1 : topmostOccupied - 1;
+}
+
+function triggerPlanFor(board, targetChains) {
+  const candidates = [];
+  for (const [row, col] of findClearingCells(board)) {
+    if (row < HIDDEN_ROWS || (row === HIDDEN_ROWS && col === 2)) continue;
+    const color = board[row][col];
+    const constructionBoard = clone(board);
+    constructionBoard[row][col] = null;
+    if (!isSettled(constructionBoard)) continue;
+    if (findClearingCells(constructionBoard).length) continue;
+    if (nextLandingRow(constructionBoard, col) !== row) continue;
+
+    const firingBoard = clone(constructionBoard);
+    firingBoard[row][col] = color;
+    const result = simulate(firingBoard);
+    if (result.chains !== targetChains) continue;
+    const group = findGroups(firingBoard).find((cells) =>
+      cells.some(([groupRow, groupCol]) =>
+        groupRow === row && groupCol === col,
+      ),
+    );
+    if (!group) continue;
+
+    candidates.push({
+      cell: { row, col, color },
+      color,
+      group: group.map(([groupRow, groupCol]) => ({
+        row: groupRow,
+        col: groupCol,
+      })),
+      accessCells: Array.from({ length: row }, (_, accessRow) => ({
+        row: accessRow,
+        col,
+      })),
+      constructionBoard,
+      chains: result.chains,
+    });
+  }
+
+  candidates.sort(
+    (left, right) =>
+      right.cell.row - left.cell.row ||
+      Math.abs(left.cell.col - 2.5) - Math.abs(right.cell.col - 2.5),
+  );
+  return candidates[0] || null;
 }
 
 function validateTargetChains(targetChains) {
@@ -92,8 +192,8 @@ export function createChainGoals(targetChains, colors) {
   }
 
   const goals = [];
-  for (const [templateIndex, rows] of FOURTEEN_CHAIN_TEMPLATES.entries()) {
-    const base = boardAfterRounds(parseTemplate(rows), 14 - targetChains);
+  for (const [templateIndex, rows] of CHAIN_TEMPLATES[targetChains].entries()) {
+    const base = parseTemplate(rows);
     for (const [permutationIndex, colorOrder] of permutations(colors).entries()) {
       const colorMap = new Map(
         TEMPLATE_COLORS.map((color, index) => [color, colorOrder[index]]),
@@ -107,14 +207,20 @@ export function createChainGoals(targetChains, colors) {
         if (result.chains !== targetChains) {
           throw new Error("Invalid Tokopuyo chain template result");
         }
+        const triggerPlan = triggerPlanFor(board, targetChains);
+        if (!triggerPlan) continue;
         goals.push({
           id: `${templateIndex}:${permutationIndex}:${Number(reflected)}`,
           board,
           targetChains,
-          triggerCell: triggerCellFor(board),
+          triggerCell: triggerPlan.cell,
+          triggerPlan,
         });
       }
     }
+  }
+  if (!goals.length) {
+    throw new Error("No Tokopuyo chain goal has a legal trigger plan");
   }
   return goals;
 }
