@@ -889,7 +889,7 @@ body[data-mode="tokopuyo"] .board-card {
   transform: translate(-50%, -50%);
 }
 
-.flick-option i {
+.flick-option[data-tool] > i {
   display: block;
   width: 24px;
   height: 24px;
@@ -952,11 +952,13 @@ body[data-mode="tokopuyo"] .board-card {
   height: 24px;
 }
 
-.mini-puyo {
+.tokopuyo-flick-option .mini-puyo {
   position: absolute;
   display: block;
+  box-sizing: border-box;
   width: 8px;
   height: 8px;
+  margin: 0;
   border-radius: 50%;
   box-shadow: inset -1px -1px 0 #0002, inset 1px 1px 0 #fff6;
 }
