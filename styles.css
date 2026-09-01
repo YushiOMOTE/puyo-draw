@@ -285,36 +285,6 @@ body[data-mode="tokopuyo"] .board-card {
   text-shadow: 0 1px 1px #10182799;
 }
 
-.suggestion-marker.goal {
-  inset: 21%;
-  border-width: 2px;
-  opacity: 0.32;
-}
-
-.suggestion-marker.planned-ignition {
-  inset: 14%;
-  border-width: 2px;
-  opacity: 0.58;
-  filter: drop-shadow(0 0 2px currentColor);
-}
-
-.suggestion-marker.planned-ignition::before {
-  position: absolute;
-  display: grid;
-  right: -6px;
-  bottom: -6px;
-  width: 15px;
-  height: 15px;
-  place-items: center;
-  content: "⚡";
-  color: #fff;
-  font-size: 9px;
-  background: currentColor;
-  border: 1px solid #fff;
-  border-radius: 50%;
-  text-shadow: 0 1px 1px #101827aa;
-}
-
 .suggestion-marker.ignition {
   inset: 8%;
   border-width: 3px;
@@ -334,15 +304,6 @@ body[data-mode="tokopuyo"] .board-card {
   font-size: clamp(12px, 3.2vw, 19px);
   line-height: 1;
   text-shadow: 0 1px 2px #101827cc, 0 0 3px currentColor;
-}
-
-.suggestion-marker.ignition.planned-ignition::before {
-  right: auto;
-  bottom: auto;
-  width: auto;
-  height: auto;
-  background: transparent;
-  border: 0;
 }
 
 .suggestion-marker.current.ignition::before {

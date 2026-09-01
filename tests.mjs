@@ -567,6 +567,8 @@ assert.equal(typeof tokopuyoSuggestion.candidates[0].mainChainsAtHorizon, "numbe
 assert.equal(typeof tokopuyoSuggestion.candidates[0].balance.score, "number");
 assert.equal(typeof tokopuyoSuggestion.candidates[0].construction.score, "number");
 assert.equal(typeof tokopuyoSuggestion.candidates[0].potentialChains, "number");
+assert.equal("plannedTrigger" in tokopuyoSuggestion.candidates[0], false);
+assert.equal("goalCells" in tokopuyoSuggestion.candidates[0], false);
 for (const candidate of tokopuyoSuggestion.candidates) {
   assert.equal(candidate.emergency, false);
   assert.ok(candidate.acceptance.safeHands <= candidate.acceptance.evaluatedHands);

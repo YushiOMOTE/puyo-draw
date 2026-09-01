@@ -1,4 +1,4 @@
-import { HIDDEN_ROWS, applyGravity, clone, simulate } from "../engine.js";
+import { HIDDEN_ROWS, applyGravity, simulate } from "../engine.js";
 import { enumerateTsumoPlacements } from "./pair-engine.js";
 import {
   evaluateConstructionField,
@@ -134,49 +134,12 @@ function evaluateUnknownFuture(
   };
 }
 
-function roadmapCells(board, colors, limit) {
-  const candidates = [];
-  for (let col = 0; col < board[0].length; col++) {
-    const top = board.findIndex((row) => row[col] !== null);
-    const row = top === -1 ? board.length - 1 : top - 1;
-    if (row < HIDDEN_ROWS || (row === HIDDEN_ROWS && col === 2)) continue;
-    for (const color of colors) {
-      const next = clone(board);
-      next[row][col] = color;
-      const result = simulate(next);
-      if (result.chains || isGameOver(result.state)) continue;
-      candidates.push({
-        row,
-        col,
-        color,
-        score: evaluateConstructionField(result.state).shapeScore,
-      });
-    }
-  }
-  candidates.sort((left, right) => right.score - left.score);
-  const usedColumns = new Set();
-  const selected = [];
-  for (const candidate of candidates) {
-    if (usedColumns.has(candidate.col)) continue;
-    usedColumns.add(candidate.col);
-    selected.push({
-      row: candidate.row,
-      col: candidate.col,
-      color: candidate.color,
-      kind: "goal",
-    });
-    if (selected.length >= limit) break;
-  }
-  return selected;
-}
-
 function toCandidate(
   node,
   colors,
   currentMain,
   currentMainOpportunity,
   mainChainFor,
-  roadmapCellLimit,
   deadline,
 ) {
   const firstMain = mainChainFor(node.firstBoard);
@@ -197,21 +160,10 @@ function toCandidate(
         triggerColorCount: currentMain.triggerColors.length,
       }
     : null;
-  const plannedTrigger = horizonMain.primary
-    ? {
-        ...horizonMain.primary,
-        state: "building",
-        routeCount: horizonMain.routeCount,
-      }
-    : null;
-
   return {
     moves: node.moves,
     predictedChains: node.maxChains,
     potentialChains: horizonMain.chains,
-    goalCells: roadmapCells(node.board, colors, roadmapCellLimit),
-    trigger: plannedTrigger,
-    plannedTrigger,
     mainTrigger,
     mainChainsAfterMove: firstMain.chains,
     mainChainsAtHorizon: horizonMain.chains,
@@ -250,7 +202,6 @@ export function solveTokopuyoSuggestion(request) {
     timeBudgetMs = 8_000,
     visibleSearchRatio = 0.72,
     maximumConstructionHeight = 11,
-    roadmapCellLimit = 4,
     safetyCandidateLimit = 10,
     allowEmergencyClearFallback = true,
   } = request;
@@ -364,7 +315,6 @@ export function solveTokopuyoSuggestion(request) {
       currentMain,
       currentMainOpportunity,
       mainChainFor,
-      roadmapCellLimit,
       finalDeadline,
     ));
   }

@@ -115,9 +115,9 @@ Existing main-chain size, unknown-pair coverage, horizon chain size, expected pr
 
 The result is advisory rather than an optimality proof. An unfavorable future sequence can still prevent further growth, and a bounded beam can discard a globally superior continuation.
 
-The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. A small set of still fainter circles shows locally valuable accessible cells after the visible plan; these roadmap cells may change after every committed hand and do not promise a specific unseen pair.
+The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. No post-preview roadmap cells are displayed.
 
-The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. The projected ignition after the visible route uses a lighter lightning marker. When the current placement and an ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states main-chain potential, connected-resource efficiency, current and projected ignition, evaluated unknown-pair coverage, and whether the result is an emergency-clear fallback.
+The current main-chain ignition cell is visible as a colored double dashed circle with a centered lightning mark and pulses when the current pair can fire it. No projected horizon ignition is displayed. When the current placement and the current ignition cell coincide, the placement keeps its centered sparkle and the lightning becomes a corner badge. The suggestion toast states horizon main-chain potential, connected-resource efficiency, current ignition, evaluated unknown-pair coverage, and whether the result is an emergency-clear fallback.
 
 ## Emergency-attack suggestions
 

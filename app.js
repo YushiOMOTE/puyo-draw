@@ -344,8 +344,6 @@ function render() {
         marker.className = `suggestion-marker ${suggestion.color}${
           suggestion.isTrigger ? " trigger" : ""
         }${suggestion.kind ? ` ${suggestion.kind}` : ""}${
-          suggestion.isPlannedIgnition ? " planned-ignition" : ""
-        }${
           suggestion.isIgnition
             ? ` ignition ignition-${suggestion.ignitionState}`
             : ""
@@ -355,8 +353,6 @@ function render() {
         cell.append(marker);
         if (suggestion.isIgnition) {
           cell.ariaLabel += ` current main-chain ${suggestion.color} ignition point`;
-        } else if (suggestion.isPlannedIgnition) {
-          cell.ariaLabel += ` projected ${suggestion.color} ignition point`;
         }
       }
 
@@ -704,27 +700,6 @@ function tokopuyoAttackSuggestionKey() {
 
 function displayTokopuyoSuggestion(candidate, index, total) {
   tokopuyoSuggestionMarks = new Map();
-  for (const cell of candidate.goalCells || []) {
-    if (!tokopuyoSession.board[cell.row][cell.col]) {
-      tokopuyoSuggestionMarks.set(`${cell.row},${cell.col}`, {
-        color: cell.color,
-        kind: "goal",
-      });
-    }
-  }
-  const plannedTrigger = candidate.plannedTrigger || candidate.trigger || null;
-  const plannedIgnitionKey = plannedTrigger
-    ? `${plannedTrigger.row},${plannedTrigger.col}`
-    : null;
-  if (
-    plannedTrigger &&
-    !tokopuyoSession.board[plannedTrigger.row][plannedTrigger.col]
-  ) {
-    tokopuyoSuggestionMarks.set(plannedIgnitionKey, {
-      color: plannedTrigger.color,
-      isPlannedIgnition: true,
-    });
-  }
   const mainIgnitionKey = candidate.mainTrigger
     ? `${candidate.mainTrigger.row},${candidate.mainTrigger.col}`
     : null;
@@ -735,7 +710,6 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     tokopuyoSuggestionMarks.set(mainIgnitionKey, {
       color: candidate.mainTrigger.color,
       isIgnition: true,
-      isPlannedIgnition: mainIgnitionKey === plannedIgnitionKey,
       ignitionState: candidate.mainTrigger.state,
     });
   }
@@ -744,13 +718,11 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     move.cells.forEach(({ row, col, color }) => {
       const key = `${row},${col}`;
       const isIgnition = key === mainIgnitionKey;
-      const isPlannedIgnition = key === plannedIgnitionKey;
       tokopuyoSuggestionMarks.set(key, {
         color,
         kind: step === 1 ? "current" : "future",
         step: step > 1 ? String(step) : null,
         isIgnition,
-        isPlannedIgnition,
         ignitionState: isIgnition ? candidate.mainTrigger.state : null,
       });
     });
@@ -761,24 +733,13 @@ function displayTokopuyoSuggestion(candidate, index, total) {
       candidate.mainTrigger.color
     : null;
   const mainColumn = candidate.mainTrigger?.col + 1;
-  const plannedColor = plannedTrigger
-    ? localizedColors[plannedTrigger.color]?.[locale] || plannedTrigger.color
-    : null;
-  const plannedColumn = plannedTrigger ? plannedTrigger.col + 1 : null;
-  const futureIgnition = plannedTrigger
-    ? locale === "ja"
-      ? `見通し発火点 ${plannedColumn}列目に${plannedColor}`
-      : `Projected ignition: ${plannedColor} in column ${plannedColumn}`
-    : locale === "ja"
-      ? "発火点を形成中"
-      : "forming an ignition route";
   const ignition = locale === "ja"
     ? candidate.mainTrigger
-      ? `現在${candidate.mainTrigger.chains}連鎖：${mainColumn}列目に${mainColor}（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : "1ぷよ発火形"}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
-      : `未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
+      ? `現在${candidate.mainTrigger.chains}連鎖：${mainColumn}列目に${mainColor}（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : "1ぷよ発火形"}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
+      : `未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
     : candidate.mainTrigger
-      ? `Current ${candidate.mainTrigger.chains}-chain: ${mainColor} in column ${mainColumn} (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : "one-puyo ignition"}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
-      : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`;
+      ? `Current ${candidate.mainTrigger.chains}-chain: ${mainColor} in column ${mainColumn} (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : "one-puyo ignition"}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
+      : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`;
   showToast(
     localizedMessage(
       messages.tokopuyoSuggestion,
