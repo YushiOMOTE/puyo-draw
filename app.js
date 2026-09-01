@@ -45,6 +45,12 @@ const nextPairEl = document.querySelector("#nextPair");
 const nextNextPairEl = document.querySelector("#nextNextPair");
 const patternNumberEl = document.querySelector("#patternNumber");
 const toggleAppModeButton = document.querySelector("#toggleAppMode");
+const leftSidebar = document.querySelector(".left-sidebar");
+const resetSlot = document.querySelector("#resetSlot");
+const modeSlot = document.querySelector("#modeSlot");
+const helpSlot = document.querySelector("#helpSlot");
+const resetButton = document.querySelector("#reset");
+const helpButton = document.querySelector("#help");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
 const tokopuyoControls = document.querySelector("#tokopuyoControls");
@@ -266,7 +272,13 @@ function renderActivePair() {
 
 function updateModeUi() {
   const isTokopuyo = appMode === "tokopuyo";
-  const resetButton = document.querySelector("#reset");
+  if (isTokopuyo) {
+    leftSidebar.append(resetButton, toggleAppModeButton, helpButton);
+  } else {
+    resetSlot.append(resetButton);
+    modeSlot.append(toggleAppModeButton);
+    helpSlot.append(helpButton);
+  }
   document.body.dataset.mode = appMode;
   document.querySelectorAll(".drawing-only").forEach((element) => {
     element.hidden = isTokopuyo;

@@ -338,6 +338,14 @@ body[data-mode="tokopuyo"] .board-card {
   padding: 4px 0;
 }
 
+.app-action-slot {
+  display: contents;
+}
+
+body[data-mode="drawing"] .left-sidebar {
+  display: none;
+}
+
 .toolbar {
   display: flex;
   flex: 0 0 calc(var(--sidebar-size) + 4px);
@@ -603,6 +611,19 @@ body[data-mode="tokopuyo"] .board-card {
 
 .app-mode-btn {
   position: relative;
+}
+
+body[data-mode="drawing"] .app-mode-btn::before {
+  position: absolute;
+  top: -10px;
+  right: 0;
+  left: 0;
+  content: "";
+  border-top: 1px solid #b9c1d080;
+}
+
+body[data-mode="drawing"] .help-btn {
+  margin-top: auto;
 }
 
 .palette-icon {
