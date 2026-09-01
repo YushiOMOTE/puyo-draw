@@ -876,6 +876,7 @@ function openTokopuyoFlick(event, targetCol = null) {
   ) return;
 
   event.preventDefault();
+  event.currentTarget.setPointerCapture?.(event.pointerId);
   const col = targetCol ?? tokopuyoSession.activePair.axis.col;
   flick = {
     kind: "tokopuyo",

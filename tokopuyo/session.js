@@ -122,7 +122,7 @@ export function commitPairAtColumn(session, col, direction) {
   if (!Number.isInteger(col) || col < 0 || col >= COLS) {
     throw new RangeError("Tokopuyo target column is out of range");
   }
-  if (!["straight", "right", "down", "left"].includes(direction)) {
+  if (!["up", "straight", "right", "down", "left"].includes(direction)) {
     throw new RangeError(`Unsupported Tokopuyo drop direction: ${direction}`);
   }
 

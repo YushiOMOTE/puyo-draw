@@ -382,6 +382,11 @@ assert.ok(rightWallKick);
 assert.equal(rightWallKick.droppedPair.axis.col, 4);
 assert.equal(rightWallKick.droppedPair.orientation, ORIENTATION.RIGHT);
 
+const upsideDownFlickSession = createSession(0);
+const upsideDownFlick = commitPairAtColumn(upsideDownFlickSession, 2, "up");
+assert.ok(upsideDownFlick);
+assert.equal(upsideDownFlick.droppedPair.orientation, ORIENTATION.DOWN);
+
 const skippedRotationSession = createSession(0);
 assert.equal(
   previewPairAtPlacement(skippedRotationSession, 0, ORIENTATION.LEFT),
