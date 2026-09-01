@@ -156,18 +156,18 @@ const messages = {
     ja: "ゲームオーバー：リセットまたはUndoで続けられます",
   },
   tokopuyoSuggestionSearching: {
-    en: (chains) => `Planning toward a ${chains}-chain field…`,
-    ja: (chains) => `${chains}連鎖を目標に構築手順を探索中…`,
+    en: "Searching for a resilient long-chain build…",
+    ja: "長連鎖へ育つ積み方を探索中…",
   },
   tokopuyoSuggestionNone: {
     en: "No safe construction move was found",
     ja: "安全な構築手が見つかりませんでした",
   },
   tokopuyoSuggestion: {
-    en: (index, total, target, progress, predicted, ignition, emergency) =>
-      `${emergency ? "Emergency clear · " : ""}Plan ${index}/${total}: ${progress}% toward ${target} chains${predicted ? `; ${predicted} chains within preview` : ""} · ${ignition}`,
-    ja: (index, total, target, progress, predicted, ignition, emergency) =>
-      `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${target}連鎖目標の進捗${progress}%${predicted ? `、見えているツモ内で${predicted}連鎖` : ""} · ${ignition}`,
+    en: (index, total, potential, efficiency, ignition, emergency) =>
+      `${emergency ? "Emergency clear · " : ""}Plan ${index}/${total}: ${potential ? `${potential}-chain main potential` : "building a main-chain base"} · ${efficiency}% resource connection · ${ignition}`,
+    ja: (index, total, potential, efficiency, ignition, emergency) =>
+      `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${potential ? `本線候補${potential}連鎖` : "本線土台を構築中"} · 連結効率${efficiency}% · ${ignition}`,
   },
   tokopuyoAttackSearching: {
     en: "Finding the strongest visible attacks…",
@@ -282,7 +282,7 @@ function updateModeUi() {
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
   const suggestButton = document.querySelector("#suggest");
   suggestButton.ariaLabel = isTokopuyo
-    ? `Suggest long-chain construction toward ${TOKOPUYO_SUGGESTION_CONFIG.targetChains} chains`
+    ? "Suggest a resilient long-chain construction move"
     : "Suggest chain extensions";
   suggestButton.title = suggestButton.ariaLabel;
   resetButton.ariaLabel = isTokopuyo ? "Start a new Tokopuyo pattern" : "Reset";
@@ -356,7 +356,7 @@ function render() {
         if (suggestion.isIgnition) {
           cell.ariaLabel += ` current main-chain ${suggestion.color} ignition point`;
         } else if (suggestion.isPlannedIgnition) {
-          cell.ariaLabel += ` long-term ${suggestion.color} ignition point`;
+          cell.ariaLabel += ` projected ${suggestion.color} ignition point`;
         }
       }
 
@@ -682,7 +682,7 @@ function tokopuyoSuggestionKey() {
     .map((row) => row.map((cell) => cell || "-").join(""))
     .join("/");
   return [
-    TOKOPUYO_SUGGESTION_CONFIG.targetChains,
+    "ama-style",
     tokopuyoSession.seed,
     tokopuyoSession.handIndex,
     field,
@@ -712,9 +712,14 @@ function displayTokopuyoSuggestion(candidate, index, total) {
       });
     }
   }
-  const plannedTrigger = candidate.plannedTrigger || candidate.trigger;
-  const plannedIgnitionKey = `${plannedTrigger.row},${plannedTrigger.col}`;
-  if (!tokopuyoSession.board[plannedTrigger.row][plannedTrigger.col]) {
+  const plannedTrigger = candidate.plannedTrigger || candidate.trigger || null;
+  const plannedIgnitionKey = plannedTrigger
+    ? `${plannedTrigger.row},${plannedTrigger.col}`
+    : null;
+  if (
+    plannedTrigger &&
+    !tokopuyoSession.board[plannedTrigger.row][plannedTrigger.col]
+  ) {
     tokopuyoSuggestionMarks.set(plannedIgnitionKey, {
       color: plannedTrigger.color,
       isPlannedIgnition: true,
@@ -756,24 +761,31 @@ function displayTokopuyoSuggestion(candidate, index, total) {
       candidate.mainTrigger.color
     : null;
   const mainColumn = candidate.mainTrigger?.col + 1;
-  const plannedColor = localizedColors[plannedTrigger.color]?.[locale] ||
-    plannedTrigger.color;
-  const plannedColumn = plannedTrigger.col + 1;
+  const plannedColor = plannedTrigger
+    ? localizedColors[plannedTrigger.color]?.[locale] || plannedTrigger.color
+    : null;
+  const plannedColumn = plannedTrigger ? plannedTrigger.col + 1 : null;
+  const futureIgnition = plannedTrigger
+    ? locale === "ja"
+      ? `見通し発火点 ${plannedColumn}列目に${plannedColor}`
+      : `Projected ignition: ${plannedColor} in column ${plannedColumn}`
+    : locale === "ja"
+      ? "発火点を形成中"
+      : "forming an ignition route";
   const ignition = locale === "ja"
     ? candidate.mainTrigger
-      ? `本線${candidate.mainTrigger.chains}連鎖：${mainColumn}列目に${mainColor}（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : "1ぷよ発火形"}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.totalHands} · 目標発火点 ${plannedColumn}列目に${plannedColor}`
-      : `本線土台を構築中 · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.totalHands} · 目標発火点 ${plannedColumn}列目に${plannedColor}`
+      ? `現在${candidate.mainTrigger.chains}連鎖：${mainColumn}列目に${mainColor}（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : "1ぷよ発火形"}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
+      : `未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
     : candidate.mainTrigger
-      ? `Main ${candidate.mainTrigger.chains}-chain: ${mainColor} in column ${mainColumn} (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : "one-puyo ignition"}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.totalHands} · Goal ignition ${plannedColor} in column ${plannedColumn}`
-      : `Building the main-chain base · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.totalHands} · Goal ignition ${plannedColor} in column ${plannedColumn}`;
+      ? `Current ${candidate.mainTrigger.chains}-chain: ${mainColor} in column ${mainColumn} (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : "one-puyo ignition"}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`
+      : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands} · ${futureIgnition}`;
   showToast(
     localizedMessage(
       messages.tokopuyoSuggestion,
       index + 1,
       total,
-      candidate.targetChains,
-      Math.round(candidate.progress * 100),
-      candidate.predictedChains,
+      candidate.potentialChains,
+      Math.round(candidate.construction.resourceEfficiency * 100),
       ignition,
       candidate.emergency,
     ),
@@ -838,13 +850,7 @@ async function showTokopuyoSuggestion() {
   isSuggesting = true;
   const requestRevision = suggestionRevision;
   render();
-  showToast(
-    localizedMessage(
-      messages.tokopuyoSuggestionSearching,
-      TOKOPUYO_SUGGESTION_CONFIG.targetChains,
-    ),
-    1600,
-  );
+  showToast(messages.tokopuyoSuggestionSearching[locale], 1600);
   try {
     const hands = Array.from(
       { length: TOKOPUYO_SUGGESTION_CONFIG.lookaheadHands },

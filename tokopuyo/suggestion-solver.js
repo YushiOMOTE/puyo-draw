@@ -1,17 +1,13 @@
-import {
-  COLS,
-  HIDDEN_ROWS,
-  ROWS,
-  applyGravity,
-  simulate,
-} from "../engine.js";
-import { evaluateAmaField } from "../solver/ama-evaluator.js";
+import { HIDDEN_ROWS, applyGravity, clone, simulate } from "../engine.js";
 import { enumerateTsumoPlacements } from "./pair-engine.js";
-import { createChainGoals } from "./chain-templates.js";
+import {
+  evaluateConstructionField,
+  placementTearPenalty,
+} from "./construction-evaluator.js";
 import {
   analyzeMainChain,
+  enumerateUnknownHands,
   evaluateFieldBalance,
-  evaluateUnknownAcceptance,
   findVisibleMainOpportunity,
 } from "./safety-evaluator.js";
 
@@ -21,221 +17,225 @@ function boardKey(board) {
     .join("/");
 }
 
-function nextLandingRow(board, col) {
-  const topmostOccupied = board.findIndex((row) => row[col] !== null);
-  return topmostOccupied === -1 ? ROWS - 1 : topmostOccupied - 1;
+function firstMoveKey(node) {
+  return node.moves[0].cells
+    .map(({ row, col, color }) => `${row},${col},${color}`)
+    .sort()
+    .join("|");
 }
 
-function triggerStatus(board, goal, minimumTriggerChains) {
-  const { row, col, color } = goal.triggerPlan.cell;
-  const actual = board[row][col];
-  const landingRow = nextLandingRow(board, col);
-  const blocked = Boolean(actual) || landingRow < row;
-  const accessible = !blocked && landingRow === row;
-  let chainsIfTriggered = 0;
-  if (accessible) {
-    const firingBoard = board.map((boardRow) => [...boardRow]);
-    firingBoard[row][col] = color;
-    chainsIfTriggered = simulate(firingBoard).chains;
-  }
-  return {
-    blocked,
-    accessible,
-    chainsIfTriggered,
-    ready: chainsIfTriggered >= minimumTriggerChains,
+function isGameOver(board) {
+  return Boolean(board[HIDDEN_ROWS][2]);
+}
+
+function createMainChainReader(colors) {
+  const cache = new Map();
+  return (board) => {
+    const key = boardKey(board);
+    if (!cache.has(key)) cache.set(key, analyzeMainChain(board, colors));
+    return cache.get(key);
   };
 }
 
-function goalMetrics(board, goal, minimumTriggerChains) {
-  let matched = 0;
-  let conflicts = 0;
-  let outside = 0;
-  let required = 0;
-
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      const expected = goal.triggerPlan.constructionBoard[row][col];
-      const actual = board[row][col];
-      if (expected) required++;
-      if (!actual) continue;
-      if (actual === expected) {
-        matched++;
-      } else if (expected) conflicts++;
-      else outside++;
-    }
-  }
-
-  const trigger = triggerStatus(board, goal, minimumTriggerChains);
-  const completion = required ? matched / required : 1;
-  const chokePenalty = board[HIDDEN_ROWS][2] ? 1_000_000 : 0;
-  const hiddenPenalty = board[0].filter(Boolean).length * 45_000;
-  const score =
-    matched * 1_600 -
-    conflicts * 2_200 -
-    outside * 420 -
-    Number(trigger.blocked) * 1_000_000 -
-    chokePenalty -
-    hiddenPenalty +
-    evaluateAmaField(board) * 2;
-
+function scoreStableBoard(board, mainChain, cells = []) {
+  const evaluation = evaluateConstructionField(board, mainChain);
   return {
-    score,
-    matched,
-    conflicts,
-    outside,
-    required,
-    completion,
-    trigger,
+    evaluation,
+    value: evaluation.score - placementTearPenalty(cells),
   };
 }
 
-function selectGoals(board, goals, limit, minimumTriggerChains) {
-  return goals
-    .map((goal) => ({
-      goal,
-      metrics: goalMetrics(board, goal, minimumTriggerChains),
-    }))
-    .filter(({ metrics }) => !metrics.trigger.blocked)
-    .sort((left, right) => right.metrics.score - left.metrics.score)
-    .slice(0, limit)
-    .map(({ goal }) => goal);
+function preservesChainSize(mainChain, baseline) {
+  return !baseline.chains || mainChain.chains >= baseline.chains;
 }
 
-function scoreNode(node, minimumTriggerChains) {
-  const metrics = goalMetrics(
-    node.board,
-    node.goal,
-    minimumTriggerChains,
+function compareNodes(left, right) {
+  return (
+    right.mainChain.chains - left.mainChain.chains ||
+    right.score - left.score ||
+    right.evaluation.resourceEfficiency - left.evaluation.resourceEfficiency
   );
-  const chainAdjustment = node.maxChains
-    ? node.maxChains >= node.goal.targetChains
-      ? 2_000_000 + node.maxChains * 80_000
-      : -(1_200_000 + node.maxChains * 80_000)
-    : 0;
-  const emergencyPenalty = node.emergency ? 2_000_000 : 0;
+}
+
+function retainDiverse(nodes, limit) {
+  const byBoard = new Map();
+  for (const node of nodes.sort(compareNodes)) {
+    const key = boardKey(node.board);
+    if (!byBoard.has(key)) byBoard.set(key, node);
+  }
+
+  const heightCounts = new Map();
+  const selected = [];
+  for (const node of byBoard.values()) {
+    const profile = node.evaluation.columns.heights.join(",");
+    const count = heightCounts.get(profile) || 0;
+    if (count >= 3) continue;
+    heightCounts.set(profile, count + 1);
+    selected.push(node);
+    if (selected.length >= limit) break;
+  }
+  return selected;
+}
+
+function evaluateUnknownFuture(
+  board,
+  colors,
+  baselineMain,
+  mainChainFor,
+  deadline,
+) {
+  const hands = enumerateUnknownHands(colors);
+  let safeHands = 0;
+  let safePlacements = 0;
+  let evaluatedHands = 0;
+  let potentialSum = 0;
+  let worstPotential = Infinity;
+
+  for (const hand of hands) {
+    if (performance.now() >= deadline) break;
+    let best = null;
+    let handSafePlacements = 0;
+    for (const placement of enumerateTsumoPlacements(board, hand)) {
+      if (performance.now() >= deadline) break;
+      const result = simulate(placement.board);
+      if (isGameOver(result.state)) continue;
+      const childMain = mainChainFor(result.state);
+      const preserves = result.chains
+        ? result.chains >= baselineMain.chains
+        : preservesChainSize(childMain, baselineMain);
+      if (!preserves) continue;
+      handSafePlacements++;
+      const construction = evaluateConstructionField(result.state, childMain);
+      const value =
+        childMain.chains * 120_000 +
+        construction.shapeScore -
+        placementTearPenalty(placement.cells);
+      if (!best || value > best.value) {
+        best = { value, chains: Math.max(result.chains, childMain.chains) };
+      }
+    }
+    if (best) {
+      safeHands++;
+      safePlacements += handSafePlacements;
+      potentialSum += best.chains;
+      worstPotential = Math.min(worstPotential, best.chains);
+    }
+    evaluatedHands++;
+  }
+
   return {
-    ...metrics,
-    value: metrics.score + chainAdjustment - emergencyPenalty,
+    safeHands,
+    totalHands: hands.length,
+    evaluatedHands,
+    safePlacements,
+    coverage: evaluatedHands ? safeHands / evaluatedHands : 0,
+    averagePotential: safeHands ? potentialSum / safeHands : 0,
+    worstPotential: worstPotential === Infinity ? 0 : worstPotential,
   };
 }
 
-function frontierGoalCells(board, goal, limit) {
-  const cells = [];
-  for (let col = 0; col < COLS; col++) {
-    const topmost = board.findIndex((row) => row[col] !== null);
-    const row = topmost === -1 ? ROWS - 1 : topmost - 1;
-    if (row < HIDDEN_ROWS) continue;
-    const color = goal.triggerPlan.constructionBoard[row][col];
-    if (!color) continue;
-    cells.push({ row, col, color, kind: "goal" });
-  }
-  return cells.slice(0, limit);
-}
-
-function findTriggerOpportunity(board, hand, goal, minimumTriggerChains) {
-  const status = triggerStatus(board, goal, minimumTriggerChains);
-  if (status.blocked) return null;
-  const triggerCell = goal.triggerPlan.cell;
-  let best = null;
-  for (const placement of enumerateTsumoPlacements(board, hand)) {
-    if (!placement.cells.some(({ row, col, color }) =>
-      row === triggerCell.row &&
-      col === triggerCell.col &&
-      color === triggerCell.color
-    )) continue;
-    const result = simulate(placement.board);
-    if (result.chains < minimumTriggerChains) continue;
-    if (!best || result.chains > best.chains) {
-      best = {
-        col: placement.col,
-        orientation: placement.orientation,
-        cells: placement.cells,
-        chains: result.chains,
-      };
+function roadmapCells(board, colors, limit) {
+  const candidates = [];
+  for (let col = 0; col < board[0].length; col++) {
+    const top = board.findIndex((row) => row[col] !== null);
+    const row = top === -1 ? board.length - 1 : top - 1;
+    if (row < HIDDEN_ROWS || (row === HIDDEN_ROWS && col === 2)) continue;
+    for (const color of colors) {
+      const next = clone(board);
+      next[row][col] = color;
+      const result = simulate(next);
+      if (result.chains || isGameOver(result.state)) continue;
+      candidates.push({
+        row,
+        col,
+        color,
+        score: evaluateConstructionField(result.state).shapeScore,
+      });
     }
   }
-  return best;
+  candidates.sort((left, right) => right.score - left.score);
+  const usedColumns = new Set();
+  const selected = [];
+  for (const candidate of candidates) {
+    if (usedColumns.has(candidate.col)) continue;
+    usedColumns.add(candidate.col);
+    selected.push({
+      row: candidate.row,
+      col: candidate.col,
+      color: candidate.color,
+      kind: "goal",
+    });
+    if (selected.length >= limit) break;
+  }
+  return selected;
 }
 
 function toCandidate(
   node,
-  roadmapCellLimit,
-  minimumTriggerChains,
   colors,
   currentMain,
   currentMainOpportunity,
+  mainChainFor,
+  roadmapCellLimit,
+  deadline,
 ) {
-  const metrics = goalMetrics(
-    node.board,
-    node.goal,
-    minimumTriggerChains,
-  );
-  const visibleOpportunity = node.triggerOpportunities.find(Boolean) || null;
-  const visibleHandOffset = node.triggerOpportunities.findIndex(Boolean);
-  const triggerState = node.maxChains >= minimumTriggerChains
-    ? "firing"
-    : visibleOpportunity
-      ? visibleHandOffset === 0 ? "ready" : "soon"
-      : metrics.trigger.ready ? "ready" : "building";
-  const firstMoveMain = analyzeMainChain(node.firstBoard, colors);
-  const horizonMain = analyzeMainChain(node.board, colors);
-  const acceptance = evaluateUnknownAcceptance(
+  const firstMain = mainChainFor(node.firstBoard);
+  const horizonMain = node.mainChain;
+  const acceptance = evaluateUnknownFuture(
     node.board,
     colors,
     horizonMain,
+    mainChainFor,
+    deadline,
   );
-  const balance = evaluateFieldBalance(node.firstBoard);
-  const plannedTrigger = {
-    ...node.goal.triggerPlan.cell,
-    state: triggerState,
-    chainsIfTriggered: visibleOpportunity?.chains ||
-      metrics.trigger.chainsIfTriggered,
-    visibleHandOffset: visibleOpportunity ? visibleHandOffset : null,
-  };
+  const mainTrigger = currentMain.primary
+    ? {
+        ...currentMain.primary,
+        state: currentMainOpportunity ? "ready" : "building",
+        visibleHandOffset: currentMainOpportunity?.handOffset ?? null,
+        routeCount: currentMain.routeCount,
+        triggerColorCount: currentMain.triggerColors.length,
+      }
+    : null;
+  const plannedTrigger = horizonMain.primary
+    ? {
+        ...horizonMain.primary,
+        state: "building",
+        routeCount: horizonMain.routeCount,
+      }
+    : null;
+
   return {
     moves: node.moves,
-    targetChains: node.goal.targetChains,
     predictedChains: node.maxChains,
-    progress: metrics.completion,
-    goalCells: frontierGoalCells(
-      node.board,
-      node.goal,
-      roadmapCellLimit,
-    ),
+    potentialChains: horizonMain.chains,
+    goalCells: roadmapCells(node.board, colors, roadmapCellLimit),
     trigger: plannedTrigger,
     plannedTrigger,
-    mainTrigger: currentMain.primary
-      ? {
-          ...currentMain.primary,
-          state: currentMainOpportunity ? "ready" : "building",
-          visibleHandOffset: currentMainOpportunity?.handOffset ?? null,
-          routeCount: currentMain.routeCount,
-          triggerColorCount: currentMain.triggerColors.length,
-        }
-      : null,
-    mainChainsAfterMove: firstMoveMain.chains,
+    mainTrigger,
+    mainChainsAfterMove: firstMain.chains,
     mainChainsAtHorizon: horizonMain.chains,
     acceptance,
-    balance,
+    balance: evaluateFieldBalance(node.firstBoard),
+    construction: node.evaluation,
     emergency: node.emergency,
-    score: node.score,
+    score:
+      node.score +
+      acceptance.coverage * 35_000 +
+      acceptance.averagePotential * 8_000,
   };
 }
 
-function compareSafeCandidates(left, right) {
+function compareCandidates(left, right) {
   return (
-    right.acceptance.safeHands - left.acceptance.safeHands ||
     right.mainChainsAfterMove - left.mainChainsAfterMove ||
-    right.balance.score - left.balance.score ||
+    right.acceptance.coverage - left.acceptance.coverage ||
+    right.mainChainsAtHorizon - left.mainChainsAtHorizon ||
+    right.acceptance.averagePotential - left.acceptance.averagePotential ||
+    right.construction.resourceEfficiency -
+      left.construction.resourceEfficiency ||
     right.score - left.score
   );
-}
-
-function candidateFirstMoveKey(candidate) {
-  return candidate.moves[0].cells
-    .map(({ row, col, color }) => `${row},${col},${color}`)
-    .sort()
-    .join("|");
 }
 
 export function solveTokopuyoSuggestion(request) {
@@ -244,94 +244,75 @@ export function solveTokopuyoSuggestion(request) {
     board,
     hands,
     colors,
-    targetChains,
     lookaheadHands = 3,
     resultLimit = 4,
-    beamWidth = 180,
-    timeBudgetMs = 2_500,
-    goalVariantLimit = 16,
-    roadmapCellLimit = 8,
-    minimumTriggerChainRatio = 0.9,
+    beamWidth = 240,
+    timeBudgetMs = 8_000,
+    visibleSearchRatio = 0.72,
+    maximumConstructionHeight = 11,
+    roadmapCellLimit = 4,
+    safetyCandidateLimit = 10,
     allowEmergencyClearFallback = true,
-    safetyCandidateLimit = 12,
   } = request;
-  const minimumTriggerChains = Math.ceil(
-    targetChains * minimumTriggerChainRatio,
-  );
   const selectedHands = hands.slice(0, lookaheadHands);
   if (!selectedHands.length) return { candidates: [], timedOut: false };
+
   const stableBoard = applyGravity(board);
-  const currentMain = analyzeMainChain(stableBoard, colors);
+  const mainChainFor = createMainChainReader(colors);
+  const currentMain = mainChainFor(stableBoard);
   const currentMainOpportunity = findVisibleMainOpportunity(
     stableBoard,
     selectedHands.slice(0, 1),
     currentMain,
   );
-  const mainChainCache = new Map();
-  const mainChainFor = (candidateBoard) => {
-    const key = boardKey(candidateBoard);
-    if (!mainChainCache.has(key)) {
-      mainChainCache.set(key, analyzeMainChain(candidateBoard, colors));
-    }
-    return mainChainCache.get(key);
-  };
-
-  const goals = selectGoals(
-    board,
-    createChainGoals(targetChains, colors),
-    goalVariantLimit,
-    minimumTriggerChains,
-  );
-  let frontier = goals.map((goal) => ({
+  const initialEvaluation = evaluateConstructionField(stableBoard, currentMain);
+  let frontier = [{
     board: stableBoard,
-    goal,
     moves: [],
     maxChains: 0,
     emergency: false,
-    triggerOpportunities: [],
-    score: goalMetrics(board, goal, minimumTriggerChains).score,
-  }));
+    firstBoard: stableBoard,
+    mainChain: currentMain,
+    evaluation: initialEvaluation,
+    score: initialEvaluation.score,
+  }];
+  let emergencyFrontier = [];
   let timedOut = false;
+  const searchDeadline = startedAt + timeBudgetMs * visibleSearchRatio;
+  const finalDeadline = startedAt + timeBudgetMs;
 
   for (let depth = 0; depth < selectedHands.length; depth++) {
-    const safeSeen = new Map();
-    const emergencySeen = new Map();
+    const stableChildren = [];
+    const emergencyChildren = [];
     for (const node of frontier) {
-      const triggerOpportunity = findTriggerOpportunity(
-        node.board,
-        selectedHands[depth],
-        node.goal,
-        minimumTriggerChains,
-      );
       for (const placement of enumerateTsumoPlacements(
         node.board,
         selectedHands[depth],
       )) {
-        if (performance.now() - startedAt >= timeBudgetMs) {
+        if (performance.now() >= searchDeadline) {
           timedOut = true;
           break;
         }
         const result = simulate(placement.board);
-        const prematureClear =
-          result.chains > 0 && result.chains < minimumTriggerChains;
+        if (isGameOver(result.state)) continue;
+        const childMain = mainChainFor(result.state);
         if (
           depth === 0 &&
           !result.chains &&
-          currentMain.chains &&
-          mainChainFor(result.state).chains < currentMain.chains
+          !preservesChainSize(childMain, currentMain)
         ) continue;
-        const usesPlannedTrigger = placement.cells.some(({ row, col, color }) =>
-          row === node.goal.triggerPlan.cell.row &&
-          col === node.goal.triggerPlan.cell.col &&
-          color === node.goal.triggerPlan.cell.color
+
+        const scored = scoreStableBoard(
+          result.state,
+          childMain,
+          placement.cells,
         );
         if (
-          result.chains >= minimumTriggerChains &&
-          !usesPlannedTrigger
+          !result.chains &&
+          scored.evaluation.columns.peak > maximumConstructionHeight
         ) continue;
         const child = {
           board: result.state,
-          goal: node.goal,
           moves: [
             ...node.moves,
             {
@@ -343,62 +324,56 @@ export function solveTokopuyoSuggestion(request) {
             },
           ],
           maxChains: Math.max(node.maxChains, result.chains),
+          emergency: node.emergency || Boolean(result.chains),
           firstBoard: depth === 0 ? result.state : node.firstBoard,
-          emergency: node.emergency || prematureClear,
-          triggerOpportunities: [
-            ...node.triggerOpportunities,
-            triggerOpportunity
-              ? { handOffset: depth, ...triggerOpportunity }
-              : null,
-          ],
+          mainChain: childMain,
+          evaluation: scored.evaluation,
+          score: scored.value,
         };
-        const scored = scoreNode(child, minimumTriggerChains);
-        if (!result.chains && scored.trigger.blocked) continue;
-        child.score = scored.value;
-        const key = `${node.goal.id}:${boardKey(child.board)}`;
-        const destination = prematureClear ? emergencySeen : safeSeen;
-        const existing = destination.get(key);
-        if (!existing || child.score > existing.score) {
-          destination.set(key, child);
-        }
+        (result.chains ? emergencyChildren : stableChildren).push(child);
       }
       if (timedOut) break;
     }
-    const next = [
-      ...(safeSeen.size || !allowEmergencyClearFallback
-        ? safeSeen.values()
-        : emergencySeen.values()),
-    ];
-    next.sort((left, right) => right.score - left.score);
-    frontier = next.slice(0, beamWidth);
-    if (!frontier.length || timedOut) break;
+
+    if (emergencyChildren.length) {
+      emergencyFrontier = retainDiverse(emergencyChildren, beamWidth);
+    }
+    if (!stableChildren.length) {
+      if (allowEmergencyClearFallback && emergencyFrontier.length) {
+        frontier = emergencyFrontier;
+      }
+      break;
+    }
+    frontier = retainDiverse(stableChildren, beamWidth);
+    if (timedOut) break;
   }
 
-  const unique = new Map();
-  for (const node of frontier.sort((left, right) => right.score - left.score)) {
+  const byFirstMove = new Map();
+  for (const node of frontier.sort(compareNodes)) {
     if (!node.moves.length) continue;
-    const key = candidateFirstMoveKey(node);
-    if (!unique.has(key)) unique.set(key, node);
-    if (unique.size >= safetyCandidateLimit) break;
+    const key = firstMoveKey(node);
+    if (!byFirstMove.has(key)) byFirstMove.set(key, node);
+    if (byFirstMove.size >= safetyCandidateLimit) break;
   }
 
-  const candidates = [...unique.values()]
-    .map((node) => toCandidate(
+  const candidates = [];
+  for (const node of byFirstMove.values()) {
+    candidates.push(toCandidate(
       node,
-      roadmapCellLimit,
-      minimumTriggerChains,
       colors,
       currentMain,
       currentMainOpportunity,
-    ))
-    .sort(compareSafeCandidates)
-    .slice(0, resultLimit);
+      mainChainFor,
+      roadmapCellLimit,
+      finalDeadline,
+    ));
+  }
+  candidates.sort(compareCandidates);
 
   return {
-    solver: "tokopuyo-chain-goal",
-    candidates,
-    timedOut,
-    targetChains,
+    solver: "tokopuyo-ama-style",
+    candidates: candidates.slice(0, resultLimit),
+    timedOut: timedOut || performance.now() >= finalDeadline,
     currentMainChains: currentMain.chains,
   };
 }
