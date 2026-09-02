@@ -11,10 +11,11 @@ import {
   findVisibleMainOpportunity,
 } from "./safety-evaluator.js";
 
-function boardKey(board) {
-  return board
+function boardKey(board, row14 = 0) {
+  const field = board
     .map((row) => row.map((cell) => cell?.[0] || "-").join(""))
     .join("/");
+  return `${row14}:${field}`;
 }
 
 function firstMoveKey(node) {
@@ -60,7 +61,7 @@ function compareNodes(left, right) {
 function retainDiverse(nodes, limit) {
   const byBoard = new Map();
   for (const node of nodes.sort(compareNodes)) {
-    const key = boardKey(node.board);
+    const key = boardKey(node.board, node.row14);
     if (!byBoard.has(key)) byBoard.set(key, node);
   }
 
@@ -79,6 +80,7 @@ function retainDiverse(nodes, limit) {
 
 function evaluateUnknownFuture(
   board,
+  row14,
   colors,
   baselineMain,
   mainChainFor,
@@ -95,7 +97,7 @@ function evaluateUnknownFuture(
     if (performance.now() >= deadline) break;
     let best = null;
     let handSafePlacements = 0;
-    for (const placement of enumerateTsumoPlacements(board, hand)) {
+    for (const placement of enumerateTsumoPlacements(board, hand, row14)) {
       if (performance.now() >= deadline) break;
       const result = simulate(placement.board);
       if (isGameOver(result.state)) continue;
@@ -146,6 +148,7 @@ function toCandidate(
   const horizonMain = node.mainChain;
   const acceptance = evaluateUnknownFuture(
     node.board,
+    node.row14,
     colors,
     horizonMain,
     mainChainFor,
@@ -194,6 +197,7 @@ export function solveTokopuyoSuggestion(request) {
   const startedAt = performance.now();
   const {
     board,
+    row14 = 0,
     hands,
     colors,
     lookaheadHands = 3,
@@ -215,10 +219,12 @@ export function solveTokopuyoSuggestion(request) {
     stableBoard,
     selectedHands.slice(0, 1),
     currentMain,
+    row14,
   );
   const initialEvaluation = evaluateConstructionField(stableBoard, currentMain);
   let frontier = [{
     board: stableBoard,
+    row14,
     moves: [],
     maxChains: 0,
     emergency: false,
@@ -239,6 +245,7 @@ export function solveTokopuyoSuggestion(request) {
       for (const placement of enumerateTsumoPlacements(
         node.board,
         selectedHands[depth],
+        node.row14,
       )) {
         if (performance.now() >= searchDeadline) {
           timedOut = true;
@@ -264,6 +271,7 @@ export function solveTokopuyoSuggestion(request) {
         ) continue;
         const child = {
           board: result.state,
+          row14: placement.row14,
           moves: [
             ...node.moves,
             {

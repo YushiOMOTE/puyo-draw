@@ -12,7 +12,7 @@
 
 - Six columns and thirteen rows.
 - The bottom twelve rows are the standard visible field.
-- The top row is the hidden-area row and uses a distinct background color; the former fourteenth row is not modeled because puyos do not fall into it.
+- The top stored row is the hidden-area row and uses a distinct background color. Tokopuyo additionally tracks Ama's special fourteenth row as a six-bit occupancy mask outside the normal board; Drawing mode does not use it.
 - The hidden-area row is outside chain resolution while occupied: its puyos neither form or join clearing groups nor clear as adjacent garbage. Gravity still applies to the full column, so a puyo that falls into the visible twelve rows participates in later group and chain checks normally.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
@@ -69,6 +69,8 @@ The Help (`i`) button is pinned to the bottom of the left rail. The reset and mo
 - The first entry starts immediately with a uniformly selected seed from 0 through 65,535. Reset clears Tokopuyo state and starts another randomly selected pattern.
 - The selected four-color pattern contains 128 axis/child pairs and loops after hand 128. The displayed pattern number is `seed + 1` and remains visible near the previews.
 - The active pair starts vertically over the third column, with the child above the axis. A virtual row above the modeled thirteen-row board allows the spawn position to be rendered without changing the locked-board model.
+- Tokopuyo legal placements match Ama's move generator, including spawn-path checks, floor kicks, quick turns, the special fourteenth row, and the standard third-column death check. Manual movement and rotation can reach every placement accepted by that generator, and a drop cannot commit a placement it rejects.
+- A child that locks in the special fourteenth row is recorded as colorless occupancy outside the normal board. It does not fall, clear, or join a group and remains occupied across later hands, chains, and Undo/Redo. It prevents another child from locking in the same special cell when Ama's move rules test that destination, but does not obstruct an active pair merely moving through the virtual display row.
 - Next and Next Next appear in a compact preview area above the Tokopuyo sidebar.
 - A five-button bottom bar spans the full bottom edge in Tokopuyo mode. Its left side has Move Left and Move Right. Its right side has Rotate Counterclockwise, Drop, and Rotate Clockwise.
 - Each movement or rotation immediately updates the active-pair preview above the field. Drop hard-drops the previewed pair into its current position; field cells do not select or place pairs.
@@ -135,7 +137,7 @@ The following requirements describe Drawing-mode suggestions. Tokopuyo uses the 
 - Tokopuyo Suggestion recommends the current pair placement as part of a long-chain construction plan. It does not prioritize a small chain merely because that chain can fire within the visible three hands.
 - The planner does not use a fixed target chain count or completed goal-field template. It reevaluates the field after every hand and seeks moves whose accumulated structure can grow into a long main chain.
 - The planner searches legal placements for the current, Next, and Next Next pairs in a depth-stratified beam. It uses only these three visible pairs and does not inspect later hands from the deterministic pattern.
-- Pair search observes axis/child colors, all legal columns and orientations, independent landing of horizontal puyos, automatic chain resolution after every hand, the hidden area, and the choke point.
+- Pair search observes axis/child colors, Ama's complete legal-placement set, independent landing of horizontal puyos, automatic chain resolution after every hand, the hidden area, special-fourteenth-row occupancy, and the choke point.
 - Before ranking construction moves, the planner analyzes the current main chain. The current main chain is the greatest chain count reachable by dropping one legal single puyo into the stable field. All equally long one-puyo ignition routes are retained, including their cells and colors.
 - A non-clearing current-pair move is rejected when it reduces the current main chain's one-puyo-accessible chain count. This safety rule is applied to the current recommended hand; the planner recalculates the main chain after every committed hand.
 - After each shortlisted current, Next, and Next Next route, the planner evaluates up to all sixteen ordered color pairs that may appear beyond the visible preview. A pair is covered when at least one legal response fires or preserves the horizon's analyzed main-chain size. Coverage, average preserved chain potential, and the weakest covered response contribute to ranking. If the time budget ends, the result reports only the pairs actually evaluated.
@@ -165,6 +167,7 @@ The following requirements describe Drawing-mode suggestions. Tokopuyo uses the 
 - Keep the chain engine independent from the DOM so it can be tested with Node.js.
 - Keep suggestion solvers independent from the DOM. The worker-facing solver contract lives in `solver/contract.js`. `solver/solver-registry.js` selects a traversal implementation, `solver/search-policy.js` applies shared search rules and records raw milestones, and `solver/candidate-pipeline.js` creates public display candidates.
 - Keep Tokopuyo queue generation, active-pair movement, pure pair placement, long-chain planning, and session history independent from the DOM in `tokopuyo/queue.js`, `tokopuyo/pair-engine.js`, `tokopuyo/suggestion-solver.js`, and `tokopuyo/session.js`.
+- At the Ama boundary, map `pattern.colors[0..3]` to Ama `RED`, `YELLOW`, `GREEN`, and `BLUE` respectively. This is an abstract-color mapping: a physical purple puyo is valid when purple occupies one of those four pattern slots. Reject any board color outside the session's selected four colors.
 - Do not add a build step or runtime dependency without an explicit product decision.
 - GitHub Pages deployment is provided by `.github/workflows/deploy.yml`.
 - The Pages workflow appends the deployment commit SHA to every local JavaScript and CSS reference, including transitive module imports and the suggestion worker URL, so a browser cannot combine modules from different releases.

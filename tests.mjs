@@ -41,10 +41,16 @@ import {
   dropTsumo,
   enumerateTsumoPlacements,
   hardDrop,
+  isPlacementReachable,
   movePair,
   pairCells,
   rotatePair,
 } from "./tokopuyo/pair-engine.js";
+import {
+  encodeAmaBoard,
+  encodeAmaPair,
+  toAmaColor,
+} from "./tokopuyo/ama-color-map.js";
 import {
   actOnPair,
   commitActivePair,
@@ -279,6 +285,40 @@ assert.throws(() => generatePattern(-1), RangeError);
 assert.throws(() => generatePattern(65_536), RangeError);
 assert.equal(generatePattern(65_535).number, 65_536);
 assert.deepEqual(generatePattern(0), seedZeroPattern);
+assert.deepEqual(
+  encodeAmaPair(seedZeroPattern.hands[0], seedZeroPattern.colors),
+  {
+    axis: seedZeroPattern.colors.indexOf(seedZeroPattern.hands[0].axis),
+    child: seedZeroPattern.colors.indexOf(seedZeroPattern.hands[0].child),
+  },
+);
+assert.equal(toAmaColor(seedZeroPattern.colors[0], seedZeroPattern.colors), 0);
+assert.equal(toAmaColor(seedZeroPattern.colors[1], seedZeroPattern.colors), 1);
+assert.equal(toAmaColor(seedZeroPattern.colors[2], seedZeroPattern.colors), 2);
+assert.equal(toAmaColor(seedZeroPattern.colors[3], seedZeroPattern.colors), 3);
+const amaEncodingBoard = emptyBoard();
+amaEncodingBoard[ROWS - 1] = [
+  "purple",
+  "green",
+  "red",
+  "blue",
+  GARBAGE,
+  null,
+];
+assert.equal(
+  encodeAmaBoard(
+    amaEncodingBoard,
+    ["purple", "green", "red", "blue"],
+  ).slice(-6),
+  "RYGB#.",
+);
+assert.throws(
+  () => encodeAmaBoard(
+    amaEncodingBoard,
+    ["red", "green", "blue", "yellow"],
+  ),
+  RangeError,
+);
 assert.equal(
   generatePattern(34_066).hands
     .slice(0, 8)
@@ -349,15 +389,138 @@ const emptyPairPlacements = enumerateTsumoPlacements(
   emptyBoard(),
   { axis: "red", child: "blue" },
 );
-assert.ok(emptyPairPlacements.length > 0);
+assert.equal(emptyPairPlacements.length, 22);
 assert.equal(
   new Set(emptyPairPlacements.map(({ cells }) =>
     cells.map(({ row, col, color }) => `${row},${col},${color}`).sort().join("|"),
   )).size,
   emptyPairPlacements.length,
 );
+assert.equal(
+  enumerateTsumoPlacements(
+    emptyBoard(),
+    { axis: "red", child: "red" },
+  ).length,
+  11,
+);
+assert.throws(
+  () => enumerateTsumoPlacements(
+    emptyBoard(),
+    { axis: "red", child: "blue" },
+    64,
+  ),
+  RangeError,
+);
+
+function boardWithHeights(heights) {
+  const result = emptyBoard();
+  heights.forEach((height, col) => {
+    for (let offset = 0; offset < height; offset++) {
+      result[ROWS - 1 - offset][col] = offset % 2 ? "blue" : "red";
+    }
+  });
+  return result;
+}
+
+const blockedPathBoard = boardWithHeights([3, 12, 1, 0, 5, 12]);
+const blockedPathPlacements = enumerateTsumoPlacements(
+  blockedPathBoard,
+  { axis: "red", child: "blue" },
+);
+assert.equal(blockedPathPlacements.length, 10);
+assert.equal(
+  isPlacementReachable(blockedPathBoard, 0, ORIENTATION.UP),
+  false,
+);
+assert.equal(
+  hardDrop(blockedPathBoard, {
+    ...createActivePair({ axis: "red", child: "blue" }),
+    axis: { row: 0, col: 0 },
+  }),
+  null,
+);
+
+const row14LandingBoard = boardWithHeights([0, 0, 11, 12, 0, 0]);
+const row14Drop = dropTsumo(
+  row14LandingBoard,
+  { axis: "red", child: "blue" },
+  3,
+  ORIENTATION.UP,
+);
+assert.ok(row14Drop);
+assert.equal(row14Drop.board[0][3], "red");
+assert.equal(row14Drop.row14, 1 << 3);
+assert.deepEqual(
+  row14Drop.cells.map(({ row, col, role }) => ({ row, col, role })),
+  [
+    { row: 0, col: 3, role: "axis" },
+    { row: -1, col: 3, role: "child" },
+  ],
+);
+assert.equal(
+  dropTsumo(
+    row14LandingBoard,
+    { axis: "red", child: "blue" },
+    3,
+    ORIENTATION.UP,
+    1 << 3,
+  ),
+  null,
+);
+
+function placementKey(col, orientation) {
+  return `${col},${orientation}`;
+}
+
+function buttonReachablePlacements(board, row14 = 0) {
+  const initial = createActivePair({ axis: "red", child: "blue" });
+  const stateKey = (pair) => [
+    pair.axis.row,
+    pair.axis.col,
+    pair.orientation,
+    pair.blockedRotation ?? "none",
+  ].join(",");
+  const pending = [initial];
+  const visited = new Set([stateKey(initial)]);
+  const placements = new Set();
+  while (pending.length) {
+    const pair = pending.shift();
+    const dropped = hardDrop(board, pair, row14);
+    if (dropped) {
+      placements.add(placementKey(pair.axis.col, pair.orientation));
+    }
+    for (const next of [
+      movePair(board, pair, -1),
+      movePair(board, pair, 1),
+      rotatePair(board, pair, -1),
+      rotatePair(board, pair, 1),
+    ]) {
+      const key = stateKey(next);
+      if (visited.has(key)) continue;
+      visited.add(key);
+      pending.push(next);
+    }
+  }
+  return placements;
+}
+
+for (const [parityBoard, parityRow14] of [
+  [emptyBoard(), 0],
+  [blockedPathBoard, 0],
+  [boardWithHeights([6, 9, 10, 3, 10, 3]), 32],
+  [boardWithHeights([12, 1, 0, 5, 12, 13]), 54],
+]) {
+  const generated = new Set(
+    enumerateTsumoPlacements(
+      parityBoard,
+      { axis: "red", child: "blue" },
+      parityRow14,
+    ).map(({ col, orientation }) => placementKey(col, orientation)),
+  );
+  assert.deepEqual(buttonReachablePlacements(parityBoard, parityRow14), generated);
+}
 const solverTopOutBoard = emptyBoard();
-for (let row = HIDDEN_ROWS; row < ROWS; row++) {
+for (let row = 0; row < ROWS; row++) {
   solverTopOutBoard[row][0] = row % 2 ? "red" : "blue";
 }
 assert.equal(
@@ -385,6 +548,15 @@ assert.equal(tokopuyoSession.handIndex, 0);
 assert.equal(tokopuyoSession.activePair.axis.col, 2);
 assert.equal(redoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 1);
+
+const row14Session = createSession(0);
+row14Session.board = boardWithHeights([0, 0, 11, 12, 0, 0]);
+assert.ok(commitPairAtPlacement(row14Session, 3, ORIENTATION.UP));
+assert.equal(row14Session.row14, 1 << 3);
+assert.equal(undoSession(row14Session), true);
+assert.equal(row14Session.row14, 0);
+assert.equal(redoSession(row14Session), true);
+assert.equal(row14Session.row14, 1 << 3);
 
 const kickedSession = createSession(0);
 const leftWallKick = commitPairAtColumn(kickedSession, 0, "left");
@@ -487,7 +659,7 @@ assert.equal(firingSession.chainCount, 1);
 assert.equal(firingSession.board[ROWS - 1][0], "blue");
 
 const gameOverSession = createSession(0);
-for (let row = HIDDEN_ROWS; row < ROWS; row++) {
+for (let row = HIDDEN_ROWS + 1; row < ROWS; row++) {
   gameOverSession.board[row][2] = row % 2 ? "red" : "blue";
 }
 gameOverSession.activePair = createActivePair({ axis: "green", child: "yellow" });

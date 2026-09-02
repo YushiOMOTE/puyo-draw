@@ -3,6 +3,7 @@ import { COLS, ROWS, applyGravity, clone } from "../engine.js";
 export const SPAWN_ROW = 0;
 export const SPAWN_COL = 2;
 export const VIRTUAL_TOP_ROW = -1;
+export const EMPTY_ROW_14 = 0;
 
 export const ORIENTATION = Object.freeze({
   UP: 0,
@@ -41,6 +42,16 @@ export function pairCells(pair) {
   ];
 }
 
+function hasRow14Puyo(row14, col) {
+  return Boolean(row14 & (1 << col));
+}
+
+function assertRow14(row14) {
+  if (!Number.isInteger(row14) || row14 < 0 || row14 >= (1 << COLS)) {
+    throw new RangeError("Tokopuyo row 14 must be a six-bit occupancy mask");
+  }
+}
+
 export function isPairValid(board, pair) {
   return pairCells(pair).every(
     ({ row, col }) =>
@@ -48,20 +59,97 @@ export function isPairValid(board, pair) {
       row < ROWS &&
       col >= 0 &&
       col < COLS &&
-      (row < 0 || !board[row][col]),
+      (row === VIRTUAL_TOP_ROW || !board[row][col]),
   );
 }
 
-export function pairAtPlacement(board, tsumo, col, orientation) {
-  if (!Number.isInteger(col) || col < 0 || col >= COLS) return null;
-  if (!Object.values(ORIENTATION).includes(orientation)) return null;
+export function columnHeights(board) {
+  return Array.from({ length: COLS }, (_, col) => {
+    const topmostOccupied = board.findIndex((row) => row[col] !== null);
+    return topmostOccupied === -1 ? 0 : ROWS - topmostOccupied;
+  });
+}
+
+export function isPlacementReachable(
+  board,
+  col,
+  orientation,
+  row14 = EMPTY_ROW_14,
+) {
+  assertRow14(row14);
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) return false;
+  if (!Object.values(ORIENTATION).includes(orientation)) return false;
+
+  const heights = columnHeights(board);
+  if (heights[SPAWN_COL] > 11) return false;
+
+  if (heights[col] + (orientation === ORIENTATION.DOWN ? 1 : 0) > 12) {
+    return false;
+  }
+
+  const childCol = col + OFFSETS[orientation][1];
+  if (childCol < 0 || childCol >= COLS) return false;
+  const childHeight =
+    heights[childCol] + (orientation === ORIENTATION.UP ? 1 : 0);
+  if (childHeight === 13 && hasRow14Puyo(row14, childCol)) return false;
+
+  const crossingColumns = [
+    [1, 0],
+    [1],
+    [],
+    [3],
+    [3, 4],
+    [3, 4, 5],
+  ];
+  const floorKickColumns = [
+    [1, 2, 3, 4, 5],
+    [2, 3, 4, 5],
+    [],
+    [2, 1, 0],
+    [3, 2, 1, 0],
+    [4, 3, 2, 1, 0],
+  ];
+
+  let crossingTarget = col;
+  if (orientation === ORIENTATION.RIGHT && col >= SPAWN_COL) {
+    crossingTarget++;
+  } else if (orientation === ORIENTATION.LEFT && col <= SPAWN_COL) {
+    crossingTarget--;
+  }
+
+  let floorKickOrigin = null;
+  for (const crossingCol of crossingColumns[crossingTarget]) {
+    if (heights[crossingCol] > 12) return false;
+    if (heights[crossingCol] === 12 && floorKickOrigin === null) {
+      floorKickOrigin = crossingCol;
+    }
+  }
+
+  if (floorKickOrigin === null) return true;
+  if (heights[1] > 11 && heights[3] > 11) return true;
+
+  for (const kickCol of floorKickColumns[floorKickOrigin]) {
+    if (heights[kickCol] > 11) break;
+    if (heights[kickCol] === 11) return true;
+  }
+  return false;
+}
+
+export function pairAtPlacement(
+  board,
+  tsumo,
+  col,
+  orientation,
+  row14 = EMPTY_ROW_14,
+) {
+  if (!isPlacementReachable(board, col, orientation, row14)) return null;
 
   const pair = {
     ...createActivePair(tsumo),
     axis: { row: SPAWN_ROW, col },
     orientation,
   };
-  return isPairValid(board, pair) ? pair : null;
+  return pair;
 }
 
 function landingCells(board, pair) {
@@ -83,33 +171,44 @@ function landingCells(board, pair) {
   return landed;
 }
 
-export function dropTsumo(board, tsumo, col, orientation) {
-  const pair = pairAtPlacement(board, tsumo, col, orientation);
+export function dropTsumo(
+  board,
+  tsumo,
+  col,
+  orientation,
+  row14 = EMPTY_ROW_14,
+) {
+  const pair = pairAtPlacement(board, tsumo, col, orientation, row14);
   if (!pair) return null;
 
   const cells = landingCells(board, pair);
-  if (cells.some(({ row }) => row < 0)) return null;
+  if (cells.some(({ row }) => row < VIRTUAL_TOP_ROW)) return null;
   const locked = clone(board);
+  let nextRow14 = row14;
   for (const { row, col: cellCol, color } of cells) {
-    locked[row][cellCol] = color;
+    if (row === VIRTUAL_TOP_ROW) {
+      nextRow14 |= 1 << cellCol;
+    } else {
+      locked[row][cellCol] = color;
+    }
   }
-  return { board: locked, cells, pair };
+  return { board: locked, row14: nextRow14, cells, pair };
 }
 
-export function enumerateTsumoPlacements(board, tsumo) {
+export function enumerateTsumoPlacements(
+  board,
+  tsumo,
+  row14 = EMPTY_ROW_14,
+) {
   const placements = [];
-  const seen = new Set();
+  const orientations = tsumo.axis === tsumo.child
+    ? [ORIENTATION.UP, ORIENTATION.RIGHT]
+    : Object.values(ORIENTATION);
 
   for (let col = 0; col < COLS; col++) {
-    for (const orientation of Object.values(ORIENTATION)) {
-      const dropped = dropTsumo(board, tsumo, col, orientation);
+    for (const orientation of orientations) {
+      const dropped = dropTsumo(board, tsumo, col, orientation, row14);
       if (!dropped) continue;
-      const key = dropped.cells
-        .map(({ row, col: cellCol, color }) => `${row},${cellCol},${color}`)
-        .sort()
-        .join("|");
-      if (seen.has(key)) continue;
-      seen.add(key);
       placements.push({ col, orientation, ...dropped });
     }
   }
@@ -126,7 +225,9 @@ export function movePair(board, pair, colDelta) {
     axis: { row: pair.axis.row, col: pair.axis.col + colDelta },
     blockedRotation: null,
   };
-  return isPairValid(board, moved) ? moved : { ...pair, blockedRotation: null };
+  return isPairValid(board, moved)
+    ? moved
+    : { ...pair, blockedRotation: null };
 }
 
 export function rotatePair(board, pair, direction) {
@@ -171,23 +272,23 @@ export function rotatePair(board, pair, direction) {
   return { ...pair, blockedRotation: direction };
 }
 
-export function hardDrop(board, pair) {
-  if (!isPairValid(board, pair)) return null;
-
-  let dropped = { ...pair, axis: { ...pair.axis }, blockedRotation: null };
-  while (true) {
-    const candidate = {
-      ...dropped,
-      axis: { row: dropped.axis.row + 1, col: dropped.axis.col },
-    };
-    if (!isPairValid(board, candidate)) break;
-    dropped = candidate;
-  }
-
-  const locked = clone(board);
-  for (const { row, col, color } of pairCells(dropped)) {
-    if (row >= 0) locked[row][col] = color;
-  }
-
-  return { pair: dropped, board: applyGravity(locked) };
+export function hardDrop(board, pair, row14 = EMPTY_ROW_14) {
+  const dropped = dropTsumo(
+    board,
+    { axis: pair.axisColor, child: pair.childColor },
+    pair.axis.col,
+    pair.orientation,
+    row14,
+  );
+  if (!dropped) return null;
+  const axisCell = dropped.cells.find(({ role }) => role === "axis");
+  return {
+    ...dropped,
+    pair: {
+      ...pair,
+      axis: { row: axisCell.row, col: axisCell.col },
+      blockedRotation: null,
+    },
+    board: applyGravity(dropped.board),
+  };
 }

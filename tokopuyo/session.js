@@ -2,6 +2,7 @@ import { COLS, HIDDEN_ROWS, clone, emptyBoard, simulate } from "../engine.js";
 import {
   ORIENTATION,
   createActivePair,
+  dropTsumo,
   hardDrop,
   pairAtPlacement as createPairAtPlacement,
   pairCells,
@@ -17,25 +18,34 @@ function pairAtPlacement(session, col, orientation) {
     getTsumo(session.pattern, session.handIndex),
     col,
     orientation,
+    session.row14,
   );
 }
 
 function pairAtColumn(session, col, direction) {
-  const pair = pairAtPlacement(session, col, ORIENTATION.UP);
-  if (!pair) return null;
-  if (direction === "straight") return pair;
+  if (direction === "straight") {
+    return pairAtPlacement(session, col, ORIENTATION.UP);
+  }
   if (direction === "down") return pairAtPlacement(session, col, ORIENTATION.DOWN);
-  const rotated = rotatePair(
-    session.board,
-    pair,
-    direction === "right" ? 1 : -1,
+  const orientation = direction === "right"
+    ? ORIENTATION.RIGHT
+    : ORIENTATION.LEFT;
+  const kickedCol = direction === "right" && col === COLS - 1
+    ? col - 1
+    : direction === "left" && col === 0
+      ? col + 1
+      : col;
+  return pairAtPlacement(
+    session,
+    kickedCol,
+    orientation,
   );
-  return rotated.orientation === ORIENTATION.UP ? null : rotated;
 }
 
 function canonicalSnapshot(session) {
   return {
     board: clone(session.board),
+    row14: session.row14,
     handIndex: session.handIndex,
     chainCount: session.chainCount,
     cumulativeScore: session.cumulativeScore,
@@ -45,6 +55,7 @@ function canonicalSnapshot(session) {
 
 function restoreSnapshot(session, snapshot) {
   session.board = clone(snapshot.board);
+  session.row14 = snapshot.row14 ?? 0;
   session.handIndex = snapshot.handIndex;
   session.chainCount = snapshot.chainCount;
   session.cumulativeScore = snapshot.cumulativeScore;
@@ -58,6 +69,7 @@ export function createSession(seed) {
     seed,
     pattern,
     board: emptyBoard(),
+    row14: 0,
     handIndex: 0,
     activePair: createActivePair(getTsumo(pattern, 0)),
     chainCount: 0,
@@ -93,9 +105,8 @@ export function actOnPair(session, action) {
   return session.activePair !== before;
 }
 
-function commitPair(session, pair) {
+function commitDroppedPair(session, dropped) {
   if (session.busy || session.gameOver) return null;
-  const dropped = hardDrop(session.board, pair);
   if (!dropped) return null;
 
   const before = canonicalSnapshot(session);
@@ -103,6 +114,7 @@ function commitPair(session, pair) {
   session.history.push(before);
   session.future = [];
   session.board = result.state;
+  session.row14 = dropped.row14;
   session.handIndex++;
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
@@ -111,7 +123,17 @@ function commitPair(session, pair) {
     getTsumo(session.pattern, session.handIndex),
   );
 
-  return { droppedPair: dropped.pair, lockedBoard: dropped.board, result };
+  return {
+    droppedPair: dropped.pair,
+    lockedBoard: dropped.board,
+    lockedRow14: dropped.row14,
+    result,
+  };
+}
+
+function commitPair(session, pair) {
+  const dropped = hardDrop(session.board, pair, session.row14);
+  return commitDroppedPair(session, dropped);
 }
 
 export function commitActivePair(session) {
@@ -145,8 +167,14 @@ export function commitPairAtPlacement(session, col, orientation) {
     throw new RangeError("Unsupported Tokopuyo placement orientation");
   }
 
-  const pair = pairAtPlacement(session, col, orientation);
-  return pair ? commitPair(session, pair) : null;
+  const dropped = dropTsumo(
+    session.board,
+    getTsumo(session.pattern, session.handIndex),
+    col,
+    orientation,
+    session.row14,
+  );
+  return commitDroppedPair(session, dropped);
 }
 
 export function previewPairAtPlacement(session, col, orientation) {

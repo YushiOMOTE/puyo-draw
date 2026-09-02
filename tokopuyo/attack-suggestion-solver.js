@@ -41,6 +41,7 @@ export function solveTokopuyoAttackSuggestion(request) {
   const startedAt = performance.now();
   const {
     board,
+    row14 = 0,
     hands,
     lookaheadHands = 3,
     resultLimit = 10,
@@ -52,7 +53,7 @@ export function solveTokopuyoAttackSuggestion(request) {
     return { solver: "tokopuyo-attack", candidates: [], timedOut: false };
   }
 
-  let frontier = [{ board: stableBoard, moves: [] }];
+  let frontier = [{ board: stableBoard, row14, moves: [] }];
   const found = [];
   let timedOut = false;
 
@@ -62,6 +63,7 @@ export function solveTokopuyoAttackSuggestion(request) {
       for (const placement of enumerateTsumoPlacements(
         node.board,
         selectedHands[depth],
+        node.row14,
       )) {
         if (performance.now() - startedAt >= timeBudgetMs) {
           timedOut = true;
@@ -79,7 +81,7 @@ export function solveTokopuyoAttackSuggestion(request) {
             cleared: result.cleared,
           });
         } else {
-          next.push({ board: result.state, moves });
+          next.push({ board: result.state, row14: placement.row14, moves });
         }
       }
       if (timedOut) break;

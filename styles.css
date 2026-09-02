@@ -285,6 +285,11 @@ body[data-mode="tokopuyo"] .board-card {
   text-shadow: 0 1px 1px #10182799;
 }
 
+.suggestion-marker.virtual-suggestion-marker {
+  inset: auto;
+  transform: translate(-50%, -50%);
+}
+
 .suggestion-marker.ignition-target {
   inset: 5%;
   border: 3px solid #fff;

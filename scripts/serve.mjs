@@ -12,6 +12,7 @@ const contentTypes = {
   ".json": "application/json; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
   ".svg": "image/svg+xml",
+  ".wasm": "application/wasm",
 };
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {

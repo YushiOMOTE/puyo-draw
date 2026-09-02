@@ -76,9 +76,10 @@ Direct cell editing, color selection, garbage mode, manual simulation, and Clear
 
 ### Field and pair display
 
-- The existing six-column, thirteen-row field remains the board model.
+- The visible and hidden locked field remains a six-column, thirteen-row color board. Tokopuyo also stores a six-bit, colorless occupancy mask for Ama's special fourteenth row.
 - The active pair appears at the official-style spawn position centered over the third column from the left.
-- Because the child of the initial vertical pair can occupy the unmodeled fourteenth row, the active pair is rendered in a positioning overlay rather than inserted into board cells before lock.
+- Because the child of the initial vertical pair can occupy the special fourteenth row, the active pair is rendered in a positioning overlay rather than inserted into board cells before lock.
+- A child locked in the special fourteenth row disappears from the colored field and sets that column's occupancy bit. It never falls, clears, or participates in a group. The bit persists across later chains and hands and is included in Undo/Redo snapshots.
 - The active pair is visually distinct from locked board puyos while retaining the normal puyo appearance.
 - Next and Next Next show hands `handIndex + 1` and `handIndex + 2` without consuming them.
 - The preview area sits above the Tokopuyo sidebar, in the upper-right space next to the field. It is outside the ordered control list.
@@ -131,23 +132,18 @@ The current placement uses colored dashed circles with centered sparkles. Next a
 
 Tokopuyo is step-driven and has no real-time gravity or movement timer. The active pair waits at its spawn position until the user acts.
 
-Pressing a field cell targets its column and opens a flick menu. The upper pair preview moves to the selected column. The center previews the normal orientation, while down and the two horizontal options update the preview to the selected placement orientation, including a quarter-turn wall-kick adjustment when applicable. Moving up shows cancellation and restores the spawn preview.
+The authoritative legal-placement set is Ama's `move::generate` behavior. It includes the spawn-side path checks, floor-kick and quick-turn reachability, axis/child orientation, the third-column death condition, and special-fourteenth-row occupancy. Every placement accepted by that generator must be reachable using Tokopuyo movement and rotation controls, and Drop must reject every placement outside that set.
 
-The four flick directions behave as follows:
+Special-fourteenth-row occupancy prevents another child from locking in that same special cell when the Ama destination check applies. It does not behave like a normal colored collision cell while the active pair is moving through the virtual display row.
 
-- Releasing in the center keeps the spawn orientation and drops the pair.
-- Right and left flicks rotate the child 90 degrees clockwise or counterclockwise.
-- Down flick rotates the pair 180 degrees.
-- Up flick cancels without changing session state.
+The bottom bar is the only active-pair input. Move Left and Move Right shift the preview by one column when the intermediate position fits. Rotate Counterclockwise and Rotate Clockwise update the orientation immediately, apply the established wall kick when needed, and perform a quick turn after the same blocked rotation is requested twice. Drop attempts the previewed placement. Field cells do not select, move, rotate, or place the pair.
 
-Quarter-turn placements use the existing wall-kick behavior. The 180-degree placement intentionally skips wall kicks. A placement that cannot fit is rejected.
-
-The menu preview remains visible while the originating pointer is held, and the hand advances only when that pointer is released. Additional simultaneous pointers are ignored. A browser `pointercancel` also cancels safely.
+A movement or rotation that cannot fit leaves the pair in place. A preview may move through the virtual display row, but Drop succeeds only when the resulting column and orientation are in the Ama-compatible legal-placement set.
 
 ### Lock and automatic simulation
 
-1. Releasing in the center or on a placement flick computes the lowest valid position for the selected orientation, applying the established quarter-turn wall-kick behavior where applicable.
-2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported.
+1. Pressing Drop first validates the previewed placement with the Ama-compatible legal-move generator, then computes the lowest valid position for its orientation.
+2. The two puyos lock into the board. If the pair is horizontal and the two columns have different heights, each puyo falls independently until supported. A child reaching the special fourteenth row records colorless occupancy instead of entering the normal board.
 3. The current hand is consumed only after both puyos have successfully locked.
 4. If the locked board contains a connected group of four or more, chain simulation begins automatically. No Simulate button is shown.
 5. Input is disabled during clear and gravity animations.
@@ -229,7 +225,7 @@ The returned values should be immutable from the caller's perspective, or copied
 
 ## Relationship to the current application
 
-The current application is a board editor and chain simulator. Its existing six-column, thirteen-row board model and chain-clearing rules remain authoritative for simulation. Tokopuyo adds a source of falling pairs and a session loop; it does not change the existing color-group, gravity, or scoring rules unless a later feature specification explicitly says so. Garbage puyos are not generated in Tokopuyo mode.
+The current application is a board editor and chain simulator. Its existing six-column, thirteen-row color board and chain-clearing rules remain authoritative for simulation. Tokopuyo adds falling pairs, a session loop, and the separate colorless fourteenth-row occupancy mask; it does not change the existing color-group, gravity, or scoring rules. Garbage puyos are not generated in Tokopuyo mode.
 
 The first Tokopuyo design should therefore keep these concerns separate:
 
@@ -249,7 +245,7 @@ The active pair cannot be committed if there is no legal landing position for bo
 - Returning to Drawing mode preserves the Tokopuyo session; switching back resumes it.
 - Reset starts a new random pattern rather than replaying the current seed.
 - The pattern number is always shown in compact form near Next and Next Next.
-- Tokopuyo quarter-turn rotations use wall kicks; the 180-degree flick intentionally skips wall kicks.
+- Tokopuyo placement reachability follows Ama, including floor kicks and quick turns. Quarter-turn controls retain their wall-kick behavior; the direct 180-degree flick does not invent a placement outside Ama's legal set.
 - Game over is checked at the standard third-column choke point after chain resolution.
 - Undo/Redo operates on one committed hand plus its complete automatic chain result, not on individual pre-lock moves or rotations.
 

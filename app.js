@@ -268,6 +268,26 @@ function renderActivePair() {
     puyo.style.top = `${centerY}px`;
     activePairLayer.append(puyo);
   }
+
+  for (let col = 0; col < COLS; col++) {
+    const suggestion = tokopuyoSuggestionMarks.get(`-1,${col}`);
+    if (!suggestion) continue;
+    const marker = document.createElement("span");
+    marker.className = `suggestion-marker virtual-suggestion-marker ${suggestion.color}${
+      suggestion.kind ? ` ${suggestion.kind}` : ""
+    }`;
+    if (suggestion.step) marker.dataset.step = suggestion.step;
+    marker.ariaHidden = "true";
+    marker.style.width = `${cellSize * 0.78}px`;
+    marker.style.height = `${cellSize * 0.78}px`;
+    marker.style.left = `${
+      boardRect.left - wrapRect.left + (col + 0.5) * cellSize
+    }px`;
+    marker.style.top = `${
+      boardRect.top - wrapRect.top - 0.5 * cellSize
+    }px`;
+    activePairLayer.append(marker);
+  }
 }
 
 function updateModeUi() {
@@ -683,6 +703,7 @@ function tokopuyoSuggestionKey() {
     "ama-style",
     tokopuyoSession.seed,
     tokopuyoSession.handIndex,
+    tokopuyoSession.row14,
     field,
   ].join(":");
 }
@@ -696,6 +717,7 @@ function tokopuyoAttackSuggestionKey() {
     "attack",
     tokopuyoSession.seed,
     tokopuyoSession.handIndex,
+    tokopuyoSession.row14,
     field,
   ].join(":");
 }
@@ -772,6 +794,7 @@ async function showTokopuyoSuggestion() {
     const { candidates } = await suggestionController.solve({
       kind: "tokopuyo",
       board: clone(tokopuyoSession.board),
+      row14: tokopuyoSession.row14,
       hands,
       colors: [...tokopuyoSession.pattern.colors],
       ...TOKOPUYO_SUGGESTION_CONFIG,
@@ -835,6 +858,7 @@ async function showTokopuyoAttackSuggestion() {
     const { candidates, timedOut } = await suggestionController.solve({
       kind: "tokopuyo-attack",
       board: clone(tokopuyoSession.board),
+      row14: tokopuyoSession.row14,
       hands,
       ...TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
     });

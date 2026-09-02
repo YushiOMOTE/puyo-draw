@@ -100,14 +100,14 @@ export function enumerateUnknownHands(colors) {
   );
 }
 
-export function evaluateUnknownAcceptance(board, colors, mainChain) {
+export function evaluateUnknownAcceptance(board, colors, mainChain, row14 = 0) {
   const hands = enumerateUnknownHands(colors);
   let safeHands = 0;
   let safePlacements = 0;
 
   for (const hand of hands) {
     let handPlacements = 0;
-    for (const placement of enumerateTsumoPlacements(board, hand)) {
+    for (const placement of enumerateTsumoPlacements(board, hand, row14)) {
       if (!isSafeResponse(placement, mainChain)) continue;
       handPlacements++;
     }
@@ -123,11 +123,20 @@ export function evaluateUnknownAcceptance(board, colors, mainChain) {
   };
 }
 
-export function findVisibleMainOpportunity(board, hands, mainChain) {
+export function findVisibleMainOpportunity(
+  board,
+  hands,
+  mainChain,
+  row14 = 0,
+) {
   if (!mainChain.primary) return null;
   for (let handOffset = 0; handOffset < hands.length; handOffset++) {
     let best = null;
-    for (const placement of enumerateTsumoPlacements(board, hands[handOffset])) {
+    for (const placement of enumerateTsumoPlacements(
+      board,
+      hands[handOffset],
+      row14,
+    )) {
       const usesRoute = mainChain.routes.some((route) =>
         placement.cells.some(({ row, col, color }) =>
           row === route.row && col === route.col && color === route.color
