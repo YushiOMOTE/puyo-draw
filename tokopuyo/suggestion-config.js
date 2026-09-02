@@ -1,4 +1,9 @@
 export const TOKOPUYO_SUGGESTION_CONFIG = Object.freeze({
+  visibleHands: 2,
+  depth: 16,
+  width: 250,
+  branchCount: 6,
+  workerCount: 3,
   lookaheadHands: 3,
   resultLimit: 4,
   beamWidth: 240,

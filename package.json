@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build-ama": "node scripts/build-pressureless-ama.mjs",
     "dev": "node scripts/serve.mjs",
     "prepare-pages": "node scripts/version-assets.mjs",
     "test": "node tests.mjs"

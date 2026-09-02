@@ -102,23 +102,17 @@ Palette, garbage, Clear, and Simulate controls are hidden rather than merely dis
 
 ## Long-chain construction suggestions
 
-Tokopuyo Suggestion is an Ama-style receding-horizon construction aid. It has no fixed chain-count target or completed goal template. It repeatedly chooses a legal current-pair placement whose resulting field preserves an existing main chain and develops structure that can continue growing under varied future colors.
+Tokopuyo Suggestion is Pressureless Ama: the pinned upstream Ama build-search implementation running in WebAssembly without opponent pressure. Its public observation is the settled thirteen-row color field, special-fourteenth-row occupancy, Current, and Next. The actual Next Next and all later hands in the deterministic Tokopuyo pattern are deliberately hidden from it.
 
-The construction evaluator combines exact one-puyo main-chain detection with inexpensive structural features. It rewards connected pairs and triples, accessible groups, useful different-color contacts, resource efficiency, low ignition height, and multiple ignition routes. It penalizes buried isolated puyos, rough or strongly imbalanced surfaces, dangerous peaks, hidden-row use, and horizontal placements that tear across large landing-height differences.
+Each search fixes Current and Next, then runs Ama's six predetermined unknown continuations. A branch records the maximum chain score found for each legal Current placement. The six values are summed and candidates rank by the aggregate, preserving Ama's selection policy. The initial configuration is depth 16, beam width 250, trigger 95,000, stretch enabled, and the upstream `build` evaluation weights.
 
-A non-clearing construction route cannot raise any column above eleven occupied puyos, preserving the top visible row and hidden row as a safety margin. A clearing route that lowers the field remains eligible only as an emergency fallback.
+The Wasm build retains Ama's bitfield and SIMD simulation, legal-move generator, beam expansion, static and pattern evaluation, quiescence search, and transposition table. Only opponent reading, attack/defense action selection, real-time control, and other versus state are excluded.
 
-The safety layer identifies the current field's greatest chain reachable through one legal single-puyo drop. A non-clearing recommendation cannot reduce that one-puyo-accessible chain count. After the searched current, Next, and Next Next route, up to all sixteen ordered four-color pairs are tested as the first unknown hand beyond the preview. Coverage counts pairs with a legal placement that fires or preserves the horizon main-chain size. The time budget may limit this final evaluation; the displayed denominator is the number actually evaluated.
+Six branches are distributed over a reusable pool of three ordinary Workers. The pool loads lazily on the first request. Initialization does not consume the eight-second search timeout. A timeout, initialization error, or runtime error destroys the pool; the next request may create a fresh pool. Wasm pthreads and cross-origin isolation are not required.
 
-The short-term planner exhausts legal pair shapes within a bounded beam for exactly the three visible hands: current, Next, and Next Next. It simulates split horizontal landings and automatic resolution after each pair. It must not use hands beyond Next Next even though the deterministic pattern is internally available.
+Up to four ranked Current placements are cached. The current pair is shown at its final landing cells as colored dashed circles with centered sparkles, including a virtual-row marker when the child occupies the special fourteenth row. Pressing Suggestion again cycles through cached alternatives without searching again. A committed hand, Undo, Redo, Reset, or mode change invalidates the cache and stale in-flight results.
 
-Existing main-chain size, unknown-pair coverage, horizon chain size, expected preserved potential, resource efficiency, and total evaluation rank candidates in that order. The beam retains alternatives with distinct current-pair placements and limits repeated column-height profiles. Stable routes are preferred to automatic clears; a clear is returned only as an explicitly labeled emergency fallback when no stable continuation remains.
-
-The result is advisory rather than an optimality proof. An unfavorable future sequence can still prevent further growth, and a bounded beam can discard a globally superior continuation.
-
-The current pair is shown at its final landing cells as two colored dashed circles with centered sparkles. The next two searched placements are lighter, numbered dashed circles. No post-preview roadmap cells are displayed.
-
-The existing connected puyos that form the first clearing group of the current main chain receive bright color-matched highlight rings. The empty cell where the additional ignition puyo would land is not marked. The rings pulse when the current pair can fire the chain. A current, Next, or Next Next recommendation replaces a target ring if it later occupies the same cell after an intervening clear. No projected horizon ignition is displayed. The suggestion toast states horizon main-chain potential, connected-resource efficiency, the ignition-target color and group size, evaluated unknown-pair coverage, and whether the result is an emergency-clear fallback.
+The status line reports the candidate index, the average of its six sampled maximum-chain scores, and elapsed search time. That scalar is search evidence rather than a calibrated probability, an optimality proof, or a causal coaching explanation.
 
 ## Emergency-attack suggestions
 

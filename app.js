@@ -17,6 +17,9 @@ import {
 } from "./tokopuyo/suggestion-markers.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
+  PressurelessAmaController,
+} from "./tokopuyo/pressureless-ama-controller.js";
+import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
 import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
@@ -78,6 +81,9 @@ let tokopuyoSuggestionSession = null;
 let tokopuyoAttackSuggestionSession = null;
 let tokopuyoSuggestionMarks = new Map();
 const suggestionController = new SuggestionController();
+const pressurelessAmaController = new PressurelessAmaController({
+  workerCount: TOKOPUYO_SUGGESTION_CONFIG.workerCount,
+});
 
 const colorFlickTools = [
   "red",
@@ -148,6 +154,12 @@ const messages = {
   suggestionError: {
     en: "Could not calculate suggestions",
     ja: "提案を計算できませんでした",
+  },
+  pressurelessAmaSuggestion: {
+    en: (index, total, score, branches, elapsed) =>
+      `Pressureless Ama ${index}/${total}: ${score.toLocaleString()}-point average of the maximum chains found across ${branches} sampled futures (${elapsed.toLocaleString()} ms)`,
+    ja: (index, total, score, branches, elapsed) =>
+      `Pressureless Ama ${index}/${total}：${branches}未来列で見つけた最大連鎖スコアの平均 ${score.toLocaleString()}点（${elapsed.toLocaleString()}ms）`,
   },
   suggestionAlreadyFiring: {
     en: "Suggestions are unavailable because the board can already fire",
@@ -700,7 +712,7 @@ function tokopuyoSuggestionKey() {
     .map((row) => row.map((cell) => cell || "-").join(""))
     .join("/");
   return [
-    "ama-style",
+    "pressureless-ama",
     tokopuyoSession.seed,
     tokopuyoSession.handIndex,
     tokopuyoSession.row14,
@@ -728,6 +740,16 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     tokopuyoSession.board,
   );
   render();
+  if (candidate.solver === "pressureless-ama") {
+    statusEl.textContent = messages.pressurelessAmaSuggestion[locale](
+      index + 1,
+      total,
+      candidate.averageScore,
+      candidate.branchScores.length,
+      candidate.searchElapsedMs,
+    );
+    return;
+  }
   const mainColor = candidate.mainTrigger
     ? localizedColors[candidate.mainTrigger.color]?.[locale] ||
       candidate.mainTrigger.color
@@ -787,12 +809,11 @@ async function showTokopuyoSuggestion() {
   render();
   try {
     const hands = Array.from(
-      { length: TOKOPUYO_SUGGESTION_CONFIG.lookaheadHands },
+      { length: TOKOPUYO_SUGGESTION_CONFIG.visibleHands },
       (_, offset) =>
         getTsumo(tokopuyoSession.pattern, tokopuyoSession.handIndex + offset),
     );
-    const { candidates } = await suggestionController.solve({
-      kind: "tokopuyo",
+    const { candidates } = await pressurelessAmaController.solve({
       board: clone(tokopuyoSession.board),
       row14: tokopuyoSession.row14,
       hands,
@@ -806,12 +827,14 @@ async function showTokopuyoSuggestion() {
       return;
     }
     if (!candidates.length) {
+      statusEl.textContent = messages.suggestionNone[locale];
       return;
     }
     tokopuyoSuggestionSession = { key, candidates, index: 0 };
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Tokopuyo suggestion search failed", error);
+    statusEl.textContent = messages.suggestionError[locale];
   } finally {
     isSuggesting = false;
     render();

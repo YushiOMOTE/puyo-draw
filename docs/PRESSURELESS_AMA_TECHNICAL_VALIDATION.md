@@ -2,11 +2,10 @@
 
 ## Status and decision
 
-This document records the feasibility work for replacing the current Ama-style
-Tokopuyo construction planner with a WebAssembly build of Ama's upstream
-construction search. The move-rule, special-row, and color-mapping foundations
-described in the parity follow-up are implemented; the Wasm solver itself is not
-yet available in the application.
+This document records the validation and integration of a WebAssembly build of
+Ama's upstream construction search as the Tokopuyo construction planner. The
+move-rule, special-row, color-mapping, Worker-pool, and Wasm search foundations
+described below are implemented in the application.
 
 The selected direction is **Pressureless Ama**:
 
@@ -15,8 +14,7 @@ The selected direction is **Pressureless Ama**:
   is supplied.
 - The solver uses Ama's upstream build-search behavior and its six predetermined
   continuations for the unknown queue after Next.
-- The first implementation targets WebAssembly with SIMD and runs outside the
-  UI thread.
+- The implementation uses WebAssembly with SIMD and runs outside the UI thread.
 - Search duration is a measured product parameter, not a fixed eight-second
   requirement. Faster results are preferred when recommendation quality is
   stable.
@@ -57,26 +55,22 @@ The construction-search subset compiled successfully with Emscripten 6.0.9,
 C++20, `-O3`, `-msimd128`, and `-msse4.1`. It uses Ama's bitfield and SIMD chain
 simulation directly; it is not a JavaScript reimplementation.
 
-The proof-of-concept browser artifacts were 11,885 bytes of JavaScript loader
-and 47,686 bytes of WebAssembly before HTTP compression. The search artifact
-exposes a small C ABI for a 6-by-13 field, two visible pairs, search parameters,
-and ranked placement results. The parity harness additionally accepts the
-special-fourteenth-row mask; the production search ABI must include that mask.
+The committed browser artifacts are 11,370 bytes of JavaScript loader and
+41,771 bytes of WebAssembly before HTTP compression. The search artifact exposes
+a small C ABI for a 6-by-13 field, the special-fourteenth-row mask, two visible
+pairs, search parameters, a branch index, and ranked placement results.
 
-Upstream requires a few portability changes before it can become a maintained
-build input:
+The pinned vendored subset contains three reviewed portability changes:
 
 - select Emscripten's SSE compatibility header instead of the umbrella x86
   intrinsic header;
 - omit the legacy JSON serialization declarations from the search-only build;
-- replace the non-standard `_countof` use with a portable array length; and
-- use Ama's portable `pext16` fallback because Wasm SIMD has no direct BMI2
-  `pext` equivalent.
+- replace the non-standard `_countof` use with a portable array length.
 
-The `pext16` fallback is already part of upstream and is behaviorally equivalent,
-but it may be slower. SIMD chain simulation remains enabled. These changes need
-to live as an auditable patch against the pinned upstream revision rather than
-as an untracked fork.
+Ama's existing portable `pext16` path is selected because Wasm SIMD has no
+direct BMI2 `pext` equivalent. It is behaviorally equivalent but may be slower;
+SIMD chain simulation remains enabled. `third_party/ama/UPSTREAM.md` records the
+exact revision, imported subset, licenses, and patches.
 
 The local development server now serves `.wasm` as `application/wasm`, which is
 required for streaming WebAssembly compilation.
@@ -96,11 +90,10 @@ At depth 16 and width 250:
 - a twenty-turn in-browser run completed each request in approximately
   0.90–1.38 seconds.
 
-### Six ordinary Web Workers
+### Ordinary Web Workers
 
-Each predetermined future branch is independent. Running one branch in each of
-six ordinary Web Workers avoids Wasm pthreads and does not require cross-origin
-isolation.
+Each predetermined future branch is independent. Ordinary Web Workers avoid
+Wasm pthreads and do not require cross-origin isolation.
 
 On an empty-field benchmark, five repeated cold worker-pool runs completed in
 349–365 ms. On a field with three red puyos on the bottom row, the parallel run
@@ -111,6 +104,13 @@ Each worker's Wasm heap remained at its initial 16 MiB in these tests, implying
 a 96 MiB Wasm-heap baseline for six concurrent workers, plus browser and module
 overhead. This is acceptable on the reference desktop but must not be assumed
 acceptable on target phones.
+
+The application therefore defaults to a reusable three-worker pool and schedules
+two branches per worker. An end-to-end local browser check returned four ranked
+placements in 485 ms on the initial field and 513 ms after one committed pair on
+the reference machine. These figures include branch scheduling and result
+aggregation but exclude lazy Worker initialization, which intentionally occurs
+before the eight-second search timeout starts.
 
 ### Depth and width sensitivity
 
@@ -201,26 +201,25 @@ for example:
 These explanations can use Ama's signals, but their wording and causal claims
 need separate validation. They are not a free by-product of compiling Ama.
 
-## Recommended integration architecture
+## Implemented integration architecture
 
-1. Vendor a pinned, license-preserving subset of upstream Ama plus a small,
-   reviewed Wasm portability patch.
-2. Add a reproducible Emscripten build that emits static versioned assets.
-3. Expose only a narrow solver ABI: board, Current, Next, configuration, request
-   identifier, candidates, branch scores, and diagnostic timing.
-4. Lazily initialize a reusable Worker pool and keep all search off the UI
-   thread. Support one through six workers so concurrency can be selected from
-   device measurements.
-5. Preserve stale-request rejection, cancellation, timeout recovery, and worker
-   recreation already expected by the application's suggestion architecture.
-6. Establish legal-move and result-parity tests before replacing the existing
-   planner.
-7. Build a versioned benchmark corpus of early, middle, tall, damaged, and
-   near-top-out fields. Use it to choose depth, width, concurrency, and timeout.
+1. A pinned, license-preserving Ama subset and reviewed portability patch live
+   under `third_party/ama`.
+2. `npm run build-ama` reproducibly emits committed static artifacts from the
+   narrow C ABI in `ama/pressureless-ama.cpp`.
+3. A lazily initialized three-Worker pool distributes all six branches, keeping
+   search off the UI thread and avoiding cross-origin isolation.
+4. The controller rejects overlapping searches, recreates the pool after
+   initialization, runtime, or timeout failures, and returns per-branch scores
+   and diagnostic timing.
+5. The application rejects stale results, caches four alternatives, and renders
+   only the Current pair's legal landing cells.
+6. Legal-move parity, UI reachability, color conversion, and branch aggregation
+   have focused automated coverage.
 
-The six-worker desktop result is promising, but the initial production default
-should not be fixed until target-phone latency and memory are measured. The
-implementation should make concurrency adjustable without rebuilding Wasm.
+The three-worker count, depth 16, width 250, and eight-second timeout are initial
+measurement baselines rather than permanent quality claims. All are JavaScript
+configuration values and do not require rebuilding Wasm.
 
 ## Remaining validation gates
 
@@ -232,12 +231,11 @@ implementation should make concurrency adjustable without rebuilding Wasm.
   could compile the x86 reference but could not execute it without Rosetta.
 - **Quality corpus:** quantify top-1 and top-k recommendation changes across
   depth and width settings, rather than tuning from one generated field.
-- **Licensing and provenance:** retain the upstream MIT notice and record the
-  exact commit and patch in generated artifacts or build metadata.
+- **Reproducibility in CI:** rebuild with the pinned Emscripten version and check
+  committed artifact hashes when repository CI changes are authorized.
 
-No user assistance is required for the next Wasm integration work. Assistance
-will be useful at the mobile validation gate: running a small benchmark page on
-the actual phones the product intends to support and returning its generated
-results. Running the native parity check can either use an available x86-64
-machine or a CI job once repository publication of that job is explicitly
-authorized.
+User assistance is useful at the mobile validation gate: running the deployed
+application on the actual phones the product intends to support and returning
+latency, failure, and thermal observations. Running the native parity check can
+either use an available x86-64 machine or a CI job once repository publication
+of that job is explicitly authorized.

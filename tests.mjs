@@ -68,6 +68,9 @@ import {
   placementTearPenalty,
 } from "./tokopuyo/construction-evaluator.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
+import {
+  aggregateAmaBranches,
+} from "./tokopuyo/pressureless-ama.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
   createTokopuyoSuggestionMarks,
@@ -667,12 +670,67 @@ assert.ok(commitActivePair(gameOverSession));
 assert.equal(gameOverSession.gameOver, true);
 assert.equal(actOnPair(gameOverSession, "left"), false);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.lookaheadHands, 3);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.visibleHands, 2);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.depth, 16);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.width, 250);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.branchCount, 6);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.workerCount, 3);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.timeBudgetMs, 8_000);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.visibleSearchRatio, 0.72);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.maximumConstructionHeight, 11);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.allowEmergencyClearFallback, true);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.safetyCandidateLimit, 10);
 assert.equal(enumerateUnknownHands(seedZeroPattern.colors).length, 16);
+const amaAggregate = aggregateAmaBranches(
+  {
+    board: emptyBoard(),
+    row14: 0,
+    current: { axis: "red", child: "blue" },
+    branchCount: 6,
+    resultLimit: 2,
+  },
+  Array.from({ length: 6 }, (_, branch) => ({
+    branch,
+    candidates: [
+      { col: 0, orientation: ORIENTATION.UP, score: (branch + 1) * 100 },
+      { col: 1, orientation: ORIENTATION.RIGHT, score: 25 },
+    ],
+  })),
+);
+assert.equal(amaAggregate.length, 2);
+assert.equal(amaAggregate[0].solver, "pressureless-ama");
+assert.equal(amaAggregate[0].col, 0);
+assert.equal(amaAggregate[0].score, 2_100);
+assert.equal(amaAggregate[0].averageScore, 350);
+assert.deepEqual(amaAggregate[0].branchScores, [100, 200, 300, 400, 500, 600]);
+assert.equal(amaAggregate[0].moves.length, 1);
+assert.throws(
+  () => aggregateAmaBranches(
+    {
+      board: emptyBoard(),
+      row14: 0,
+      current: { axis: "red", child: "blue" },
+      branchCount: 6,
+    },
+    [],
+  ),
+  /incomplete branch set/,
+);
+assert.throws(
+  () => aggregateAmaBranches(
+    {
+      board: emptyBoard(),
+      row14: 0,
+      current: { axis: "red", child: "blue" },
+      branchCount: 2,
+    },
+    [
+      { branch: 0, candidates: [] },
+      { branch: 0, candidates: [] },
+    ],
+  ),
+  /invalid future branches/,
+);
 const safetyBoard = emptyBoard();
 safetyBoard[ROWS - 1][0] = "red";
 safetyBoard[ROWS - 1][1] = "red";
