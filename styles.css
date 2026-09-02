@@ -1019,6 +1019,7 @@ body[data-mode="drawing"] .help-btn {
 }
 
 .review-summary,
+.review-outcome,
 .review-branches,
 .review-note,
 .review-placement-label {
@@ -1029,6 +1030,12 @@ body[data-mode="drawing"] .help-btn {
 
 .review-summary {
   font-size: 15px;
+  font-weight: 800;
+}
+
+.review-outcome {
+  margin-top: 8px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -1071,6 +1078,130 @@ body[data-mode="drawing"] .help-btn {
   font-size: 12px;
   background: #eef5ff;
   border-radius: 11px;
+}
+
+.review-ranges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.review-range {
+  padding: 9px 10px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  background: #f5f1fb;
+  border-radius: 11px;
+}
+
+.review-range strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.review-branch-section {
+  margin-top: 17px;
+}
+
+.review-branch-section[hidden] {
+  display: none;
+}
+
+.review-branch-section h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.review-branch-legend {
+  display: flex;
+  gap: 14px;
+  margin: 5px 0 8px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.review-branch-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.review-branch-legend i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.review-legend-user,
+.review-branch-fill.user {
+  background: #4e8df7;
+}
+
+.review-legend-ama,
+.review-branch-fill.ama {
+  background: #a674ed;
+}
+
+.review-branch-chart {
+  display: grid;
+  gap: 7px;
+}
+
+.review-branch-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.review-branch-row > strong {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.review-branch-bars {
+  display: grid;
+  gap: 3px;
+}
+
+.review-branch-line {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.review-branch-line small,
+.review-branch-line .review-branch-value {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.review-branch-line .review-branch-value {
+  text-align: right;
+}
+
+.review-branch-track {
+  height: 7px;
+  overflow: hidden;
+  background: #e5e9f1;
+  border-radius: 999px;
+}
+
+.review-branch-fill {
+  display: block;
+  width: var(--branch-width);
+  min-width: 0;
+  height: 100%;
+  border-radius: inherit;
 }
 
 .review-comparison {

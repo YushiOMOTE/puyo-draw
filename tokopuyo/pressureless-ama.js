@@ -77,6 +77,22 @@ export function aggregateAmaBranches(request, branches) {
     .slice(0, request.resultLimit ?? 4);
 }
 
+export function summarizeAmaBranchScores(scores) {
+  if (!Array.isArray(scores) || scores.length !== AMA_BRANCH_COUNT) {
+    throw new TypeError("Ama branch summary requires six scores");
+  }
+  if (scores.some((score) => !Number.isFinite(score) || score < 0)) {
+    throw new TypeError("Ama branch scores must be non-negative numbers");
+  }
+  const total = scores.reduce((sum, score) => sum + score, 0);
+  return {
+    total,
+    average: Math.floor(total / scores.length),
+    minimum: Math.min(...scores),
+    maximum: Math.max(...scores),
+  };
+}
+
 export function evaluateAmaMove(lastTurn, candidates) {
   if (!lastTurn?.placement?.cells?.length) {
     throw new TypeError("Last-move review requires locked pair cells");
@@ -95,6 +111,10 @@ export function evaluateAmaMove(lastTurn, candidates) {
       legalCount: 0,
       averageGap: null,
       branches: null,
+      userStats: null,
+      bestStats: null,
+      branchComparisons: null,
+      aggregateRetention: null,
     };
   }
 
@@ -112,16 +132,26 @@ export function evaluateAmaMove(lastTurn, candidates) {
       legalCount: candidates.length,
       averageGap: null,
       branches: null,
+      userStats: null,
+      bestStats: summarizeAmaBranchScores(best.branchScores),
+      branchComparisons: null,
+      aggregateRetention: null,
     };
   }
 
   const user = candidates[userIndex];
   const branches = { user: 0, tied: 0, ama: 0 };
-  user.branchScores.forEach((score, index) => {
+  const branchComparisons = user.branchScores.map((score, index) => {
     const bestScore = best.branchScores[index];
     if (score > bestScore) branches.user++;
     else if (score === bestScore) branches.tied++;
     else branches.ama++;
+    return {
+      branch: index,
+      userScore: score,
+      amaScore: bestScore,
+      winner: score > bestScore ? "user" : score === bestScore ? "tied" : "ama",
+    };
   });
 
   const samePlacement = cellSetKey(best.moves[0].cells) === userKey;
@@ -137,5 +167,9 @@ export function evaluateAmaMove(lastTurn, candidates) {
     legalCount: candidates.length,
     averageGap: best.averageScore - user.averageScore,
     branches,
+    userStats: summarizeAmaBranchScores(user.branchScores),
+    bestStats: summarizeAmaBranchScores(best.branchScores),
+    branchComparisons,
+    aggregateRetention: best.score > 0 ? user.score / best.score : 1,
   };
 }

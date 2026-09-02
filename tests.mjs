@@ -72,6 +72,7 @@ import {
   aggregateAmaBranches,
   analyzeAmaBranches,
   evaluateAmaMove,
+  summarizeAmaBranchScores,
 } from "./tokopuyo/pressureless-ama.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
@@ -747,6 +748,28 @@ assert.equal(reviewedMove.rank, 2);
 assert.equal(reviewedMove.legalCount, 2);
 assert.equal(reviewedMove.averageGap, 325);
 assert.deepEqual(reviewedMove.branches, { user: 0, tied: 0, ama: 6 });
+assert.deepEqual(reviewedMove.userStats, {
+  total: 150,
+  average: 25,
+  minimum: 25,
+  maximum: 25,
+});
+assert.deepEqual(reviewedMove.bestStats, {
+  total: 2_100,
+  average: 350,
+  minimum: 100,
+  maximum: 600,
+});
+assert.equal(reviewedMove.branchComparisons.length, 6);
+assert.equal(reviewedMove.branchComparisons[0].winner, "ama");
+assert.equal(reviewedMove.aggregateRetention, 150 / 2_100);
+assert.deepEqual(summarizeAmaBranchScores([0, 10, 20, 30, 40, 50]), {
+  total: 150,
+  average: 25,
+  minimum: 0,
+  maximum: 50,
+});
+assert.throws(() => summarizeAmaBranchScores([1, 2]), /requires six scores/);
 const tiedAmaCandidates = amaAllCandidates.map((candidate, index) =>
   index === 1
     ? {

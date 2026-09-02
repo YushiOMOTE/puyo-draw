@@ -64,8 +64,12 @@ const reviewOverlay = document.querySelector("#reviewOverlay");
 const closeReviewButton = document.querySelector("#closeReview");
 const reviewTitleEl = document.querySelector("#reviewTitle");
 const reviewSummaryEl = document.querySelector("#reviewSummary");
+const reviewOutcomeEl = document.querySelector("#reviewOutcome");
 const reviewStatsEl = document.querySelector("#reviewStats");
 const reviewBranchesEl = document.querySelector("#reviewBranches");
+const reviewRangesEl = document.querySelector("#reviewRanges");
+const reviewBranchSectionEl = document.querySelector("#reviewBranchSection");
+const reviewBranchChartEl = document.querySelector("#reviewBranchChart");
 const reviewUserPlacementEl = document.querySelector("#reviewUserPlacement");
 const reviewAmaPlacementEl = document.querySelector("#reviewAmaPlacement");
 const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
@@ -865,6 +869,57 @@ function appendReviewStat(value, label) {
   reviewStatsEl.append(stat);
 }
 
+function appendReviewRange(stats, label) {
+  const range = document.createElement("span");
+  range.className = "review-range";
+  range.textContent = label;
+  const value = document.createElement("strong");
+  value.textContent = stats
+    ? `${stats.minimum.toLocaleString()}–${stats.maximum.toLocaleString()}`
+    : "—";
+  range.append(value);
+  reviewRangesEl.append(range);
+}
+
+function renderReviewBranchChart(comparisons) {
+  reviewBranchChartEl.replaceChildren();
+  reviewBranchSectionEl.hidden = !comparisons;
+  if (!comparisons) return;
+  const scale = Math.max(
+    1,
+    ...comparisons.flatMap(({ userScore, amaScore }) => [userScore, amaScore]),
+  );
+  comparisons.forEach(({ branch, userScore, amaScore }) => {
+    const row = document.createElement("div");
+    row.className = "review-branch-row";
+    const label = document.createElement("strong");
+    label.textContent = `Future ${branch + 1}`;
+    const bars = document.createElement("div");
+    bars.className = "review-branch-bars";
+    [["You", "user", userScore], ["Ama", "ama", amaScore]].forEach(
+      ([name, kind, score]) => {
+        const line = document.createElement("div");
+        line.className = "review-branch-line";
+        const nameEl = document.createElement("small");
+        nameEl.textContent = name;
+        const track = document.createElement("span");
+        track.className = "review-branch-track";
+        const fill = document.createElement("i");
+        fill.className = `review-branch-fill ${kind}`;
+        fill.style.setProperty("--branch-width", `${(score / scale) * 100}%`);
+        track.append(fill);
+        const value = document.createElement("span");
+        value.className = "review-branch-value";
+        value.textContent = score.toLocaleString();
+        line.append(nameEl, track, value);
+        bars.append(line);
+      },
+    );
+    row.append(label, bars);
+    reviewBranchChartEl.append(row);
+  });
+}
+
 function closeLastMoveReview() {
   reviewOverlay.hidden = true;
 }
@@ -879,9 +934,17 @@ function displayLastMoveReview(evaluation, turn) {
     unavailable: "Ama could not match this move to a scored placement.",
   };
   reviewTitleEl.textContent = "Last move review";
+  const closeAggregate =
+    evaluation.verdict === "different-choice" &&
+    evaluation.aggregateRetention >= 0.9;
   reviewSummaryEl.textContent = `${summaries[evaluation.verdict]}${
-    turn.result.chains ? ` Your move fired a ${turn.result.chains}-chain.` : ""
+    closeAggregate ? " The aggregate scores are within 10%." : ""
   }`;
+  reviewOutcomeEl.textContent = `Actual result: ${
+    turn.result.chains ? `${turn.result.chains}-chain` : "no chain"
+  }, ${turn.result.score.toLocaleString()} points${
+    turn.result.gameOver ? ", game over" : ""
+  }.`;
   reviewStatsEl.replaceChildren();
   appendReviewStat(
     evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
@@ -904,6 +967,10 @@ function displayLastMoveReview(evaluation, turn) {
   reviewBranchesEl.textContent = evaluation.branches
     ? `${evaluation.branches.user} of 6 futures favored your move, ${evaluation.branches.tied} tied, and ${evaluation.branches.ama} favored Ama's choice.`
     : "No sampled-future score is assigned to the excluded move.";
+  reviewRangesEl.replaceChildren();
+  appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
+  appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");
+  renderReviewBranchChart(evaluation.branchComparisons);
   reviewUserPlacementEl.textContent = describePlacement(turn.placement);
   reviewAmaPlacementEl.textContent = evaluation.best
     ? describePlacement(evaluation.best)
@@ -927,8 +994,11 @@ function displayLastMoveReview(evaluation, turn) {
 function displayLastMoveReviewError() {
   reviewTitleEl.textContent = "Review unavailable";
   reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
+  reviewOutcomeEl.textContent = "";
   reviewStatsEl.replaceChildren();
   reviewBranchesEl.textContent = "";
+  reviewRangesEl.replaceChildren();
+  renderReviewBranchChart(null);
   reviewUserPlacementEl.textContent = "";
   reviewAmaPlacementEl.textContent = "";
   reviewUserBoardEl.replaceChildren();
