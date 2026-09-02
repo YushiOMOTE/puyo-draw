@@ -94,9 +94,9 @@ The Tokopuyo sidebar follows the current square-button visual language. Below th
 3. Redo.
 4. Long-chain Suggestion.
 5. Emergency-attack Suggestion.
-6. Reset.
+6. Review Last Move.
 
-The Drawing mode button is placed in the lower mode-switch area. The Help button remains pinned at the bottom and opens mode-appropriate instructions.
+Reset and the Drawing mode button are in the left-side app rail. The Help button remains pinned at the bottom and opens mode-appropriate instructions.
 
 Palette, garbage, Clear, and Simulate controls are hidden rather than merely disabled.
 
@@ -109,6 +109,14 @@ Each search fixes Current and Next, then runs Ama's six predetermined unknown co
 The Wasm build retains Ama's bitfield and SIMD simulation, legal-move generator, beam expansion, static and pattern evaluation, quiescence search, and transposition table. Only opponent reading, attack/defense action selection, real-time control, and other versus state are excluded.
 
 Six branches are distributed over a reusable pool of three ordinary Workers. The pool loads lazily on the first request. Initialization does not consume the eight-second search timeout. A timeout, initialization error, or runtime error destroys the pool; the next request may create a fresh pool. Wasm pthreads and cross-origin isolation are not required.
+
+## Last-Move Review
+
+Each completed hand stores its exact pre-move field, special-row occupancy, Current, Next, locked cells, canonical placement, and resolution outcome as part of the atomic session snapshot. Review Last Move reruns or reuses the complete Pressureless Ama analysis for that pre-move position and compares the user's locked-cell set with all returned legal placements. Undo and Redo restore the corresponding review target; Reset starts without one.
+
+The review reports exact agreement, a score tie, or a different Ama recommendation; the user's rank; both six-future average maximum-chain scores; the score gap; and per-future win, tie, and loss counts against Ama's aggregate-best placement. These are counterfactual sampled-search observations, not an absolute move grade or a causal decomposition of Ama's evaluation features.
+
+A read-only dialog shows the pre-move field with the user's pair and Ama's preferred pair side by side. It never modifies the live field or history. A choke-point game-over move may be absent from Ama's surviving candidates and is explained as excluded rather than assigned a synthetic score; if no placement survives, no Ama choice is invented.
 
 Up to four ranked Current placements are cached. The current pair is shown at its final landing cells as colored dashed circles with centered sparkles, including a virtual-row marker when the child occupies the special fourteenth row. Pressing Suggestion again cycles through cached alternatives without searching again. A committed hand, Undo, Redo, Reset, or mode change invalidates the cache and stale in-flight results.
 
@@ -262,7 +270,10 @@ Before release, add focused tests for:
 - one committed hand plus its chain result forming one atomic history entry;
 - independent Drawing and Tokopuyo state across mode switches;
 - disabled direct board editing in Tokopuyo mode;
-- top-out behavior after the game-over decision is finalized.
+- top-out behavior after the game-over decision is finalized;
+- last-move metadata restoration through Undo and Redo;
+- full-placement ranking, tied results, cell-set matching, and game-over exclusions in last-move review;
+- reuse of a matching completed Pressureless Ama analysis.
 
 Statistical tests should not assert that the sequence is independently uniform. The documented distribution is a finite, deterministic set with mode-specific construction and an opening overwrite. Tests should instead verify the data contract and selected known fixtures.
 

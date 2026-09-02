@@ -223,6 +223,18 @@
               <path d="M13.5 2 6 13h5l-.5 9L18 10h-5l.5-8Z" />
             </svg>
           </button>
+          <button
+            id="reviewLastMove"
+            class="secondary-btn sidebar-btn suggestion-btn"
+            aria-label="Review last move"
+            title="Review last move"
+            hidden
+          >
+            <svg class="suggestion-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="m15.5 15.5 5 5M7.5 10.5l2 2 4-4" />
+            </svg>
+          </button>
           <span id="resetSlot" class="app-action-slot"></span>
           <span id="modeSlot" class="app-action-slot"></span>
           <div class="sidebar-actions mode-actions drawing-only" aria-label="Flick menu modes">
@@ -325,8 +337,9 @@
               <li>The left controls move the pair horizontally.</li>
               <li>The right controls rotate the pair counterclockwise or clockwise, or drop it.</li>
               <li>Chains run automatically after a pair locks.</li>
-              <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair; numbered circles show the visible follow-up pairs.</li>
+              <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair.</li>
               <li>Emergency Attack finds the highest-scoring safe firing routes within the current pair, Next, and Next Next. Press it again to rotate through up to ten routes.</li>
+              <li>Review Last Move compares the most recently committed pair with Pressureless Ama's complete analysis of that pre-move position.</li>
               <li>Bright rings highlight the existing connected puyos that would clear first when the current main chain fires. They pulse when the current pair can fire the chain.</li>
               <li>The status reports how many evaluated unknown color pairs have a safe continuation.</li>
               <li>Undo and Redo operate on complete placed pairs.</li>
@@ -334,6 +347,37 @@
               <li>Use the mode button to return to Drawing mode.</li>
             </ul>
           </div>
+        </section>
+      </div>
+
+      <div id="reviewOverlay" class="review-overlay" hidden>
+        <section
+          class="review-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reviewTitle"
+        >
+          <button id="closeReview" class="help-close" aria-label="Close review">
+            ×
+          </button>
+          <p class="review-eyebrow">Pressureless Ama</p>
+          <h2 id="reviewTitle">Last move review</h2>
+          <p id="reviewSummary" class="review-summary"></p>
+          <div id="reviewStats" class="review-stats"></div>
+          <p id="reviewBranches" class="review-branches"></p>
+          <div class="review-comparison">
+            <section>
+              <h3>Your move</h3>
+              <p id="reviewUserPlacement" class="review-placement-label"></p>
+              <div id="reviewUserBoard" class="review-mini-board" aria-label="Pre-move field with your placement"></div>
+            </section>
+            <section>
+              <h3>Ama's choice</h3>
+              <p id="reviewAmaPlacement" class="review-placement-label"></p>
+              <div id="reviewAmaBoard" class="review-mini-board" aria-label="Pre-move field with Ama's placement"></div>
+            </section>
+          </div>
+          <p class="review-note">Scores are averages of the maximum chain scores found across six sampled futures, not absolute move grades.</p>
         </section>
       </div>
     </main>

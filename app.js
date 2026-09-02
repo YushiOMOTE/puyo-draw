@@ -19,6 +19,7 @@ import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
   PressurelessAmaController,
 } from "./tokopuyo/pressureless-ama-controller.js";
+import { evaluateAmaMove } from "./tokopuyo/pressureless-ama.js";
 import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
@@ -58,6 +59,17 @@ const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
 const tokopuyoControls = document.querySelector("#tokopuyoControls");
 const attackSuggestButton = document.querySelector("#attackSuggest");
+const reviewLastMoveButton = document.querySelector("#reviewLastMove");
+const reviewOverlay = document.querySelector("#reviewOverlay");
+const closeReviewButton = document.querySelector("#closeReview");
+const reviewTitleEl = document.querySelector("#reviewTitle");
+const reviewSummaryEl = document.querySelector("#reviewSummary");
+const reviewStatsEl = document.querySelector("#reviewStats");
+const reviewBranchesEl = document.querySelector("#reviewBranches");
+const reviewUserPlacementEl = document.querySelector("#reviewUserPlacement");
+const reviewAmaPlacementEl = document.querySelector("#reviewAmaPlacement");
+const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
+const reviewAmaBoardEl = document.querySelector("#reviewAmaBoard");
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -80,6 +92,8 @@ let tokopuyoDisplayedChain = null;
 let tokopuyoSuggestionSession = null;
 let tokopuyoAttackSuggestionSession = null;
 let tokopuyoSuggestionMarks = new Map();
+const amaAnalysisCache = new Map();
+const AMA_ANALYSIS_CACHE_LIMIT = 8;
 const suggestionController = new SuggestionController();
 const pressurelessAmaController = new PressurelessAmaController({
   workerCount: TOKOPUYO_SUGGESTION_CONFIG.workerCount,
@@ -318,6 +332,7 @@ function updateModeUi() {
   tokopuyoPreview.hidden = !isTokopuyo;
   tokopuyoControls.hidden = !isTokopuyo;
   attackSuggestButton.hidden = !isTokopuyo;
+  reviewLastMoveButton.hidden = !isTokopuyo;
   drawingHelp.hidden = isTokopuyo;
   tokopuyoHelp.hidden = !isTokopuyo;
 
@@ -436,6 +451,11 @@ function render() {
     tokopuyoBusy ||
     !tokopuyoSession ||
     tokopuyoSession.gameOver;
+  reviewLastMoveButton.disabled =
+    appMode !== "tokopuyo" ||
+    isSuggesting ||
+    tokopuyoBusy ||
+    !tokopuyoSession?.lastTurn;
   toggleAppModeButton.disabled =
     isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
@@ -502,6 +522,7 @@ function clearSuggestions() {
 }
 
 function clearTokopuyoSuggestions() {
+  closeLastMoveReview();
   tokopuyoSuggestionMarks.clear();
   tokopuyoSuggestionSession = null;
   tokopuyoAttackSuggestionSession = null;
@@ -706,18 +727,41 @@ function displaySuggestion(candidate, index, total) {
   render();
 }
 
-function tokopuyoSuggestionKey() {
-  if (!tokopuyoSession) return "";
-  const field = tokopuyoSession.board
+function pressurelessAmaKey({ board, row14, seed, handIndex }) {
+  const field = board
     .map((row) => row.map((cell) => cell || "-").join(""))
     .join("/");
   return [
     "pressureless-ama",
-    tokopuyoSession.seed,
-    tokopuyoSession.handIndex,
-    tokopuyoSession.row14,
+    seed,
+    handIndex,
+    row14,
     field,
   ].join(":");
+}
+
+function tokopuyoSuggestionKey() {
+  if (!tokopuyoSession) return "";
+  return pressurelessAmaKey(tokopuyoSession);
+}
+
+function lastTurnReviewKey() {
+  if (!tokopuyoSession?.lastTurn) return "";
+  const turn = tokopuyoSession.lastTurn;
+  return pressurelessAmaKey({
+    board: turn.beforeBoard,
+    row14: turn.beforeRow14,
+    seed: tokopuyoSession.seed,
+    handIndex: turn.handIndex,
+  });
+}
+
+function cacheAmaAnalysis(key, candidates) {
+  amaAnalysisCache.delete(key);
+  amaAnalysisCache.set(key, candidates);
+  while (amaAnalysisCache.size > AMA_ANALYSIS_CACHE_LIMIT) {
+    amaAnalysisCache.delete(amaAnalysisCache.keys().next().value);
+  }
 }
 
 function tokopuyoAttackSuggestionKey() {
@@ -779,6 +823,159 @@ function displayTokopuyoAttackSuggestion(candidate, index, total) {
   render();
 }
 
+function describePlacement({ col, orientation }) {
+  const directions = ["up", "right", "down", "left"];
+  return `Column ${col + 1}, child ${directions[orientation]}`;
+}
+
+function renderReviewMiniBoard(element, board, row14, placementCells) {
+  const placements = new Map(
+    placementCells.map((cell) => [`${cell.row},${cell.col}`, cell]),
+  );
+  element.replaceChildren();
+  for (let row = -1; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const cell = document.createElement("span");
+      cell.className = `review-mini-cell${
+        row === -1 ? " review-row14" : row < HIDDEN_ROWS ? " review-hidden" : ""
+      }${row === HIDDEN_ROWS && col === 2 ? " review-choke" : ""}`;
+      const placement = placements.get(`${row},${col}`);
+      const color = placement?.color || (row >= 0 ? board[row][col] : null);
+      const occupiedRow14 = row === -1 && Boolean(row14 & (1 << col));
+      if (color || occupiedRow14) {
+        const puyo = document.createElement("span");
+        puyo.className = `review-mini-puyo${
+          color ? ` ${color}` : " review-row14-occupied"
+        }${placement ? " review-placement" : ""}`;
+        cell.append(puyo);
+      }
+      element.append(cell);
+    }
+  }
+}
+
+function appendReviewStat(value, label) {
+  const stat = document.createElement("span");
+  stat.className = "review-stat";
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  const small = document.createElement("small");
+  small.textContent = label;
+  stat.append(strong, small);
+  reviewStatsEl.append(stat);
+}
+
+function closeLastMoveReview() {
+  reviewOverlay.hidden = true;
+}
+
+function displayLastMoveReview(evaluation, turn) {
+  const summaries = {
+    "top-choice": "Ama's first choice matches your move.",
+    "tied-choice": "Your move tied Ama's first choice.",
+    "different-choice": "Ama preferred a different placement.",
+    "game-over": "Ama excluded your move because it ended at the choke point.",
+    "no-surviving-choice": "Ama found no placement that survived this position.",
+    unavailable: "Ama could not match this move to a scored placement.",
+  };
+  reviewTitleEl.textContent = "Last move review";
+  reviewSummaryEl.textContent = `${summaries[evaluation.verdict]}${
+    turn.result.chains ? ` Your move fired a ${turn.result.chains}-chain.` : ""
+  }`;
+  reviewStatsEl.replaceChildren();
+  appendReviewStat(
+    evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
+    "YOUR RANK",
+  );
+  appendReviewStat(
+    evaluation.user ? evaluation.user.averageScore.toLocaleString() : "—",
+    "YOUR AVG",
+  );
+  appendReviewStat(
+    evaluation.best ? evaluation.best.averageScore.toLocaleString() : "—",
+    "AMA AVG",
+  );
+  appendReviewStat(
+    evaluation.averageGap === null
+      ? "—"
+      : evaluation.averageGap.toLocaleString(),
+    "AVG GAP",
+  );
+  reviewBranchesEl.textContent = evaluation.branches
+    ? `${evaluation.branches.user} of 6 futures favored your move, ${evaluation.branches.tied} tied, and ${evaluation.branches.ama} favored Ama's choice.`
+    : "No sampled-future score is assigned to the excluded move.";
+  reviewUserPlacementEl.textContent = describePlacement(turn.placement);
+  reviewAmaPlacementEl.textContent = evaluation.best
+    ? describePlacement(evaluation.best)
+    : "No surviving placement";
+  renderReviewMiniBoard(
+    reviewUserBoardEl,
+    turn.beforeBoard,
+    turn.beforeRow14,
+    turn.placement.cells,
+  );
+  renderReviewMiniBoard(
+    reviewAmaBoardEl,
+    turn.beforeBoard,
+    turn.beforeRow14,
+    evaluation.best?.moves[0].cells || [],
+  );
+  reviewOverlay.hidden = false;
+  closeReviewButton.focus();
+}
+
+function displayLastMoveReviewError() {
+  reviewTitleEl.textContent = "Review unavailable";
+  reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
+  reviewStatsEl.replaceChildren();
+  reviewBranchesEl.textContent = "";
+  reviewUserPlacementEl.textContent = "";
+  reviewAmaPlacementEl.textContent = "";
+  reviewUserBoardEl.replaceChildren();
+  reviewAmaBoardEl.replaceChildren();
+  reviewOverlay.hidden = false;
+  closeReviewButton.focus();
+}
+
+async function showLastMoveReview() {
+  if (
+    appMode !== "tokopuyo" ||
+    !tokopuyoSession?.lastTurn ||
+    tokopuyoSession.busy ||
+    isSuggesting
+  ) return;
+
+  const turn = tokopuyoSession.lastTurn;
+  const key = lastTurnReviewKey();
+  let allCandidates = amaAnalysisCache.get(key);
+  if (!allCandidates) {
+    isSuggesting = true;
+    render();
+    try {
+      const result = await pressurelessAmaController.solve({
+        board: clone(turn.beforeBoard),
+        row14: turn.beforeRow14,
+        hands: [{ ...turn.current }, { ...turn.next }],
+        colors: [...tokopuyoSession.pattern.colors],
+        ...TOKOPUYO_SUGGESTION_CONFIG,
+      });
+      if (lastTurnReviewKey() !== key) return;
+      allCandidates = result.allCandidates;
+      cacheAmaAnalysis(key, allCandidates);
+    } catch (error) {
+      console.error("Last-move review failed", error);
+      displayLastMoveReviewError();
+      return;
+    } finally {
+      isSuggesting = false;
+      render();
+    }
+  }
+
+  if (lastTurnReviewKey() !== key) return;
+  displayLastMoveReview(evaluateAmaMove(turn, allCandidates), turn);
+}
+
 async function showTokopuyoSuggestion() {
   if (
     !tokopuyoSession ||
@@ -813,7 +1010,7 @@ async function showTokopuyoSuggestion() {
       (_, offset) =>
         getTsumo(tokopuyoSession.pattern, tokopuyoSession.handIndex + offset),
     );
-    const { candidates } = await pressurelessAmaController.solve({
+    const { candidates, allCandidates } = await pressurelessAmaController.solve({
       board: clone(tokopuyoSession.board),
       row14: tokopuyoSession.row14,
       hands,
@@ -830,6 +1027,7 @@ async function showTokopuyoSuggestion() {
       statusEl.textContent = messages.suggestionNone[locale];
       return;
     }
+    cacheAmaAnalysis(key, allCandidates);
     tokopuyoSuggestionSession = { key, candidates, index: 0 };
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
@@ -1226,6 +1424,7 @@ document.querySelector("#reset").addEventListener("click", () => {
 document.querySelector("#simulate").addEventListener("click", runSimulation);
 document.querySelector("#suggest").addEventListener("click", showSuggestion);
 attackSuggestButton.addEventListener("click", showTokopuyoAttackSuggestion);
+reviewLastMoveButton.addEventListener("click", showLastMoveReview);
 document.querySelector("#movePairLeft").addEventListener("click", () => performTokopuyoAction("left"));
 document.querySelector("#movePairRight").addEventListener("click", () => performTokopuyoAction("right"));
 document.querySelector("#rotatePairLeft").addEventListener("click", () => performTokopuyoAction("counterclockwise"));
@@ -1240,11 +1439,17 @@ document.querySelector("#help").addEventListener("click", () => {
   helpOverlay.hidden = false;
 });
 closeHelpButton.addEventListener("click", closeHelp);
+closeReviewButton.addEventListener("click", closeLastMoveReview);
 helpOverlay.addEventListener("click", (event) => {
   if (event.target === helpOverlay) closeHelp();
 });
+reviewOverlay.addEventListener("click", (event) => {
+  if (event.target === reviewOverlay) closeLastMoveReview();
+});
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !helpOverlay.hidden) closeHelp();
+  if (event.key !== "Escape") return;
+  if (!reviewOverlay.hidden) closeLastMoveReview();
+  else if (!helpOverlay.hidden) closeHelp();
 });
 window.addEventListener("resize", () => {
   if (appMode === "tokopuyo") renderActivePair();

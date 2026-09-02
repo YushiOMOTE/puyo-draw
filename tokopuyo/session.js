@@ -42,6 +42,22 @@ function pairAtColumn(session, col, direction) {
   );
 }
 
+function cloneLastTurn(lastTurn) {
+  if (!lastTurn) return null;
+  return {
+    beforeBoard: clone(lastTurn.beforeBoard),
+    beforeRow14: lastTurn.beforeRow14,
+    handIndex: lastTurn.handIndex,
+    current: { ...lastTurn.current },
+    next: { ...lastTurn.next },
+    placement: {
+      ...lastTurn.placement,
+      cells: lastTurn.placement.cells.map((cell) => ({ ...cell })),
+    },
+    result: { ...lastTurn.result },
+  };
+}
+
 function canonicalSnapshot(session) {
   return {
     board: clone(session.board),
@@ -50,6 +66,7 @@ function canonicalSnapshot(session) {
     chainCount: session.chainCount,
     cumulativeScore: session.cumulativeScore,
     gameOver: session.gameOver,
+    lastTurn: cloneLastTurn(session.lastTurn),
   };
 }
 
@@ -60,6 +77,7 @@ function restoreSnapshot(session, snapshot) {
   session.chainCount = snapshot.chainCount;
   session.cumulativeScore = snapshot.cumulativeScore;
   session.gameOver = snapshot.gameOver;
+  session.lastTurn = cloneLastTurn(snapshot.lastTurn);
   session.activePair = createActivePair(getTsumo(session.pattern, session.handIndex));
 }
 
@@ -75,6 +93,7 @@ export function createSession(seed) {
     chainCount: 0,
     cumulativeScore: 0,
     gameOver: false,
+    lastTurn: null,
     busy: false,
     history: [],
     future: [],
@@ -110,6 +129,11 @@ function commitDroppedPair(session, dropped) {
   if (!dropped) return null;
 
   const before = canonicalSnapshot(session);
+  const current = {
+    axis: dropped.pair.axisColor,
+    child: dropped.pair.childColor,
+  };
+  const next = getTsumo(session.pattern, session.handIndex + 1);
   const result = simulate(dropped.board);
   session.history.push(before);
   session.future = [];
@@ -119,6 +143,23 @@ function commitDroppedPair(session, dropped) {
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
+  session.lastTurn = {
+    beforeBoard: clone(before.board),
+    beforeRow14: before.row14,
+    handIndex: before.handIndex,
+    current: { ...current },
+    next: { ...next },
+    placement: {
+      col: dropped.pair.axis.col,
+      orientation: dropped.pair.orientation,
+      cells: dropped.cells.map((cell) => ({ ...cell })),
+    },
+    result: {
+      chains: result.chains,
+      score: result.score,
+      gameOver: session.gameOver,
+    },
+  };
   session.activePair = createActivePair(
     getTsumo(session.pattern, session.handIndex),
   );

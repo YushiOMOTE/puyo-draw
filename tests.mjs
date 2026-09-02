@@ -70,6 +70,8 @@ import {
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
   aggregateAmaBranches,
+  analyzeAmaBranches,
+  evaluateAmaMove,
 } from "./tokopuyo/pressureless-ama.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
@@ -660,6 +662,23 @@ const firingCommit = commitActivePair(firingSession);
 assert.equal(firingCommit.result.chains, 1);
 assert.equal(firingSession.chainCount, 1);
 assert.equal(firingSession.board[ROWS - 1][0], "blue");
+assert.deepEqual(firingSession.lastTurn.beforeBoard[ROWS - 3].slice(0, 2), [
+  "red",
+  null,
+]);
+assert.equal(firingSession.lastTurn.handIndex, 0);
+assert.deepEqual(firingSession.lastTurn.current, { axis: "red", child: "blue" });
+assert.deepEqual(firingSession.lastTurn.next, getTsumo(firingSession.pattern, 1));
+assert.equal(firingSession.lastTurn.placement.cells.length, 2);
+assert.deepEqual(firingSession.lastTurn.result, {
+  chains: 1,
+  score: firingCommit.result.score,
+  gameOver: false,
+});
+assert.equal(undoSession(firingSession), true);
+assert.equal(firingSession.lastTurn, null);
+assert.equal(redoSession(firingSession), true);
+assert.equal(firingSession.lastTurn.result.chains, 1);
 
 const gameOverSession = createSession(0);
 for (let row = HIDDEN_ROWS + 1; row < ROWS; row++) {
@@ -704,6 +723,59 @@ assert.equal(amaAggregate[0].score, 2_100);
 assert.equal(amaAggregate[0].averageScore, 350);
 assert.deepEqual(amaAggregate[0].branchScores, [100, 200, 300, 400, 500, 600]);
 assert.equal(amaAggregate[0].moves.length, 1);
+const amaAllCandidates = analyzeAmaBranches(
+  {
+    board: emptyBoard(),
+    row14: 0,
+    current: { axis: "red", child: "blue" },
+    branchCount: 6,
+  },
+  Array.from({ length: 6 }, (_, branch) => ({
+    branch,
+    candidates: [
+      { col: 0, orientation: ORIENTATION.UP, score: (branch + 1) * 100 },
+      { col: 1, orientation: ORIENTATION.RIGHT, score: 25 },
+    ],
+  })),
+);
+const reviewedMove = evaluateAmaMove({
+  placement: { cells: amaAllCandidates[1].moves[0].cells },
+  result: { gameOver: false },
+}, amaAllCandidates);
+assert.equal(reviewedMove.verdict, "different-choice");
+assert.equal(reviewedMove.rank, 2);
+assert.equal(reviewedMove.legalCount, 2);
+assert.equal(reviewedMove.averageGap, 325);
+assert.deepEqual(reviewedMove.branches, { user: 0, tied: 0, ama: 6 });
+const tiedAmaCandidates = amaAllCandidates.map((candidate, index) =>
+  index === 1
+    ? {
+      ...candidate,
+      score: amaAllCandidates[0].score,
+      averageScore: amaAllCandidates[0].averageScore,
+    }
+    : candidate
+);
+assert.equal(evaluateAmaMove({
+  placement: { cells: tiedAmaCandidates[1].moves[0].cells },
+  result: { gameOver: false },
+}, tiedAmaCandidates).verdict, "tied-choice");
+assert.equal(evaluateAmaMove({
+  placement: {
+    cells: [...amaAllCandidates[0].moves[0].cells]
+      .reverse()
+      .map(({ role: _role, ...cell }) => cell),
+  },
+  result: { gameOver: false },
+}, amaAllCandidates).verdict, "top-choice");
+assert.equal(evaluateAmaMove({
+  placement: { cells: [{ row: 0, col: 2, color: "red" }] },
+  result: { gameOver: true },
+}, amaAllCandidates).verdict, "game-over");
+assert.equal(evaluateAmaMove({
+  placement: { cells: [{ row: 0, col: 2, color: "red" }] },
+  result: { gameOver: true },
+}, []).verdict, "no-surviving-choice");
 assert.throws(
   () => aggregateAmaBranches(
     {

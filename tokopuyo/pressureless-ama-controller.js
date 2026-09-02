@@ -1,7 +1,7 @@
 import { encodeAmaBoard, encodeAmaPair } from "./ama-color-map.js";
 import {
   AMA_BRANCH_COUNT,
-  aggregateAmaBranches,
+  analyzeAmaBranches,
 } from "./pressureless-ama.js";
 
 const STARTUP_TIMEOUT_MS = 10_000;
@@ -162,17 +162,20 @@ export class PressurelessAmaController {
       });
       const results = await Promise.race([search, timeout]);
       const elapsedMs = Math.round(performance.now() - startedAt);
-      const candidates = aggregateAmaBranches(
-        {
-          ...request,
-          current: request.hands[0],
-          branchCount,
-        },
+      const aggregateRequest = {
+        ...request,
+        current: request.hands[0],
+        branchCount,
+      };
+      const allCandidates = analyzeAmaBranches(
+        aggregateRequest,
         results,
       ).map((candidate) => ({ ...candidate, searchElapsedMs: elapsedMs }));
+      const candidates = allCandidates.slice(0, request.resultLimit ?? 4);
       return {
         solver: "pressureless-ama",
         candidates,
+        allCandidates,
         elapsedMs,
         branchElapsedMs: results.map(({ elapsedMs }) => elapsedMs),
         workerCount: this.slots.length,
