@@ -977,12 +977,37 @@ function renderDiagnosticEvidence(
   );
 }
 
-function futurePairingLabel(branch) {
+function futurePairingText(branch) {
   const colors = tokopuyoSession?.pattern.colors || [];
   return AMA_FUTURE_PAIRINGS[branch]
     .map(([axis, child]) =>
       `${capitalizeColor(colors[axis])}–${capitalizeColor(colors[child])}`)
     .join(" / ");
+}
+
+function createFuturePairingIcon(branch) {
+  const colors = tokopuyoSession?.pattern.colors || [];
+  const icon = document.createElement("span");
+  icon.className = "review-future-pairing";
+  icon.setAttribute("role", "img");
+  icon.setAttribute("aria-label", futurePairingText(branch));
+  AMA_FUTURE_PAIRINGS[branch].forEach((pair, pairIndex) => {
+    if (pairIndex) {
+      const separator = document.createElement("i");
+      separator.className = "review-pair-separator";
+      separator.textContent = "/";
+      icon.append(separator);
+    }
+    const group = document.createElement("span");
+    group.className = "review-pair-group";
+    pair.forEach((colorIndex) => {
+      const dot = document.createElement("i");
+      dot.className = `review-color-dot ${colors[colorIndex]}`;
+      group.append(dot);
+    });
+    icon.append(group);
+  });
+  return icon;
 }
 
 function createReviewHelp(label, text, action = null) {
@@ -1284,14 +1309,17 @@ function renderEvaluationCoaching(
   });
 }
 
-function appendReviewStat(value, label) {
-  const stat = document.createElement("span");
+function appendReviewStat(value, label, help) {
+  const stat = document.createElement("article");
   stat.className = "review-stat";
   const strong = document.createElement("strong");
   strong.textContent = value;
+  const labelGroup = document.createElement("span");
   const small = document.createElement("small");
   small.textContent = label;
-  stat.append(strong, small);
+  labelGroup.className = "review-stat-label";
+  labelGroup.append(small, createReviewHelp(label, help));
+  stat.append(strong, labelGroup);
   reviewStatsEl.append(stat);
 }
 
@@ -1313,20 +1341,34 @@ function renderReviewBranchSummary(branches) {
     reviewBranchesEl.textContent = "No future score";
     return;
   }
-  [
-    [branches.user, "You", "user"],
-    [branches.tied, "Tied", "tied"],
-    [branches.ama, "Ama", "ama"],
-  ].forEach(([count, label, kind]) => {
-    const item = document.createElement("span");
-    const value = document.createElement("strong");
-    const name = document.createElement("small");
-    item.className = `review-branch-count ${kind}`;
-    value.textContent = count;
-    name.textContent = label;
-    item.append(value, name);
-    reviewBranchesEl.append(item);
-  });
+  const table = document.createElement("table");
+  const head = document.createElement("thead");
+  const body = document.createElement("tbody");
+  const headerRow = document.createElement("tr");
+  const valueRow = document.createElement("tr");
+  [["Favored move", "label"], ["You", "user"], ["Tied", "tied"], ["Ama", "ama"]]
+    .forEach(([label, kind]) => {
+      const cell = document.createElement("th");
+      cell.scope = "col";
+      cell.className = kind;
+      cell.textContent = label;
+      headerRow.append(cell);
+    });
+  const rowLabel = document.createElement("th");
+  rowLabel.scope = "row";
+  rowLabel.textContent = "Futures";
+  valueRow.append(rowLabel);
+  [[branches.user, "user"], [branches.tied, "tied"], [branches.ama, "ama"]]
+    .forEach(([count, kind]) => {
+      const cell = document.createElement("td");
+      cell.className = kind;
+      cell.textContent = count;
+      valueRow.append(cell);
+    });
+  head.append(headerRow);
+  body.append(valueRow);
+  table.append(head, body);
+  reviewBranchesEl.append(table);
 }
 
 function renderReviewBranchChart(comparisons) {
@@ -1340,8 +1382,7 @@ function renderReviewBranchChart(comparisons) {
   comparisons.forEach(({ branch, userScore, amaScore }) => {
     const row = document.createElement("div");
     row.className = "review-branch-row";
-    const label = document.createElement("strong");
-    label.textContent = futurePairingLabel(branch);
+    const label = createFuturePairingIcon(branch);
     const bars = document.createElement("div");
     bars.className = "review-branch-bars";
     [["You", "user", userScore], ["Ama", "ama", amaScore]].forEach(
@@ -1400,18 +1441,21 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
   appendReviewStat(
     evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
     "YOUR RANK",
+    "Your placement's rank among Ama's legal Current placements. Rank 1 is Ama's top choice.",
   );
   appendReviewStat(
     evaluation.aggregateRetention === null
       ? "—"
       : `${Math.round(evaluation.aggregateRetention * 100)}%`,
     "POTENTIAL RETAINED",
+    "Your six-future total divided by Ama's six-future total. It is not a probability or an accuracy score.",
   );
   appendReviewStat(
     evaluation.averageGap === null
       ? "—"
       : evaluation.averageGap.toLocaleString(),
     "AVG GAP",
+    "Ama's average six-future score minus your average. Smaller means the two placements were closer.",
   );
   renderReviewBranchSummary(evaluation.branches);
   reviewRangesEl.replaceChildren();
@@ -1997,6 +2041,10 @@ helpOverlay.addEventListener("click", (event) => {
   if (event.target === helpOverlay) closeHelp();
 });
 reviewOverlay.addEventListener("click", (event) => {
+  const selectedHelp = event.target.closest?.(".review-help") || null;
+  reviewOverlay.querySelectorAll(".review-help[open]").forEach((details) => {
+    if (details !== selectedHelp) details.open = false;
+  });
   if (event.target === reviewOverlay) closeLastMoveReview();
 });
 document.addEventListener("keydown", (event) => {
