@@ -82,6 +82,7 @@ const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
 const reviewAmaBoardEl = document.querySelector("#reviewAmaBoard");
 const reviewEvaluationSectionEl = document.querySelector("#reviewEvaluationSection");
 const reviewEvaluationSummaryEl = document.querySelector("#reviewEvaluationSummary");
+const reviewContributionChartEl = document.querySelector("#reviewContributionChart");
 const reviewInsightCardsEl = document.querySelector("#reviewInsightCards");
 const reviewSignalTableEl = document.querySelector("#reviewSignalTable");
 
@@ -909,12 +910,6 @@ function formatSignalCalculation(signal) {
   return `${signal.rawValue.toLocaleString()} × ${signal.weight.toLocaleString()} = ${formatSigned(signal.contribution)}`;
 }
 
-function formatDispersion(stats) {
-  return stats?.relativeDispersion === null
-    ? "—"
-    : `${(stats.relativeDispersion * 100).toFixed(0)}%`;
-}
-
 function capitalizeColor(color) {
   return color ? color[0].toUpperCase() + color.slice(1) : "Unknown";
 }
@@ -990,14 +985,74 @@ function futurePairingLabel(branch) {
     .join(" / ");
 }
 
-function appendFutureMetric(value, label) {
-  const metric = document.createElement("span");
-  const strong = document.createElement("strong");
-  const small = document.createElement("small");
-  strong.textContent = value;
-  small.textContent = label;
-  metric.append(strong, small);
-  reviewFutureMetricsEl.append(metric);
+function createReviewHelp(label, text, action = null) {
+  const details = document.createElement("details");
+  const summary = document.createElement("summary");
+  const body = document.createElement("div");
+  const paragraph = document.createElement("p");
+  details.className = "review-help";
+  summary.textContent = "?";
+  summary.setAttribute("aria-label", `Explain ${label}`);
+  body.className = "review-help-body";
+  paragraph.textContent = text;
+  body.append(paragraph);
+  if (action) body.append(action);
+  details.append(summary, body);
+  return details;
+}
+
+function appendComparisonMetric({
+  container,
+  label,
+  help,
+  userValue,
+  amaValue,
+  format,
+  lowerIsBetter = false,
+}) {
+  const metric = document.createElement("article");
+  const heading = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = label;
+  heading.className = "review-metric-heading";
+  heading.append(title, createReviewHelp(label, help));
+  metric.append(heading);
+  const numericValues = [userValue, amaValue].filter(Number.isFinite);
+  const minimum = Math.min(...numericValues);
+  const maximum = Math.max(...numericValues);
+  const useRelativeScale = minimum < 0;
+  [["You", "user", userValue], ["Ama", "ama", amaValue]].forEach(
+    ([name, kind, value]) => {
+      const row = document.createElement("div");
+      const nameEl = document.createElement("small");
+      const track = document.createElement("span");
+      const fill = document.createElement("i");
+      const valueEl = document.createElement("span");
+      const otherValue = kind === "user" ? amaValue : userValue;
+      const isBetter = Number.isFinite(value) && Number.isFinite(otherValue) &&
+        (lowerIsBetter ? value < otherValue : value > otherValue);
+      row.className = `review-metric-row${isBetter ? " is-better" : ""}`;
+      nameEl.textContent = name;
+      track.className = "review-metric-track";
+      fill.className = `review-metric-fill ${kind}`;
+      fill.style.setProperty(
+        "--metric-width",
+        Number.isFinite(value)
+          ? `${useRelativeScale
+            ? maximum === minimum
+              ? 100
+              : 18 + (value - minimum) / (maximum - minimum) * 82
+            : Math.max(2, value / Math.max(1, maximum) * 100)}%`
+          : "0%",
+      );
+      valueEl.className = "review-metric-value";
+      valueEl.textContent = Number.isFinite(value) ? format(value) : "—";
+      track.append(fill);
+      row.append(nameEl, track, valueEl);
+      metric.append(row);
+    },
+  );
+  container.append(metric);
 }
 
 function renderFutureCoaching(evaluation) {
@@ -1011,39 +1066,40 @@ function renderFutureCoaching(evaluation) {
     evaluation.bestStats,
   );
   const potentialText = comparison.potentialLeader === "tied"
-    ? "Both placements had the same future potential."
+    ? "Potential tied"
     : comparison.potentialLeader === "user"
-      ? "Your placement had higher future potential in Ama's six tests."
-      : "Ama's placement had higher future potential in its six tests.";
+      ? "You: higher potential"
+      : "Ama: higher potential";
   const stabilityText = comparison.stabilityLeader === "similar"
-    ? "Their variation across the tests was similar."
+    ? "similar consistency"
     : comparison.stabilityLeader === "user"
-      ? "Your results varied less across the pairing patterns."
+      ? "you: steadier"
       : comparison.stabilityLeader === "ama"
-        ? "Ama's results varied less across the pairing patterns."
-        : "Stability is unavailable when no potential was found.";
-  reviewFutureSummaryEl.textContent = `${potentialText} ${stabilityText}`;
-  appendFutureMetric(evaluation.userStats.mean.toLocaleString(undefined, {
-    maximumFractionDigits: 1,
-  }), "YOUR POTENTIAL");
-  appendFutureMetric(evaluation.bestStats.mean.toLocaleString(undefined, {
-    maximumFractionDigits: 1,
-  }), "AMA POTENTIAL");
-  appendFutureMetric(formatDispersion(evaluation.userStats), "YOUR VARIATION");
-  appendFutureMetric(formatDispersion(evaluation.bestStats), "AMA VARIATION");
+        ? "Ama: steadier"
+        : "consistency unavailable";
+  reviewFutureSummaryEl.textContent = `${potentialText} · ${stabilityText}`;
+  appendComparisonMetric({
+    container: reviewFutureMetricsEl,
+    label: "Potential",
+    help: "Average maximum chain score found across Ama's six fixed test continuations. Higher is better.",
+    userValue: evaluation.userStats.mean,
+    amaValue: evaluation.bestStats.mean,
+    format: (value) => value.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+  });
+  appendComparisonMetric({
+    container: reviewFutureMetricsEl,
+    label: "Variation",
+    help: "Relative dispersion across the six test continuations. Lower means the result depended less on the tested pairing pattern.",
+    userValue: evaluation.userStats.relativeDispersion,
+    amaValue: evaluation.bestStats.relativeDispersion,
+    format: (value) => `${(value * 100).toFixed(0)}%`,
+    lowerIsBetter: true,
+  });
 }
 
 function createDiagnosticInsight(userDiagnostic, amaDiagnostic) {
   if (!userDiagnostic?.survives || !amaDiagnostic?.survives) return [];
   const insights = [];
-  const userPriority = userDiagnostic.staticTotal + userDiagnostic.actionTotal;
-  const amaPriority = amaDiagnostic.staticTotal + amaDiagnostic.actionTotal;
-  insights.push({
-    title: "Immediate search priority",
-    body: userPriority === amaPriority
-      ? `Both fields scored ${userPriority.toLocaleString()} at this point.`
-      : `${userPriority > amaPriority ? "Your" : "Ama's"} field scored higher immediately: ${userPriority.toLocaleString()} vs ${amaPriority.toLocaleString()}.`,
-  });
   const userProbe = userDiagnostic.selectedProbe;
   const amaProbe = amaDiagnostic.selectedProbe;
   if (userProbe || amaProbe) {
@@ -1055,31 +1111,81 @@ function createDiagnosticInsight(userDiagnostic, amaDiagnostic) {
       body: `You: ${describe(userProbe)}. Ama: ${describe(amaProbe)}.`,
     });
   }
-  const excluded = new Set([
-    "potentialChain", "triggerHeight", "requiredPuyos", "extensionSpace",
-    "quietLink2", "quietLink3", "pairSplit", "immediateClear", "sideBias",
-  ]);
-  const differences = Object.keys(AMA_SIGNAL_PRESENTATION)
-    .filter((id) => !excluded.has(id))
-    .map((id) => ({
+  return insights;
+}
+
+function renderContributionChart(
+  userDiagnostic,
+  amaDiagnostic,
+  userPlacementCells,
+  amaPlacementCells,
+) {
+  reviewContributionChartEl.replaceChildren();
+  if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
+  const differences = Object.entries(AMA_SIGNAL_PRESENTATION)
+    .map(([id, [label, meaning]]) => ({
       id,
+      label,
+      meaning,
       user: userDiagnostic.signals[id],
       ama: amaDiagnostic.signals[id],
-      difference: Math.abs(
-        amaDiagnostic.signals[id].contribution -
-        userDiagnostic.signals[id].contribution,
-      ),
+      edge: userDiagnostic.signals[id].contribution -
+        amaDiagnostic.signals[id].contribution,
     }))
-    .filter(({ difference }) => difference > 0)
-    .sort((left, right) => right.difference - left.difference);
-  if (differences.length) {
-    const { id, user, ama } = differences[0];
-    insights.push({
-      title: AMA_SIGNAL_PRESENTATION[id][0],
-      body: `You: ${user.rawValue.toLocaleString()} (${formatSigned(user.contribution)}). Ama: ${ama.rawValue.toLocaleString()} (${formatSigned(ama.contribution)}).`,
-    });
-  }
-  return insights.slice(0, 3);
+    .filter(({ edge }) => edge !== 0)
+    .sort((left, right) => Math.abs(right.edge) - Math.abs(left.edge))
+    .slice(0, 5);
+  if (!differences.length) return;
+  const heading = document.createElement("div");
+  const title = document.createElement("strong");
+  const legend = document.createElement("span");
+  heading.className = "review-contribution-heading";
+  title.textContent = "Largest evaluation gaps";
+  legend.innerHTML = '<i class="review-legend-user"></i>You <i class="review-legend-ama"></i>Ama';
+  heading.append(title, legend);
+  reviewContributionChartEl.append(heading);
+  const scale = Math.max(...differences.map(({ edge }) => Math.abs(edge)));
+  differences.forEach(({ id, label, meaning, user, ama, edge }) => {
+    const row = document.createElement("div");
+    const labelGroup = document.createElement("div");
+    const name = document.createElement("strong");
+    const track = document.createElement("span");
+    const fill = document.createElement("i");
+    const value = document.createElement("span");
+    const evidenceAvailable =
+      diagnosticEvidenceCells(userDiagnostic, id).length > 0 ||
+      diagnosticEvidenceCells(amaDiagnostic, id).length > 0;
+    let action = null;
+    if (evidenceAvailable) {
+      action = document.createElement("button");
+      action.type = "button";
+      action.className = "review-show-evidence";
+      action.textContent = "Show on boards";
+      action.addEventListener("click", () => renderDiagnosticEvidence(
+        userDiagnostic,
+        amaDiagnostic,
+        id,
+        userPlacementCells,
+        amaPlacementCells,
+      ));
+    }
+    row.className = "review-contribution-row";
+    labelGroup.className = "review-contribution-label";
+    name.textContent = label;
+    labelGroup.append(name, createReviewHelp(
+      label,
+      `${meaning} You: ${formatSignalCalculation(user)}. Ama: ${formatSignalCalculation(ama)}.`,
+      action,
+    ));
+    track.className = "review-contribution-track";
+    fill.className = `review-contribution-fill ${edge > 0 ? "user" : "ama"}`;
+    fill.style.setProperty("--edge-width", `${Math.abs(edge) / scale * 50}%`);
+    value.className = "review-contribution-value";
+    value.textContent = Math.abs(edge).toLocaleString();
+    track.append(fill);
+    row.append(labelGroup, track, value);
+    reviewContributionChartEl.append(row);
+  });
 }
 
 function renderEvaluationCoaching(
@@ -1090,14 +1196,31 @@ function renderEvaluationCoaching(
 ) {
   const available = Boolean(userDiagnostic && amaDiagnostic);
   reviewEvaluationSectionEl.hidden = !available;
+  reviewEvaluationSummaryEl.replaceChildren();
+  reviewContributionChartEl.replaceChildren();
   reviewInsightCardsEl.replaceChildren();
   reviewSignalTableEl.replaceChildren();
   if (!available) return;
   const userPriority = userDiagnostic.staticTotal + userDiagnostic.actionTotal;
   const amaPriority = amaDiagnostic.staticTotal + amaDiagnostic.actionTotal;
-  reviewEvaluationSummaryEl.textContent = userDiagnostic.survives && amaDiagnostic.survives
-    ? `Immediate priority is ${userPriority.toLocaleString()} for your field and ${amaPriority.toLocaleString()} for Ama's. These values guide beam retention; they do not determine the final move ranking.`
-    : "Ama excluded one of these fields before assigning a board evaluation.";
+  if (userDiagnostic.survives && amaDiagnostic.survives) {
+    appendComparisonMetric({
+      container: reviewEvaluationSummaryEl,
+      label: "Immediate priority",
+      help: "The weighted board score Ama uses to retain fields in beam search. Higher is favored at this stage, but this is not the final move score.",
+      userValue: userPriority,
+      amaValue: amaPriority,
+      format: (value) => value.toLocaleString(),
+    });
+    renderContributionChart(
+      userDiagnostic,
+      amaDiagnostic,
+      userPlacementCells,
+      amaPlacementCells,
+    );
+  } else {
+    reviewEvaluationSummaryEl.textContent = "One field was excluded.";
+  }
   createDiagnosticInsight(userDiagnostic, amaDiagnostic).forEach(({ title, body }) => {
     const card = document.createElement("article");
     const heading = document.createElement("strong");
@@ -1110,7 +1233,7 @@ function renderEvaluationCoaching(
   if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
   const header = document.createElement("div");
   header.className = "review-signal-row review-signal-header";
-  ["Signal · raw × weight = contribution", "You", "Ama"].forEach((text) => {
+  ["Feature", "You", "Ama"].forEach((text) => {
     const cell = document.createElement("span");
     cell.textContent = text;
     header.append(cell);
@@ -1123,15 +1246,13 @@ function renderEvaluationCoaching(
     row.className = "review-signal-row";
     const description = document.createElement("span");
     const name = document.createElement("strong");
-    const help = document.createElement("small");
     name.textContent = label;
-    help.textContent = meaning;
-    description.append(name, help);
     const hasEvidence =
       diagnosticEvidenceCells(userDiagnostic, id).length > 0 ||
       diagnosticEvidenceCells(amaDiagnostic, id).length > 0;
+    let show = null;
     if (hasEvidence) {
-      const show = document.createElement("button");
+      show = document.createElement("button");
       show.type = "button";
       show.className = "review-show-evidence";
       show.textContent = "Show on boards";
@@ -1143,15 +1264,19 @@ function renderEvaluationCoaching(
           userPlacementCells,
           amaPlacementCells,
         ));
-      description.append(show);
     }
+    description.append(name, createReviewHelp(
+      label,
+      `${meaning} You: ${formatSignalCalculation(user)}. Ama: ${formatSignalCalculation(ama)}.`,
+      show,
+    ));
     const userValue = document.createElement("span");
     const amaValue = document.createElement("span");
     const formName = (diagnostic) => ["GTR", "FRON", "SGTR"][diagnostic.bestForm];
-    userValue.textContent = `${formatSignalCalculation(user)}${
+    userValue.textContent = `${formatSigned(user.contribution)}${
       id === "formMatch" && formName(userDiagnostic) ? ` · ${formName(userDiagnostic)}` : ""
     }`;
-    amaValue.textContent = `${formatSignalCalculation(ama)}${
+    amaValue.textContent = `${formatSigned(ama.contribution)}${
       id === "formMatch" && formName(amaDiagnostic) ? ` · ${formName(amaDiagnostic)}` : ""
     }`;
     row.append(description, userValue, amaValue);
@@ -1180,6 +1305,28 @@ function appendReviewRange(stats, label) {
     : "—";
   range.append(value);
   reviewRangesEl.append(range);
+}
+
+function renderReviewBranchSummary(branches) {
+  reviewBranchesEl.replaceChildren();
+  if (!branches) {
+    reviewBranchesEl.textContent = "No future score";
+    return;
+  }
+  [
+    [branches.user, "You", "user"],
+    [branches.tied, "Tied", "tied"],
+    [branches.ama, "Ama", "ama"],
+  ].forEach(([count, label, kind]) => {
+    const item = document.createElement("span");
+    const value = document.createElement("strong");
+    const name = document.createElement("small");
+    item.className = `review-branch-count ${kind}`;
+    value.textContent = count;
+    name.textContent = label;
+    item.append(value, name);
+    reviewBranchesEl.append(item);
+  });
 }
 
 function renderReviewBranchChart(comparisons) {
@@ -1234,6 +1381,9 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
     "no-surviving-choice": "Ama found no placement that survived this position.",
     unavailable: "Ama could not match this move to a scored placement.",
   };
+  reviewOverlay.querySelectorAll("details").forEach((details) => {
+    details.open = false;
+  });
   reviewTitleEl.textContent = "Last move review";
   const closeAggregate =
     evaluation.verdict === "different-choice" &&
@@ -1263,9 +1413,7 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
       : evaluation.averageGap.toLocaleString(),
     "AVG GAP",
   );
-  reviewBranchesEl.textContent = evaluation.branches
-    ? `${evaluation.branches.user} of 6 futures favored your move, ${evaluation.branches.tied} tied, and ${evaluation.branches.ama} favored Ama's choice.`
-    : "No sampled-future score is assigned to the excluded move.";
+  renderReviewBranchSummary(evaluation.branches);
   reviewRangesEl.replaceChildren();
   appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
   appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");

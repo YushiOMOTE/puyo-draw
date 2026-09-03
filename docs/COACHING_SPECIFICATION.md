@@ -247,9 +247,9 @@ relativeDispersion(m) = standardDeviation(m) / mean(m)
 ```
 
 Lower relative dispersion means the found results varied less across the six
-pairing patterns. The UI shows the exact six scores, range, standard deviation,
-and relative dispersion, but does not initially convert them into an arbitrary
-0-100 stability grade.
+pairing patterns. The UI shows the range and relative dispersion up front, and
+keeps the exact six scores in a collapsed comparison chart. It does not convert
+them into an arbitrary 0-100 stability grade.
 
 Edge cases:
 
@@ -281,9 +281,13 @@ The report has three evidence layers:
 No combined coaching grade is calculated. A stronger result in one layer must
 not erase a contrary result in another layer.
 
-The initial summary uses deterministic templates, not a generative model. It
-selects at most three material heuristic differences and includes advantages of
-both placements when present. Examples include:
+The initial summary uses deterministic templates, not a generative model.
+Potential, variation, immediate priority, and the largest weighted feature gaps
+are visual comparisons. Definitions and raw calculations open from adjacent
+question-mark controls rather than occupying the default report. The six-future
+chart and complete feature table are collapsed initially. A short trigger-probe
+insight may be shown when available. Examples of supported coaching language
+include:
 
 > Ama's field needed one fewer hypothetical puyo for its best trigger probe.
 

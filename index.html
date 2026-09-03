@@ -365,17 +365,26 @@
           <p id="reviewSummary" class="review-summary"></p>
           <p id="reviewOutcome" class="review-outcome"></p>
           <div id="reviewStats" class="review-stats"></div>
-          <p id="reviewBranches" class="review-branches"></p>
+          <div id="reviewBranches" class="review-branches"></div>
           <div id="reviewRanges" class="review-ranges"></div>
           <section id="reviewBranchSection" class="review-branch-section">
-            <h3>Future potential and stability</h3>
+            <div class="review-section-heading">
+              <h3>Future potential and stability</h3>
+              <details class="review-help">
+                <summary aria-label="Explain future potential and stability">?</summary>
+                <p>Potential is the average maximum score Ama found. Stability is the variation across six fixed test continuations; lower variation is more consistent.</p>
+              </details>
+            </div>
             <p id="reviewFutureSummary" class="review-section-summary"></p>
             <div id="reviewFutureMetrics" class="review-future-metrics"></div>
-            <div class="review-branch-legend" aria-hidden="true">
-              <span><i class="review-legend-user"></i>Your move</span>
-              <span><i class="review-legend-ama"></i>Ama's choice</span>
-            </div>
-            <div id="reviewBranchChart" class="review-branch-chart"></div>
+            <details class="review-future-details">
+              <summary>Six tested futures</summary>
+              <div class="review-branch-legend" aria-hidden="true">
+                <span><i class="review-legend-user"></i>Your move</span>
+                <span><i class="review-legend-ama"></i>Ama's choice</span>
+              </div>
+              <div id="reviewBranchChart" class="review-branch-chart"></div>
+            </details>
           </section>
           <div class="review-comparison">
             <section>
@@ -390,15 +399,21 @@
             </section>
           </div>
           <section id="reviewEvaluationSection" class="review-evaluation-section" hidden>
-            <h3>How Ama reads these fields</h3>
-            <p id="reviewEvaluationSummary" class="review-section-summary"></p>
+            <div class="review-section-heading">
+              <h3>How Ama reads these fields</h3>
+              <details class="review-help">
+                <summary aria-label="Explain Ama's board evaluation">?</summary>
+                <p>These weighted features decide which fields remain in Ama's beam search. They do not directly decide the final move ranking.</p>
+              </details>
+            </div>
+            <div id="reviewEvaluationSummary" class="review-priority-chart"></div>
+            <div id="reviewContributionChart" class="review-contribution-chart"></div>
             <div id="reviewInsightCards" class="review-insight-cards"></div>
             <details class="review-signal-details">
-              <summary>All Ama signals</summary>
+              <summary>All feature values</summary>
               <div id="reviewSignalTable" class="review-signal-table"></div>
             </details>
           </section>
-          <p class="review-note">Future potential is the average maximum chain score found across Ama's six fixed test continuations. Stability compares variation across those tests; it does not affect Ama's ranking.</p>
         </section>
       </div>
     </main>
