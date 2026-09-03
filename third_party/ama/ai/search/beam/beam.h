@@ -28,6 +28,21 @@ struct Result
     std::vector<Candidate> candidates = {};
 };
 
+class Observer
+{
+public:
+    virtual ~Observer() = default;
+    virtual void on_child(
+        const node::Data& parent,
+        node::Data& child,
+        const move::Placement& placement
+    ) = 0;
+    virtual void on_score(
+        const node::Data& child,
+        const chain::Score& chain
+    ) = 0;
+};
+
 void expand(
     const cell::Pair& pair,
     node::Data& node,
@@ -40,14 +55,16 @@ void think(
     std::vector<Candidate>& candidates,
     Layer& parents,
     Layer& children,
-    const eval::Weight& w
+    const eval::Weight& w,
+    Observer* observer = nullptr
 );
 
 Result search(
     Field field,
     cell::Queue queue,
     eval::Weight w,
-    Configs configs = Configs()
+    Configs configs = Configs(),
+    Observer* observer = nullptr
 );
 
 Result search_multi(

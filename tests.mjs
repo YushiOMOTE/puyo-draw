@@ -74,9 +74,14 @@ import {
   aggregateAmaBranches,
   analyzeAmaBranches,
   compareAmaFutureProfiles,
+  createAmaBranchQueue,
   evaluateAmaMove,
   summarizeAmaBranchScores,
 } from "./tokopuyo/pressureless-ama.js";
+import {
+  buildAmaReplay,
+  selectBestAmaBranch,
+} from "./tokopuyo/ama-replay.js";
 import { solveTokopuyoSuggestion } from "./tokopuyo/suggestion-solver.js";
 import {
   createTokopuyoSuggestionMarks,
@@ -805,6 +810,47 @@ assert.deepEqual(compareAmaFutureProfiles(
   summarizeAmaBranchScores([100, 100, 100, 100, 100, 100]),
 ), { potentialLeader: "ama", stabilityLeader: "unavailable" });
 assert.equal(AMA_FUTURE_PAIRINGS.length, 6);
+assert.deepEqual(createAmaBranchQueue(
+  { axis: "red", child: "blue" },
+  { axis: "yellow", child: "green" },
+  ["red", "yellow", "green", "blue"],
+  0,
+  6,
+), [
+  { axis: "red", child: "blue" },
+  { axis: "yellow", child: "green" },
+  { axis: "red", child: "yellow" },
+  { axis: "green", child: "blue" },
+  { axis: "red", child: "yellow" },
+  { axis: "green", child: "blue" },
+]);
+assert.deepEqual(selectBestAmaBranch({
+  branchScores: [40, 100, 20, 100, 0, 30],
+}), { branch: 1, score: 100, tiedBranches: [1, 3] });
+const simpleAmaReplay = buildAmaReplay(emptyBoard(), 0, {
+  branch: 0,
+  score: 40,
+  chainCount: 1,
+  moves: [
+    {
+      handOffset: 0,
+      pair: { axis: "red", child: "red" },
+      col: 0,
+      orientation: ORIENTATION.UP,
+    },
+    {
+      handOffset: 1,
+      pair: { axis: "red", child: "red" },
+      col: 0,
+      orientation: ORIENTATION.UP,
+    },
+  ],
+});
+assert.equal(simpleAmaReplay.hands.length, 2);
+assert.equal(simpleAmaReplay.hands[0].result.chains, 0);
+assert.equal(simpleAmaReplay.hands[1].result.chains, 1);
+assert.equal(simpleAmaReplay.hands[1].result.score, 40);
+assert.equal(simpleAmaReplay.hands[1].afterBoard.flat().filter(Boolean).length, 0);
 const tiedAmaCandidates = amaAllCandidates.map((candidate, index) =>
   index === 1
     ? {

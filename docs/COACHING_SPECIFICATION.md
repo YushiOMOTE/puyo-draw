@@ -2,8 +2,9 @@
 
 Status: Initial implementation. The immediate breakdown, future-potential and
 relative-variation comparison, fixed pairing labels, deterministic summaries,
-and core board evidence are available. The complete trigger-probe matrix and
-continuation witness paths remain proposed follow-ups.
+core board evidence, and maximum-score continuation replay are available. The
+complete trigger-probe matrix and intermediate-field explanation remain
+proposed follow-ups.
 
 ## Purpose
 
@@ -34,11 +35,13 @@ The first coaching implementation includes:
 - deterministic plain-language summaries of the most material differences;
 - the six existing per-branch maximum chain scores;
 - a future-potential summary derived from those six scores; and
-- a stability comparison derived from their relative dispersion.
+- a stability comparison derived from their relative dispersion; and
+- an on-demand replay of each comparison move's maximum-score branch.
 
-Continuation witness paths, intermediate-field explanations, live-versus
-tactics, incoming garbage, opponent state, and claims about the player's likely
-real queue are not included.
+Intermediate-field explanations, live-versus tactics, incoming garbage,
+opponent state, and claims about the player's likely real queue are not
+included. A continuation witness shows what the bounded search found; it does
+not explain why that future is likely in real play.
 
 ## Evaluation Points
 
@@ -346,6 +349,30 @@ The pure JavaScript comparison layer consumes diagnostic data but does not
 recalculate Ama features. It may calculate aggregate statistics from the six
 scores and select presentation templates.
 
+## Maximum-Score Replay
+
+For the user and Ama Current placements independently, replay selects the first
+fixed future branch tied for that candidate's maximum positive score. It reruns
+that one branch through the same beam-search implementation with an optional
+observer that records parent-linked placements only for the selected root
+candidate. The normal search loop, evaluation, pruning, transposition table,
+and candidate ranking are not copied or replaced.
+
+Before presenting a witness, the application verifies that the rerun reproduces
+the original score for every legal Current placement, begins with the selected
+Current placement, and ends with the selected branch score and reported chain
+count. Any mismatch or timeout produces a defensive unavailable state. A
+zero-score branch or an excluded placement is intentionally not replayable and
+is not described as a trace failure.
+
+Replay always begins with the recorded pre-move field and queue boundary. The
+queue is Current, Next, followed by the selected fixed synthetic pairing pattern.
+One manual Next operation commits one full hand, resolves all chain rounds with
+the main Tokopuyo animation timing, and exposes the following pair. Play repeats
+the same operation automatically; Pause prevents a later hand from starting,
+and Start returns to the initial replay state. Replay is read-only and cannot
+modify the live board, score, history, or caches.
+
 ## Interface Outline
 
 The existing last-move report is extended in this order:
@@ -377,6 +404,8 @@ mobile-first.
    physical-color pairing labels.
 6. Validate wording and presentation thresholds against a representative corpus
    before enabling absolute stability language.
+7. Add optional beam-search witness observation, strict rerun parity checks, and
+   one-hand manual and automatic replay controls.
 
 ## Acceptance Criteria
 
@@ -388,6 +417,10 @@ mobile-first.
 - The selected trigger probe has the maximum subtotal under the active weights,
   and its hypothetical clear replays to the reported chain result.
 - Future-potential ordering matches the existing six-score aggregate ordering.
+- An enabled replay reproduces the selected candidate's original branch score
+  and chain count, and its first placement is the compared Current move.
+- Next advances exactly one hand, Play composes the same operation, and neither
+  path changes the live Tokopuyo session or history.
 - Stability never affects or is described as affecting Ama's move selection.
 - All zero, tied, excluded, and lower-immediate-but-higher-future cases have
   explicit tested wording.

@@ -8,6 +8,13 @@ with the same upstream feature functions and `build` weights. The Worker checks
 its reconstructed static and action totals against Ama's evaluator before the
 coaching report uses them.
 
+Maximum-score coaching replay reruns one fixed future branch with an optional
+observer on the shared upstream beam-search loop. The observer records a
+parent-linked placement witness for one requested Current move; it does not
+duplicate or alter expansion, evaluation, pruning, or candidate selection. The
+browser accepts the witness only if the rerun reproduces the original candidate
+score vector and selected score.
+
 `pressureless-ama.js` and `pressureless-ama.wasm` are generated with Emscripten
 6.0.9 by running:
 

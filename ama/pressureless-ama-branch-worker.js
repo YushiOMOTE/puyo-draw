@@ -20,13 +20,18 @@ self.addEventListener("message", async ({ data }) => {
   const { requestId, request } = data;
   try {
     const ama = await amaPromise;
+    const callNumber = (name, args = []) => ama.ccall(
+      name,
+      "number",
+      Array(args.length).fill("number"),
+      args,
+    );
+    const readCandidates = (count) => Array.from({ length: count }, (_, index) => ({
+      col: callNumber("ama_candidate_x", [index]),
+      orientation: callNumber("ama_candidate_rotation", [index]),
+      score: callNumber("ama_candidate_score", [index]),
+    }));
     if (request.operation === "inspect") {
-      const callNumber = (name, args = []) => ama.ccall(
-        name,
-        "number",
-        Array(args.length).fill("number"),
-        args,
-      );
       const readString = (name) => ama.ccall(name, "string", [], []);
       const readDiagnostic = () => {
         const signalCount = callNumber("ama_diag_signal_count");
@@ -92,6 +97,56 @@ self.addEventListener("message", async ({ data }) => {
       self.postMessage({ type: "result", requestId, diagnostics });
       return;
     }
+    if (request.operation === "trace") {
+      const count = ama.ccall(
+        "ama_trace_branch",
+        "number",
+        [
+          "string",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+          "number",
+        ],
+        [
+          request.board,
+          request.row14,
+          request.current.axis,
+          request.current.child,
+          request.next.axis,
+          request.next.child,
+          request.depth,
+          request.width,
+          request.branch,
+          request.target.col,
+          request.target.orientation,
+          request.target.score,
+        ],
+      );
+      if (count === -2) throw new Error("Pressureless Ama witness did not match its original score");
+      if (count < 0) throw new Error("Pressureless Ama rejected witness input");
+      self.postMessage({
+        type: "result",
+        requestId,
+        branch: request.branch,
+        elapsedMs: callNumber("ama_elapsed_ms"),
+        score: callNumber("ama_trace_score"),
+        chainCount: callNumber("ama_trace_chain_count"),
+        moves: Array.from({ length: count }, (_, index) => ({
+          col: callNumber("ama_trace_move_x", [index]),
+          orientation: callNumber("ama_trace_move_rotation", [index]),
+        })),
+        candidates: readCandidates(callNumber("ama_candidate_count")),
+      });
+      return;
+    }
     const count = ama.ccall(
       "ama_solve_branch",
       "number",
@@ -120,24 +175,7 @@ self.addEventListener("message", async ({ data }) => {
     );
     if (count < 0) throw new Error("Pressureless Ama rejected its input");
 
-    const candidates = [];
-    for (let index = 0; index < count; index++) {
-      candidates.push({
-        col: ama.ccall("ama_candidate_x", "number", ["number"], [index]),
-        orientation: ama.ccall(
-          "ama_candidate_rotation",
-          "number",
-          ["number"],
-          [index],
-        ),
-        score: ama.ccall(
-          "ama_candidate_score",
-          "number",
-          ["number"],
-          [index],
-        ),
-      });
-    }
+    const candidates = readCandidates(count);
     self.postMessage({
       type: "result",
       requestId,

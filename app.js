@@ -25,6 +25,10 @@ import {
   evaluateAmaMove,
 } from "./tokopuyo/pressureless-ama.js";
 import {
+  buildAmaReplay,
+  selectBestAmaBranch,
+} from "./tokopuyo/ama-replay.js";
+import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
 import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
@@ -85,6 +89,18 @@ const reviewEvaluationSummaryEl = document.querySelector("#reviewEvaluationSumma
 const reviewContributionChartEl = document.querySelector("#reviewContributionChart");
 const reviewInsightCardsEl = document.querySelector("#reviewInsightCards");
 const reviewSignalTableEl = document.querySelector("#reviewSignalTable");
+const reviewUserReplayButton = document.querySelector("#reviewUserReplay");
+const reviewAmaReplayButton = document.querySelector("#reviewAmaReplay");
+const reviewReplayPanelEl = document.querySelector("#reviewReplayPanel");
+const reviewReplaySourceEl = document.querySelector("#reviewReplaySource");
+const reviewReplayMetaEl = document.querySelector("#reviewReplayMeta");
+const reviewReplayPairEl = document.querySelector("#reviewReplayPair");
+const reviewReplayBoardEl = document.querySelector("#reviewReplayBoard");
+const reviewReplayStatusEl = document.querySelector("#reviewReplayStatus");
+const closeReviewReplayButton = document.querySelector("#closeReviewReplay");
+const resetReviewReplayButton = document.querySelector("#resetReviewReplay");
+const nextReviewReplayButton = document.querySelector("#nextReviewReplay");
+const playReviewReplayButton = document.querySelector("#playReviewReplay");
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -107,6 +123,9 @@ let tokopuyoDisplayedChain = null;
 let tokopuyoSuggestionSession = null;
 let tokopuyoAttackSuggestionSession = null;
 let tokopuyoSuggestionMarks = new Map();
+let reviewReplayContext = null;
+let reviewReplayState = null;
+let reviewReplayRevision = 0;
 const amaAnalysisCache = new Map();
 const AMA_ANALYSIS_CACHE_LIMIT = 8;
 const suggestionController = new SuggestionController();
@@ -849,12 +868,16 @@ function renderReviewMiniBoard(
   row14,
   placementCells = [],
   evidenceCells = [],
+  clearingCells = [],
 ) {
   const placements = new Map(
     placementCells.map((cell) => [`${cell.row},${cell.col}`, cell]),
   );
   const evidence = new Map(
     evidenceCells.map((cell) => [`${cell.row},${cell.col}`, cell]),
+  );
+  const clearing = new Set(
+    clearingCells.map(({ row, col }) => `${row},${col}`),
   );
   element.replaceChildren();
   for (let row = -1; row < ROWS; row++) {
@@ -874,6 +897,7 @@ function renderReviewMiniBoard(
           color ? ` ${color}` : " review-row14-occupied"
         }${placement ? " review-placement" : ""}${
           evidenceCell ? " review-evidence" : ""
+        }${clearing.has(`${row},${col}`) ? " clearing" : ""
         }`;
         cell.append(puyo);
       }
@@ -1409,11 +1433,212 @@ function renderReviewBranchChart(comparisons) {
   });
 }
 
+const REPLAY_HAND_DELAY_MS = 650;
+
+function renderReviewReplayPair(pair) {
+  reviewReplayPairEl.replaceChildren();
+  if (!pair) {
+    reviewReplayPairEl.setAttribute("aria-label", "Replay complete");
+    return;
+  }
+  reviewReplayPairEl.setAttribute(
+    "aria-label",
+    `${capitalizeColor(pair.axis)} and ${capitalizeColor(pair.child)} replay pair`,
+  );
+  [pair.child, pair.axis].forEach((color) => {
+    const puyo = document.createElement("i");
+    puyo.className = `review-replay-puyo ${color}`;
+    reviewReplayPairEl.append(puyo);
+  });
+}
+
+function renderReviewReplay() {
+  const state = reviewReplayState;
+  if (!state) return;
+  const nextHand = state.replay.hands[state.handIndex] || null;
+  renderReviewReplayPair(nextHand?.pair || null);
+  if (!state.busy) {
+    renderReviewMiniBoard(
+      reviewReplayBoardEl,
+      state.board,
+      state.row14,
+    );
+  }
+  const complete = state.handIndex >= state.replay.hands.length;
+  reviewReplayStatusEl.textContent = complete
+    ? `${state.replay.chainCount}-chain · ${state.replay.score.toLocaleString()} points`
+    : `Hand ${state.handIndex + 1} of ${state.replay.hands.length}`;
+  resetReviewReplayButton.disabled = state.busy || state.handIndex === 0;
+  nextReviewReplayButton.disabled = state.busy || state.playing || complete;
+  playReviewReplayButton.disabled = state.busy && !state.playing;
+  playReviewReplayButton.textContent = state.playing ? "❚❚ Pause" : "▶ Play";
+}
+
+function resetReviewReplay() {
+  if (!reviewReplayState || reviewReplayState.busy) return;
+  reviewReplayRevision++;
+  reviewReplayState = {
+    ...reviewReplayState,
+    board: clone(reviewReplayState.initialBoard),
+    row14: reviewReplayState.initialRow14,
+    handIndex: 0,
+    playing: false,
+  };
+  renderReviewReplay();
+}
+
+async function advanceReviewReplay() {
+  const state = reviewReplayState;
+  if (!state || state.busy || state.handIndex >= state.replay.hands.length) return;
+  const revision = reviewReplayRevision;
+  const hand = state.replay.hands[state.handIndex];
+  state.busy = true;
+  renderReviewReplay();
+  renderReviewMiniBoard(
+    reviewReplayBoardEl,
+    hand.lockedBoard,
+    hand.lockedRow14,
+    hand.cells,
+  );
+  reviewReplayStatusEl.textContent = `Hand ${state.handIndex + 1} · placed`;
+  const completed = await animateChainRounds({
+    lockedBoard: hand.lockedBoard,
+    rounds: hand.result.rounds,
+    isCancelled: () => revision !== reviewReplayRevision,
+    onFrame({ board: frameBoard, chain, clearingCells }) {
+      renderReviewMiniBoard(
+        reviewReplayBoardEl,
+        frameBoard,
+        hand.lockedRow14,
+        [],
+        [],
+        clearingCells,
+      );
+      reviewReplayStatusEl.textContent = `Hand ${state.handIndex + 1} · ${chain}-chain`;
+    },
+  });
+  if (!completed || revision !== reviewReplayRevision || reviewReplayState !== state) return;
+  state.board = clone(hand.afterBoard);
+  state.row14 = hand.afterRow14;
+  state.handIndex++;
+  state.busy = false;
+  renderReviewReplay();
+  if (!state.playing || state.handIndex >= state.replay.hands.length) {
+    state.playing = false;
+    renderReviewReplay();
+    return;
+  }
+  await new Promise((resolve) => setTimeout(resolve, REPLAY_HAND_DELAY_MS));
+  if (revision === reviewReplayRevision && state.playing) {
+    void advanceReviewReplay();
+  }
+}
+
+function closeReviewReplay() {
+  reviewReplayRevision++;
+  if (reviewReplayState) reviewReplayState.playing = false;
+  reviewReplayState = null;
+  reviewReplayPanelEl.hidden = true;
+}
+
+function showReviewReplayResult(source, selection, replay) {
+  reviewReplayState = {
+    source,
+    selection,
+    replay,
+    initialBoard: clone(reviewReplayContext.turn.beforeBoard),
+    initialRow14: reviewReplayContext.turn.beforeRow14,
+    board: clone(reviewReplayContext.turn.beforeBoard),
+    row14: reviewReplayContext.turn.beforeRow14,
+    handIndex: 0,
+    busy: false,
+    playing: false,
+  };
+  reviewReplaySourceEl.textContent = source === "user" ? "YOUR MOVE" : "AMA'S CHOICE";
+  reviewReplayMetaEl.replaceChildren();
+  reviewReplayMetaEl.append(createFuturePairingIcon(selection.branch));
+  const score = document.createElement("strong");
+  score.textContent = `${selection.score.toLocaleString()} points`;
+  const tie = document.createElement("span");
+  tie.textContent = selection.tiedBranches.length > 1
+    ? `Best in ${selection.tiedBranches.length} of 6 futures`
+    : "Best of 6 futures";
+  reviewReplayMetaEl.append(score, tie);
+  reviewReplayPanelEl.hidden = false;
+  renderReviewReplay();
+  reviewReplayPanelEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+async function launchReviewReplay(source) {
+  if (isSuggesting) return;
+  const context = reviewReplayContext;
+  const candidate = source === "user"
+    ? context?.evaluation.user
+    : context?.evaluation.best;
+  const selection = selectBestAmaBranch(candidate);
+  if (!context || !candidate || !selection || selection.score <= 0) return;
+  const revision = ++reviewReplayRevision;
+  reviewReplayPanelEl.hidden = false;
+  reviewReplaySourceEl.textContent = source === "user" ? "YOUR MOVE" : "AMA'S CHOICE";
+  reviewReplayMetaEl.textContent = "Tracing Ama's best future…";
+  reviewReplayPairEl.replaceChildren();
+  reviewReplayBoardEl.replaceChildren();
+  reviewReplayStatusEl.textContent = "Please wait";
+  resetReviewReplayButton.disabled = true;
+  nextReviewReplayButton.disabled = true;
+  playReviewReplayButton.disabled = true;
+  const cacheKey = `${source}:${selection.branch}`;
+  try {
+    let replay = context.replays.get(cacheKey);
+    if (!replay) {
+      isSuggesting = true;
+      render();
+      const witness = await pressurelessAmaController.traceWitness({
+        board: clone(context.turn.beforeBoard),
+        row14: context.turn.beforeRow14,
+        hands: [{ ...context.turn.current }, { ...context.turn.next }],
+        colors: [...context.colors],
+        branch: selection.branch,
+        target: {
+          col: candidate.col,
+          orientation: candidate.orientation,
+          score: selection.score,
+        },
+        expectedCandidates: context.allCandidates,
+        ...TOKOPUYO_SUGGESTION_CONFIG,
+      });
+      replay = buildAmaReplay(
+        context.turn.beforeBoard,
+        context.turn.beforeRow14,
+        witness,
+      );
+      context.replays.set(cacheKey, replay);
+    }
+    if (revision !== reviewReplayRevision || context !== reviewReplayContext) return;
+    showReviewReplayResult(source, selection, replay);
+  } catch (error) {
+    if (revision !== reviewReplayRevision) return;
+    console.error("Ama replay failed", error);
+    reviewReplayMetaEl.textContent = "Replay unavailable";
+    reviewReplayStatusEl.textContent = "Ama's traced path did not pass validation.";
+  } finally {
+    isSuggesting = false;
+    render();
+  }
+}
+
 function closeLastMoveReview() {
+  closeReviewReplay();
+  reviewReplayContext = null;
   reviewOverlay.hidden = true;
 }
 
-function displayLastMoveReview(evaluation, turn, diagnostics = null) {
+function displayLastMoveReview(
+  evaluation,
+  turn,
+  diagnostics = null,
+  allCandidates = [],
+) {
   const summaries = {
     "top-choice": "Ama's first choice matches your move.",
     "tied-choice": "Your move tied Ama's first choice.",
@@ -1425,6 +1650,14 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
   reviewOverlay.querySelectorAll("details").forEach((details) => {
     details.open = false;
   });
+  closeReviewReplay();
+  reviewReplayContext = {
+    evaluation,
+    turn,
+    allCandidates,
+    colors: [...tokopuyoSession.pattern.colors],
+    replays: new Map(),
+  };
   reviewTitleEl.textContent = "Last move review";
   const closeAggregate =
     evaluation.verdict === "different-choice" &&
@@ -1467,6 +1700,16 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
   reviewAmaPlacementEl.textContent = evaluation.best
     ? describePlacement(evaluation.best)
     : "No surviving placement";
+  const userBestBranch = selectBestAmaBranch(evaluation.user);
+  const amaBestBranch = selectBestAmaBranch(evaluation.best);
+  reviewUserReplayButton.disabled = !userBestBranch || userBestBranch.score <= 0;
+  reviewAmaReplayButton.disabled = !amaBestBranch || amaBestBranch.score <= 0;
+  reviewUserReplayButton.title = reviewUserReplayButton.disabled
+    ? "No positive-score future was found"
+    : "Replay your highest-scoring tested future";
+  reviewAmaReplayButton.title = reviewAmaReplayButton.disabled
+    ? "No positive-score future was found"
+    : "Replay Ama's highest-scoring tested future";
   const userPlacementCells = turn.placement.cells;
   const amaPlacementCells = evaluation.best?.moves[0].cells || [];
   renderReviewMiniBoard(
@@ -1492,6 +1735,8 @@ function displayLastMoveReview(evaluation, turn, diagnostics = null) {
 }
 
 function displayLastMoveReviewError() {
+  closeReviewReplay();
+  reviewReplayContext = null;
   reviewTitleEl.textContent = "Review unavailable";
   reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
   reviewOutcomeEl.textContent = "";
@@ -1570,7 +1815,7 @@ async function showLastMoveReview() {
     }
   }
   if (lastTurnReviewKey() !== key) return;
-  displayLastMoveReview(evaluation, turn, diagnostics);
+  displayLastMoveReview(evaluation, turn, diagnostics, allCandidates);
 }
 
 async function showTokopuyoSuggestion() {
@@ -1757,6 +2002,41 @@ async function showSuggestion() {
   }
 }
 
+const CHAIN_CLEAR_DELAY_MS = 420;
+const CHAIN_GRAVITY_DELAY_MS = 280;
+
+async function animateChainRounds({
+  lockedBoard,
+  rounds,
+  onFrame,
+  isCancelled = () => false,
+}) {
+  let currentBoard = clone(lockedBoard);
+  for (let index = 0; index < rounds.length; index++) {
+    if (isCancelled()) return false;
+    onFrame({
+      board: currentBoard,
+      chain: index + 1,
+      clearingCells: findClearingCells(currentBoard).map(([row, col]) => ({
+        row,
+        col,
+      })),
+      phase: "clearing",
+    });
+    await new Promise((resolve) => setTimeout(resolve, CHAIN_CLEAR_DELAY_MS));
+    if (isCancelled()) return false;
+    currentBoard = applyGravity(rounds[index].state);
+    onFrame({
+      board: currentBoard,
+      chain: index + 1,
+      clearingCells: [],
+      phase: "settled",
+    });
+    await new Promise((resolve) => setTimeout(resolve, CHAIN_GRAVITY_DELAY_MS));
+  }
+  return !isCancelled();
+}
+
 async function dropTokopuyoPair() {
   if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
   const committed = commitActivePair(tokopuyoSession);
@@ -1768,18 +2048,21 @@ async function dropTokopuyoPair() {
   tokopuyoDisplayedChain = 0;
   render();
 
-  let step = 0;
-  for (const round of committed.result.rounds) {
-    tokopuyoDisplayedChain = ++step;
-    const cells = [...boardEl.children];
-    findClearingCells(tokopuyoBoardOverride).forEach(([row, col]) => {
-      cells[row * COLS + col]?.classList.add("clearing");
-    });
-    await new Promise((resolve) => setTimeout(resolve, 420));
-    tokopuyoBoardOverride = applyGravity(round.state);
-    render();
-    await new Promise((resolve) => setTimeout(resolve, 280));
-  }
+  await animateChainRounds({
+    lockedBoard: committed.lockedBoard,
+    rounds: committed.result.rounds,
+    onFrame({ board: frameBoard, chain, clearingCells }) {
+      tokopuyoBoardOverride = frameBoard;
+      tokopuyoDisplayedChain = chain;
+      render();
+      if (clearingCells.length) {
+        const cells = [...boardEl.children];
+        clearingCells.forEach(({ row, col }) => {
+          cells[row * COLS + col]?.classList.add("clearing");
+        });
+      }
+    },
+  });
 
   tokopuyoBoardOverride = null;
   tokopuyoDisplayedChain = null;
@@ -2037,6 +2320,31 @@ document.querySelector("#help").addEventListener("click", () => {
 });
 closeHelpButton.addEventListener("click", closeHelp);
 closeReviewButton.addEventListener("click", closeLastMoveReview);
+reviewUserReplayButton.addEventListener("click", () => {
+  void launchReviewReplay("user");
+});
+reviewAmaReplayButton.addEventListener("click", () => {
+  void launchReviewReplay("ama");
+});
+closeReviewReplayButton.addEventListener("click", closeReviewReplay);
+resetReviewReplayButton.addEventListener("click", resetReviewReplay);
+nextReviewReplayButton.addEventListener("click", () => {
+  void advanceReviewReplay();
+});
+playReviewReplayButton.addEventListener("click", () => {
+  if (!reviewReplayState) return;
+  if (reviewReplayState.playing) {
+    reviewReplayState.playing = false;
+    renderReviewReplay();
+    return;
+  }
+  if (reviewReplayState.handIndex >= reviewReplayState.replay.hands.length) {
+    resetReviewReplay();
+  }
+  reviewReplayState.playing = true;
+  renderReviewReplay();
+  if (!reviewReplayState.busy) void advanceReviewReplay();
+});
 helpOverlay.addEventListener("click", (event) => {
   if (event.target === helpOverlay) closeHelp();
 });

@@ -391,13 +391,35 @@
               <h3>Your move</h3>
               <p id="reviewUserPlacement" class="review-placement-label"></p>
               <div id="reviewUserBoard" class="review-mini-board" aria-label="Field after your move with Ama's trigger probe"></div>
+              <button id="reviewUserReplay" class="review-replay-launch" type="button">▶ Best future</button>
             </section>
             <section>
               <h3>Ama's choice</h3>
               <p id="reviewAmaPlacement" class="review-placement-label"></p>
               <div id="reviewAmaBoard" class="review-mini-board" aria-label="Field after Ama's move with Ama's trigger probe"></div>
+              <button id="reviewAmaReplay" class="review-replay-launch" type="button">▶ Best future</button>
             </section>
           </div>
+          <section id="reviewReplayPanel" class="review-replay-panel" hidden>
+            <div class="review-section-heading">
+              <div>
+                <p id="reviewReplaySource" class="review-replay-source"></p>
+                <h3>Best future replay</h3>
+              </div>
+              <button id="closeReviewReplay" class="review-replay-close" type="button" aria-label="Close replay">×</button>
+            </div>
+            <div id="reviewReplayMeta" class="review-replay-meta"></div>
+            <div class="review-replay-stage">
+              <div id="reviewReplayPair" class="review-replay-pair" aria-label="Current replay pair"></div>
+              <div id="reviewReplayBoard" class="review-mini-board review-replay-board" aria-label="Replay field"></div>
+            </div>
+            <p id="reviewReplayStatus" class="review-replay-status" aria-live="polite"></p>
+            <div class="review-replay-controls">
+              <button id="resetReviewReplay" type="button">↺ Start</button>
+              <button id="nextReviewReplay" type="button">Next ›</button>
+              <button id="playReviewReplay" type="button">▶ Play</button>
+            </div>
+          </section>
           <section id="reviewEvaluationSection" class="review-evaluation-section" hidden>
             <div class="review-section-heading">
               <h3>How Ama reads these fields</h3>

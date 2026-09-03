@@ -5,6 +5,7 @@ import {
 } from "./ama-color-map.js";
 import {
   AMA_BRANCH_COUNT,
+  createAmaBranchQueue,
   analyzeAmaBranches,
 } from "./pressureless-ama.js";
 
@@ -279,6 +280,91 @@ export class PressurelessAmaController {
       if (this.slots.length) this.reset(error);
       throw error;
     } finally {
+      this.busy = false;
+    }
+  }
+
+  async traceWitness(request) {
+    if (this.busy) throw new Error("Pressureless Ama is already running");
+    if (!request.hands || request.hands.length < 2) {
+      throw new TypeError("Pressureless Ama witness requires Current and Next");
+    }
+    if (!Number.isInteger(request.branch) || request.branch < 0 || request.branch >= AMA_BRANCH_COUNT) {
+      throw new RangeError("Pressureless Ama witness requires one of six branches");
+    }
+    if (!request.target || request.target.score <= 0) {
+      throw new RangeError("Pressureless Ama witness requires a positive target score");
+    }
+    this.busy = true;
+    let timeoutId;
+    try {
+      await this.ensureWorkers();
+      const workerRequest = {
+        operation: "trace",
+        board: encodeAmaBoard(request.board, request.colors),
+        row14: request.row14 ?? 0,
+        current: encodeAmaPair(request.hands[0], request.colors),
+        next: encodeAmaPair(request.hands[1], request.colors),
+        depth: request.depth ?? 16,
+        width: request.width ?? 250,
+        branch: request.branch,
+        target: request.target,
+      };
+      const search = this.slots[0].run(workerRequest);
+      const timeout = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          const error = new Error("Pressureless Ama witness search timed out");
+          this.reset(error);
+          reject(error);
+        }, request.timeBudgetMs ?? 8_000);
+      });
+      const result = await Promise.race([search, timeout]);
+      const expectedScores = new Map((request.expectedCandidates || []).map(
+        (candidate) => [
+          `${candidate.col},${candidate.orientation}`,
+          candidate.branchScores[request.branch],
+        ],
+      ));
+      if (
+        expectedScores.size !== result.candidates.length ||
+        result.candidates.some((candidate) =>
+          expectedScores.get(`${candidate.col},${candidate.orientation}`) !== candidate.score)
+      ) {
+        throw new Error("Pressureless Ama witness candidate scores diverged");
+      }
+      if (
+        result.score !== request.target.score ||
+        !result.moves.length ||
+        result.moves[0].col !== request.target.col ||
+        result.moves[0].orientation !== request.target.orientation
+      ) {
+        throw new Error("Pressureless Ama witness path diverged");
+      }
+      const queue = createAmaBranchQueue(
+        request.hands[0],
+        request.hands[1],
+        request.colors,
+        request.branch,
+        request.depth ?? 16,
+      );
+      return {
+        branch: request.branch,
+        score: result.score,
+        chainCount: result.chainCount,
+        elapsedMs: result.elapsedMs,
+        moves: result.moves.map((move, handOffset) => ({
+          ...move,
+          handOffset,
+          pair: queue[handOffset],
+        })),
+      };
+    } catch (error) {
+      if (this.slots.length && /timed out|diverged/.test(error.message)) {
+        this.reset(error);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
       this.busy = false;
     }
   }

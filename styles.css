@@ -314,6 +314,10 @@ body[data-mode="tokopuyo"] .board-card {
   animation: vanish 0.35s ease-in forwards;
 }
 
+.review-mini-puyo.clearing {
+  animation: vanish 0.35s ease-in forwards;
+}
+
 .dead-mark {
   position: absolute;
   z-index: 2;
@@ -1685,6 +1689,125 @@ body[data-mode="drawing"] .help-btn {
 .review-mini-puyo.review-placement {
   outline: 2px solid #fff;
   outline-offset: -1px;
+}
+
+.review-replay-launch {
+  display: block;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  color: #315b9c;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  background: #eef5ff;
+  border: 0;
+  border-radius: 9px;
+}
+
+.review-replay-launch:disabled {
+  color: #9aa4b5;
+  background: #f1f3f6;
+}
+
+.review-replay-panel {
+  margin-top: 17px;
+  padding: 13px;
+  background: #f7f8fb;
+  border: 1px solid #dfe4ec;
+  border-radius: 14px;
+}
+
+.review-replay-panel[hidden] { display: none; }
+.review-replay-panel h3 { margin: 1px 0 0; font-size: 15px; }
+
+.review-replay-source {
+  margin: 0;
+  color: #69738a;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.review-replay-close {
+  width: 30px;
+  height: 30px;
+  color: var(--muted);
+  font-size: 18px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.review-replay-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 28px;
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.review-replay-meta strong { color: var(--ink); font-size: 11px; }
+
+.review-replay-stage {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 150px);
+  justify-content: center;
+  align-items: start;
+  gap: 9px;
+}
+
+.review-replay-board { width: 150px; margin: 0; }
+
+.review-replay-pair {
+  display: grid;
+  gap: 2px;
+  min-height: 58px;
+  padding: 5px;
+  background: #303b55;
+  border-radius: 9px;
+}
+
+.review-replay-puyo {
+  width: 25px;
+  height: 25px;
+  margin: auto;
+  border-radius: 50%;
+  box-shadow: inset -2px -2px #0002, inset 2px 2px #fff5;
+}
+
+.review-replay-status {
+  min-height: 18px;
+  margin: 8px 0 6px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.review-replay-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.review-replay-controls button {
+  min-height: 36px;
+  color: #315b9c;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  background: #e7f0ff;
+  border: 0;
+  border-radius: 9px;
+}
+
+.review-replay-controls button:disabled {
+  color: #9aa4b5;
+  background: #eceff3;
 }
 
 .review-mini-cell.review-choke::after {

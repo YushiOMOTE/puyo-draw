@@ -46,7 +46,8 @@ void think(
     std::vector<Candidate>& candidates,
     Layer& parents,
     Layer& children,
-    const eval::Weight& w
+    const eval::Weight& w,
+    Observer* observer
 )
 {
     // Sorts the parents layer
@@ -55,8 +56,17 @@ void think(
     // Expands each parent to the next layer
     for (auto& node : parents.data) {
         beam::expand(pair, node, w, [&] (node::Data& child, const move::Placement& placement, const chain::Score& chain) {
+            if (observer != nullptr) {
+                observer->on_child(node, child, placement);
+            }
+
             // Updates max chain score found
-            candidates[child.index].score = std::max(candidates[child.index].score, size_t(chain.score));
+            if (size_t(chain.score) > candidates[child.index].score) {
+                candidates[child.index].score = size_t(chain.score);
+                if (observer != nullptr) {
+                    observer->on_score(child, chain);
+                }
+            }
 
             // Prunes children that triggered big chains
             if (chain.score >= beam::PRUNE) {
@@ -102,7 +112,8 @@ Result search(
     Field field,
     cell::Queue queue,
     eval::Weight w,
-    Configs configs
+    Configs configs,
+    Observer* observer
 )
 {
     auto result = Result();
@@ -139,6 +150,12 @@ Result search(
 
             // Updates child
             child.index = i32(result.candidates.size());
+            if (observer != nullptr) {
+                observer->on_child(root, child, placement);
+                if (chain.score > 0) {
+                    observer->on_score(child, chain);
+                }
+            }
             eval::evaluate(child, w);
 
             // Pushes
@@ -159,7 +176,8 @@ Result search(
             result.candidates,
             layers[i & 1],
             layers[(i + 1) & 1],
-            w
+            w,
+            observer
         );
 
         bool enough = false;

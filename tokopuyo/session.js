@@ -11,7 +11,7 @@ import {
 } from "./pair-engine.js";
 import { generatePattern, getTsumo } from "./queue.js";
 
-const CHOKE_COL = 2;
+export const CHOKE_COL = 2;
 function pairAtPlacement(session, col, orientation) {
   return createPairAtPlacement(
     session.board,

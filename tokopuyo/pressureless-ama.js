@@ -10,6 +10,28 @@ export const AMA_FUTURE_PAIRINGS = [
   [[2, 3], [0, 1]],
 ];
 
+export function createAmaBranchQueue(
+  current,
+  next,
+  patternColors,
+  branch,
+  depth,
+) {
+  if (!Number.isInteger(branch) || branch < 0 || branch >= AMA_BRANCH_COUNT) {
+    throw new RangeError("Ama branch must be between 0 and 5");
+  }
+  if (!Number.isInteger(depth) || depth < 2) {
+    throw new RangeError("Ama queue depth must be at least 2");
+  }
+  const queue = [{ ...current }, { ...next }];
+  const pairings = AMA_FUTURE_PAIRINGS[branch];
+  while (queue.length < depth) {
+    const [axis, child] = pairings[(queue.length - 2) % pairings.length];
+    queue.push({ axis: patternColors[axis], child: patternColors[child] });
+  }
+  return queue;
+}
+
 function cellSetKey(cells) {
   return cells
     .map(({ row, col, color }) => `${row},${col},${color}`)
