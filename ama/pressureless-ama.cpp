@@ -7,6 +7,7 @@
 
 #include "../third_party/ama/core/core.h"
 #include "../third_party/ama/ai/search/beam/beam.h"
+#include "pressureless-ama-diagnostic.h"
 
 namespace
 {
@@ -132,6 +133,36 @@ EMSCRIPTEN_KEEPALIVE int ama_candidate_score(int index)
 EMSCRIPTEN_KEEPALIVE int ama_elapsed_ms()
 {
     return last_elapsed_ms;
+}
+
+EMSCRIPTEN_KEEPALIVE int ama_inspect_placement(
+    const char* board,
+    int row14,
+    int current_axis,
+    int current_child,
+    int x,
+    int rotation
+)
+{
+    if (
+        board == nullptr ||
+        std::strlen(board) != 78 ||
+        row14 < 0 || row14 >= 64 ||
+        current_axis < 0 || current_axis > 3 ||
+        current_child < 0 || current_child > 3 ||
+        x < 0 || x > 5 ||
+        rotation < 0 || rotation >= static_cast<int>(direction::COUNT)
+    ) {
+        return -1;
+    }
+
+    return ama::diagnostic::inspect(
+        decode_field(board, row14),
+        { cell::Type(current_axis), cell::Type(current_child) },
+        static_cast<i8>(x),
+        static_cast<direction::Type>(rotation),
+        build_weight()
+    ) ? 1 : 0;
 }
 
 }

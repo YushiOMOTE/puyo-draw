@@ -40,3 +40,20 @@ export function encodeAmaBoard(board, patternColors) {
     }))
     .join("");
 }
+
+export function decodeAmaBoard(encoded, patternColors) {
+  createAmaColorMap(patternColors);
+  if (typeof encoded !== "string" || encoded.length !== 78) {
+    throw new TypeError("Ama board output must contain 78 cells");
+  }
+  return Array.from({ length: 13 }, (_, row) =>
+    Array.from({ length: 6 }, (_, col) => {
+      const value = encoded[row * 6 + col];
+      if (value === ".") return null;
+      if (value === "#") return "garbage";
+      const index = AMA_COLOR_NAMES.indexOf(value);
+      if (index < 0) throw new RangeError(`Unknown Ama board color: ${value}`);
+      return patternColors[index];
+    })
+  );
+}

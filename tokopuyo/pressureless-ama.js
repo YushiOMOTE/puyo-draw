@@ -1,6 +1,14 @@
 import { dropTsumo } from "./pair-engine.js";
 
 export const AMA_BRANCH_COUNT = 6;
+export const AMA_FUTURE_PAIRINGS = [
+  [[0, 1], [2, 3]],
+  [[0, 2], [1, 3]],
+  [[0, 3], [1, 2]],
+  [[1, 2], [0, 3]],
+  [[1, 3], [0, 2]],
+  [[2, 3], [0, 1]],
+];
 
 function cellSetKey(cells) {
   return cells
@@ -85,12 +93,42 @@ export function summarizeAmaBranchScores(scores) {
     throw new TypeError("Ama branch scores must be non-negative numbers");
   }
   const total = scores.reduce((sum, score) => sum + score, 0);
+  const mean = total / scores.length;
+  const variance = scores.reduce(
+    (sum, score) => sum + ((score - mean) ** 2),
+    0,
+  ) / scores.length;
+  const standardDeviation = Math.sqrt(variance);
   return {
     total,
-    average: Math.floor(total / scores.length),
+    average: Math.floor(mean),
+    mean,
     minimum: Math.min(...scores),
     maximum: Math.max(...scores),
+    variance,
+    standardDeviation,
+    relativeDispersion: mean > 0 ? standardDeviation / mean : null,
   };
+}
+
+export function compareAmaFutureProfiles(userStats, amaStats, tolerance = 0.05) {
+  if (!userStats || !amaStats) {
+    return { potentialLeader: "unavailable", stabilityLeader: "unavailable" };
+  }
+  const potentialLeader = userStats.total === amaStats.total
+    ? "tied"
+    : userStats.total > amaStats.total ? "user" : "ama";
+  if (
+    userStats.relativeDispersion === null ||
+    amaStats.relativeDispersion === null
+  ) {
+    return { potentialLeader, stabilityLeader: "unavailable" };
+  }
+  const difference = userStats.relativeDispersion - amaStats.relativeDispersion;
+  const stabilityLeader = Math.abs(difference) < tolerance
+    ? "similar"
+    : difference < 0 ? "user" : "ama";
+  return { potentialLeader, stabilityLeader };
 }
 
 export function evaluateAmaMove(lastTurn, candidates) {

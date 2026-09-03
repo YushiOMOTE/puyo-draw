@@ -26,6 +26,7 @@ const result = spawnSync(compiler, [
   "-msse4.1",
   ...core,
   ...beam,
+  "ama/pressureless-ama-diagnostic.cpp",
   "ama/pressureless-ama.cpp",
   "--no-entry",
   "-sENVIRONMENT=worker",

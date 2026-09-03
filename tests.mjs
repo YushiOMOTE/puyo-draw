@@ -47,6 +47,7 @@ import {
   rotatePair,
 } from "./tokopuyo/pair-engine.js";
 import {
+  decodeAmaBoard,
   encodeAmaBoard,
   encodeAmaPair,
   toAmaColor,
@@ -69,8 +70,10 @@ import {
 } from "./tokopuyo/construction-evaluator.js";
 import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
+  AMA_FUTURE_PAIRINGS,
   aggregateAmaBranches,
   analyzeAmaBranches,
+  compareAmaFutureProfiles,
   evaluateAmaMove,
   summarizeAmaBranchScores,
 } from "./tokopuyo/pressureless-ama.js";
@@ -317,6 +320,13 @@ assert.equal(
     ["purple", "green", "red", "blue"],
   ).slice(-6),
   "RYGB#.",
+);
+assert.deepEqual(
+  decodeAmaBoard(
+    `${".".repeat(72)}RYGB#.`,
+    ["purple", "green", "red", "blue"],
+  )[ROWS - 1],
+  ["purple", "green", "red", "blue", GARBAGE, null],
 );
 assert.throws(
   () => encodeAmaBoard(
@@ -751,14 +761,22 @@ assert.deepEqual(reviewedMove.branches, { user: 0, tied: 0, ama: 6 });
 assert.deepEqual(reviewedMove.userStats, {
   total: 150,
   average: 25,
+  mean: 25,
   minimum: 25,
   maximum: 25,
+  variance: 0,
+  standardDeviation: 0,
+  relativeDispersion: 0,
 });
 assert.deepEqual(reviewedMove.bestStats, {
   total: 2_100,
   average: 350,
+  mean: 350,
   minimum: 100,
   maximum: 600,
+  variance: 175_000 / 6,
+  standardDeviation: Math.sqrt(175_000 / 6),
+  relativeDispersion: Math.sqrt(175_000 / 6) / 350,
 });
 assert.equal(reviewedMove.branchComparisons.length, 6);
 assert.equal(reviewedMove.branchComparisons[0].winner, "ama");
@@ -766,10 +784,27 @@ assert.equal(reviewedMove.aggregateRetention, 150 / 2_100);
 assert.deepEqual(summarizeAmaBranchScores([0, 10, 20, 30, 40, 50]), {
   total: 150,
   average: 25,
+  mean: 25,
   minimum: 0,
   maximum: 50,
+  variance: 1_750 / 6,
+  standardDeviation: Math.sqrt(1_750 / 6),
+  relativeDispersion: Math.sqrt(1_750 / 6) / 25,
 });
 assert.throws(() => summarizeAmaBranchScores([1, 2]), /requires six scores/);
+assert.deepEqual(compareAmaFutureProfiles(
+  summarizeAmaBranchScores([100, 100, 100, 100, 100, 100]),
+  summarizeAmaBranchScores([0, 50, 100, 150, 200, 300]),
+), { potentialLeader: "ama", stabilityLeader: "user" });
+assert.deepEqual(compareAmaFutureProfiles(
+  summarizeAmaBranchScores([100, 100, 100, 100, 100, 100]),
+  summarizeAmaBranchScores([104, 104, 104, 104, 104, 104]),
+), { potentialLeader: "ama", stabilityLeader: "similar" });
+assert.deepEqual(compareAmaFutureProfiles(
+  summarizeAmaBranchScores([0, 0, 0, 0, 0, 0]),
+  summarizeAmaBranchScores([100, 100, 100, 100, 100, 100]),
+), { potentialLeader: "ama", stabilityLeader: "unavailable" });
+assert.equal(AMA_FUTURE_PAIRINGS.length, 6);
 const tiedAmaCandidates = amaAllCandidates.map((candidate, index) =>
   index === 1
     ? {

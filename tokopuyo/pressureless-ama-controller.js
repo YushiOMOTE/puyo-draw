@@ -1,10 +1,39 @@
-import { encodeAmaBoard, encodeAmaPair } from "./ama-color-map.js";
+import {
+  decodeAmaBoard,
+  encodeAmaBoard,
+  encodeAmaPair,
+} from "./ama-color-map.js";
 import {
   AMA_BRANCH_COUNT,
   analyzeAmaBranches,
 } from "./pressureless-ama.js";
 
 const STARTUP_TIMEOUT_MS = 10_000;
+const AMA_SIGNAL_IDS = [
+  "potentialChain",
+  "triggerHeight",
+  "requiredPuyos",
+  "extensionSpace",
+  "quietLink2",
+  "quietLink3",
+  "formMatch",
+  "shapeDeviation",
+  "wells",
+  "bumps",
+  "boardLink2",
+  "boardLink3",
+  "row14Blockage",
+  "sideBias",
+  "garbageCount",
+  "pairSplit",
+  "immediateClear",
+];
+const PROBE_STATUSES = [
+  "unavailable",
+  "no-trigger",
+  "single-chain",
+  "multi-chain",
+];
 
 function defaultWorkerCount() {
   const cores = globalThis.navigator?.hardwareConcurrency || 2;
@@ -185,6 +214,71 @@ export class PressurelessAmaController {
       throw error;
     } finally {
       clearTimeout(timeoutId);
+      this.busy = false;
+    }
+  }
+
+  async inspectPlacements(request, placements) {
+    if (this.busy) throw new Error("Pressureless Ama is already running");
+    if (!Array.isArray(placements) || !placements.length) return [];
+    this.busy = true;
+    try {
+      await this.ensureWorkers();
+      const colors = request.colors;
+      const result = await this.slots[0].run({
+        operation: "inspect",
+        board: encodeAmaBoard(request.board, colors),
+        row14: request.row14 ?? 0,
+        current: encodeAmaPair(request.current, colors),
+        placements,
+      });
+      return result.diagnostics.map((diagnostic) => {
+        if (!diagnostic) return null;
+        if (diagnostic.signals.length !== AMA_SIGNAL_IDS.length) {
+          throw new Error("Ama diagnostic signal contract changed");
+        }
+        if (diagnostic.survives && !diagnostic.matchesEvaluator) {
+          throw new Error("Ama diagnostic total did not match its evaluator");
+        }
+        const signals = Object.fromEntries(diagnostic.signals.map(
+          (signal, index) => [AMA_SIGNAL_IDS[index], { id: AMA_SIGNAL_IDS[index], ...signal }],
+        ));
+        const selectedProbe = diagnostic.selectedProbe < 0
+          ? null
+          : diagnostic.probes[diagnostic.selectedProbe];
+        return {
+          ...diagnostic,
+          board: decodeAmaBoard(diagnostic.board, colors),
+          link2Mask: decodeAmaBoard(diagnostic.link2Mask, colors),
+          link3Mask: decodeAmaBoard(diagnostic.link3Mask, colors),
+          clearedMask: decodeAmaBoard(diagnostic.clearedMask, colors),
+          signals,
+          probes: diagnostic.probes.map((probe) => ({
+            ...probe,
+            color: colors[probe.color],
+            status: PROBE_STATUSES[probe.status],
+          })),
+          selectedProbe: selectedProbe
+            ? {
+              ...selectedProbe,
+              color: colors[selectedProbe.color],
+              status: PROBE_STATUSES[selectedProbe.status],
+              addedCells: Array.from(
+                { length: selectedProbe.requiredPuyos },
+                (_, index) => ({
+                  row: 12 - diagnostic.heights[selectedProbe.column] - index,
+                  col: selectedProbe.column,
+                  color: colors[selectedProbe.color],
+                }),
+              ),
+            }
+            : null,
+        };
+      });
+    } catch (error) {
+      if (this.slots.length) this.reset(error);
+      throw error;
+    } finally {
       this.busy = false;
     }
   }

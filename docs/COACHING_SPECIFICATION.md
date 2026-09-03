@@ -1,7 +1,9 @@
 # Pressureless Ama Coaching Specification
 
-Status: Proposed design. This document prepares a future implementation and does
-not describe controls that are currently available.
+Status: Initial implementation. The immediate breakdown, future-potential and
+relative-variation comparison, fixed pairing labels, deterministic summaries,
+and core board evidence are available. The complete trigger-probe matrix and
+continuation witness paths remain proposed follow-ups.
 
 ## Purpose
 

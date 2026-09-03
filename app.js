@@ -19,7 +19,11 @@ import { TOKOPUYO_SUGGESTION_CONFIG } from "./tokopuyo/suggestion-config.js";
 import {
   PressurelessAmaController,
 } from "./tokopuyo/pressureless-ama-controller.js";
-import { evaluateAmaMove } from "./tokopuyo/pressureless-ama.js";
+import {
+  AMA_FUTURE_PAIRINGS,
+  compareAmaFutureProfiles,
+  evaluateAmaMove,
+} from "./tokopuyo/pressureless-ama.js";
 import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
@@ -70,10 +74,16 @@ const reviewBranchesEl = document.querySelector("#reviewBranches");
 const reviewRangesEl = document.querySelector("#reviewRanges");
 const reviewBranchSectionEl = document.querySelector("#reviewBranchSection");
 const reviewBranchChartEl = document.querySelector("#reviewBranchChart");
+const reviewFutureSummaryEl = document.querySelector("#reviewFutureSummary");
+const reviewFutureMetricsEl = document.querySelector("#reviewFutureMetrics");
 const reviewUserPlacementEl = document.querySelector("#reviewUserPlacement");
 const reviewAmaPlacementEl = document.querySelector("#reviewAmaPlacement");
 const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
 const reviewAmaBoardEl = document.querySelector("#reviewAmaBoard");
+const reviewEvaluationSectionEl = document.querySelector("#reviewEvaluationSection");
+const reviewEvaluationSummaryEl = document.querySelector("#reviewEvaluationSummary");
+const reviewInsightCardsEl = document.querySelector("#reviewInsightCards");
+const reviewSignalTableEl = document.querySelector("#reviewSignalTable");
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -832,9 +842,18 @@ function describePlacement({ col, orientation }) {
   return `Column ${col + 1}, child ${directions[orientation]}`;
 }
 
-function renderReviewMiniBoard(element, board, row14, placementCells) {
+function renderReviewMiniBoard(
+  element,
+  board,
+  row14,
+  placementCells = [],
+  evidenceCells = [],
+) {
   const placements = new Map(
     placementCells.map((cell) => [`${cell.row},${cell.col}`, cell]),
+  );
+  const evidence = new Map(
+    evidenceCells.map((cell) => [`${cell.row},${cell.col}`, cell]),
   );
   element.replaceChildren();
   for (let row = -1; row < ROWS; row++) {
@@ -844,18 +863,300 @@ function renderReviewMiniBoard(element, board, row14, placementCells) {
         row === -1 ? " review-row14" : row < HIDDEN_ROWS ? " review-hidden" : ""
       }${row === HIDDEN_ROWS && col === 2 ? " review-choke" : ""}`;
       const placement = placements.get(`${row},${col}`);
-      const color = placement?.color || (row >= 0 ? board[row][col] : null);
+      const evidenceCell = evidence.get(`${row},${col}`);
+      const color = placement?.color || evidenceCell?.color ||
+        (row >= 0 ? board[row][col] : null);
       const occupiedRow14 = row === -1 && Boolean(row14 & (1 << col));
       if (color || occupiedRow14) {
         const puyo = document.createElement("span");
         puyo.className = `review-mini-puyo${
           color ? ` ${color}` : " review-row14-occupied"
-        }${placement ? " review-placement" : ""}`;
+        }${placement ? " review-placement" : ""}${
+          evidenceCell ? " review-evidence" : ""
+        }`;
         cell.append(puyo);
       }
       element.append(cell);
     }
   }
+}
+
+const AMA_SIGNAL_PRESENTATION = {
+  potentialChain: ["Probe chain", "Chain steps found by Ama's best trigger probe."],
+  triggerHeight: ["Trigger height", "Height of the selected hypothetical trigger column."],
+  requiredPuyos: ["Puyos to trigger", "Same-color puyos added by the selected probe; fewer is rewarded."],
+  extensionSpace: ["Extension space", "Horizontal room Ama detects around the selected trigger."],
+  quietLink2: ["Probe residue pairs", "Two-connection markers left after the hypothetical trigger."],
+  quietLink3: ["Probe residue triples", "Three-connection markers left after the hypothetical trigger."],
+  formMatch: ["Form match", "Best relative-color match among Ama's GTR, FRON, and SGTR templates."],
+  shapeDeviation: ["Shape deviation", "Distance from Ama's preferred relative column-height profile; lower is rewarded."],
+  wells: ["Well depth", "Total depth of columns below their neighbors; lower is rewarded."],
+  bumps: ["Bump height", "Total height of interior columns above both neighbors; lower is rewarded."],
+  boardLink2: ["Board pairs", "Cells classified by Ama as two-connection markers."],
+  boardLink3: ["Board triples", "Cells classified by Ama as three-connection markers."],
+  row14Blockage: ["Row 14 blockage", "Special-row occupancy that reduces reachable horizontal space."],
+  sideBias: ["Side bias", "Left/right height relative to the center; its current weight is zero."],
+  garbageCount: ["Garbage", "Garbage puyos on the evaluated field."],
+  pairSplit: ["Pair split", "Whether a horizontal Current pair separated across unequal heights."],
+  immediateClear: ["Immediate clear", "Chain steps fired by Current; Ama applies an action cost."],
+};
+
+function formatSigned(value) {
+  return `${value > 0 ? "+" : ""}${value.toLocaleString()}`;
+}
+
+function formatSignalCalculation(signal) {
+  return `${signal.rawValue.toLocaleString()} × ${signal.weight.toLocaleString()} = ${formatSigned(signal.contribution)}`;
+}
+
+function formatDispersion(stats) {
+  return stats?.relativeDispersion === null
+    ? "—"
+    : `${(stats.relativeDispersion * 100).toFixed(0)}%`;
+}
+
+function capitalizeColor(color) {
+  return color ? color[0].toUpperCase() + color.slice(1) : "Unknown";
+}
+
+function maskBoardCells(mask) {
+  if (!mask) return [];
+  return mask.flatMap((row, rowIndex) => row.flatMap((color, col) =>
+    color ? [{ row: rowIndex, col, color }] : []));
+}
+
+function diagnosticEvidenceCells(diagnostic, signalId) {
+  if (!diagnostic) return [];
+  if ([
+    "potentialChain", "triggerHeight", "requiredPuyos", "extensionSpace",
+    "quietLink2", "quietLink3",
+  ].includes(signalId)) {
+    return diagnostic.selectedProbe?.addedCells || [];
+  }
+  if (signalId === "boardLink2") return maskBoardCells(diagnostic.link2Mask);
+  if (signalId === "boardLink3") return maskBoardCells(diagnostic.link3Mask);
+  if (signalId === "immediateClear") return maskBoardCells(diagnostic.clearedMask);
+  if (signalId === "garbageCount") {
+    return diagnostic.board.flatMap((row, rowIndex) => row.flatMap((color, col) =>
+      color === "garbage" ? [{ row: rowIndex, col, color }] : []));
+  }
+  if (signalId === "row14Blockage") {
+    return Array.from({ length: COLS }, (_, col) =>
+      diagnostic.row14 & (1 << col) ? { row: -1, col, color: null } : null)
+      .filter(Boolean);
+  }
+  const columnValues = signalId === "shapeDeviation"
+    ? diagnostic.shapeDeviation
+    : signalId === "wells"
+      ? diagnostic.wellDepth
+      : signalId === "bumps" ? diagnostic.bumpHeight : null;
+  if (!columnValues) return [];
+  return columnValues.flatMap((value, col) => {
+    const height = diagnostic.heights[col];
+    return value > 0 && height > 0
+      ? [{ row: 13 - height, col, color: diagnostic.board[13 - height][col] }]
+      : [];
+  });
+}
+
+function renderDiagnosticEvidence(
+  userDiagnostic,
+  amaDiagnostic,
+  signalId,
+  userPlacementCells,
+  amaPlacementCells,
+) {
+  renderReviewMiniBoard(
+    reviewUserBoardEl,
+    userDiagnostic.board,
+    userDiagnostic.row14,
+    userPlacementCells,
+    diagnosticEvidenceCells(userDiagnostic, signalId),
+  );
+  renderReviewMiniBoard(
+    reviewAmaBoardEl,
+    amaDiagnostic.board,
+    amaDiagnostic.row14,
+    amaPlacementCells,
+    diagnosticEvidenceCells(amaDiagnostic, signalId),
+  );
+}
+
+function futurePairingLabel(branch) {
+  const colors = tokopuyoSession?.pattern.colors || [];
+  return AMA_FUTURE_PAIRINGS[branch]
+    .map(([axis, child]) =>
+      `${capitalizeColor(colors[axis])}–${capitalizeColor(colors[child])}`)
+    .join(" / ");
+}
+
+function appendFutureMetric(value, label) {
+  const metric = document.createElement("span");
+  const strong = document.createElement("strong");
+  const small = document.createElement("small");
+  strong.textContent = value;
+  small.textContent = label;
+  metric.append(strong, small);
+  reviewFutureMetricsEl.append(metric);
+}
+
+function renderFutureCoaching(evaluation) {
+  reviewFutureMetricsEl.replaceChildren();
+  if (!evaluation.userStats || !evaluation.bestStats) {
+    reviewFutureSummaryEl.textContent = "Future potential is unavailable for the excluded move.";
+    return;
+  }
+  const comparison = compareAmaFutureProfiles(
+    evaluation.userStats,
+    evaluation.bestStats,
+  );
+  const potentialText = comparison.potentialLeader === "tied"
+    ? "Both placements had the same future potential."
+    : comparison.potentialLeader === "user"
+      ? "Your placement had higher future potential in Ama's six tests."
+      : "Ama's placement had higher future potential in its six tests.";
+  const stabilityText = comparison.stabilityLeader === "similar"
+    ? "Their variation across the tests was similar."
+    : comparison.stabilityLeader === "user"
+      ? "Your results varied less across the pairing patterns."
+      : comparison.stabilityLeader === "ama"
+        ? "Ama's results varied less across the pairing patterns."
+        : "Stability is unavailable when no potential was found.";
+  reviewFutureSummaryEl.textContent = `${potentialText} ${stabilityText}`;
+  appendFutureMetric(evaluation.userStats.mean.toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  }), "YOUR POTENTIAL");
+  appendFutureMetric(evaluation.bestStats.mean.toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  }), "AMA POTENTIAL");
+  appendFutureMetric(formatDispersion(evaluation.userStats), "YOUR VARIATION");
+  appendFutureMetric(formatDispersion(evaluation.bestStats), "AMA VARIATION");
+}
+
+function createDiagnosticInsight(userDiagnostic, amaDiagnostic) {
+  if (!userDiagnostic?.survives || !amaDiagnostic?.survives) return [];
+  const insights = [];
+  const userPriority = userDiagnostic.staticTotal + userDiagnostic.actionTotal;
+  const amaPriority = amaDiagnostic.staticTotal + amaDiagnostic.actionTotal;
+  insights.push({
+    title: "Immediate search priority",
+    body: userPriority === amaPriority
+      ? `Both fields scored ${userPriority.toLocaleString()} at this point.`
+      : `${userPriority > amaPriority ? "Your" : "Ama's"} field scored higher immediately: ${userPriority.toLocaleString()} vs ${amaPriority.toLocaleString()}.`,
+  });
+  const userProbe = userDiagnostic.selectedProbe;
+  const amaProbe = amaDiagnostic.selectedProbe;
+  if (userProbe || amaProbe) {
+    const describe = (probe) => probe
+      ? `${probe.chainCount}-chain with ${probe.requiredPuyos} added ${probe.color} puyo${probe.requiredPuyos === 1 ? "" : "s"} in column ${probe.column + 1}`
+      : "no multi-chain trigger within three added puyos";
+    insights.push({
+      title: "Best trigger probe",
+      body: `You: ${describe(userProbe)}. Ama: ${describe(amaProbe)}.`,
+    });
+  }
+  const excluded = new Set([
+    "potentialChain", "triggerHeight", "requiredPuyos", "extensionSpace",
+    "quietLink2", "quietLink3", "pairSplit", "immediateClear", "sideBias",
+  ]);
+  const differences = Object.keys(AMA_SIGNAL_PRESENTATION)
+    .filter((id) => !excluded.has(id))
+    .map((id) => ({
+      id,
+      user: userDiagnostic.signals[id],
+      ama: amaDiagnostic.signals[id],
+      difference: Math.abs(
+        amaDiagnostic.signals[id].contribution -
+        userDiagnostic.signals[id].contribution,
+      ),
+    }))
+    .filter(({ difference }) => difference > 0)
+    .sort((left, right) => right.difference - left.difference);
+  if (differences.length) {
+    const { id, user, ama } = differences[0];
+    insights.push({
+      title: AMA_SIGNAL_PRESENTATION[id][0],
+      body: `You: ${user.rawValue.toLocaleString()} (${formatSigned(user.contribution)}). Ama: ${ama.rawValue.toLocaleString()} (${formatSigned(ama.contribution)}).`,
+    });
+  }
+  return insights.slice(0, 3);
+}
+
+function renderEvaluationCoaching(
+  userDiagnostic,
+  amaDiagnostic,
+  userPlacementCells = [],
+  amaPlacementCells = [],
+) {
+  const available = Boolean(userDiagnostic && amaDiagnostic);
+  reviewEvaluationSectionEl.hidden = !available;
+  reviewInsightCardsEl.replaceChildren();
+  reviewSignalTableEl.replaceChildren();
+  if (!available) return;
+  const userPriority = userDiagnostic.staticTotal + userDiagnostic.actionTotal;
+  const amaPriority = amaDiagnostic.staticTotal + amaDiagnostic.actionTotal;
+  reviewEvaluationSummaryEl.textContent = userDiagnostic.survives && amaDiagnostic.survives
+    ? `Immediate priority is ${userPriority.toLocaleString()} for your field and ${amaPriority.toLocaleString()} for Ama's. These values guide beam retention; they do not determine the final move ranking.`
+    : "Ama excluded one of these fields before assigning a board evaluation.";
+  createDiagnosticInsight(userDiagnostic, amaDiagnostic).forEach(({ title, body }) => {
+    const card = document.createElement("article");
+    const heading = document.createElement("strong");
+    const paragraph = document.createElement("p");
+    heading.textContent = title;
+    paragraph.textContent = body;
+    card.append(heading, paragraph);
+    reviewInsightCardsEl.append(card);
+  });
+  if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
+  const header = document.createElement("div");
+  header.className = "review-signal-row review-signal-header";
+  ["Signal · raw × weight = contribution", "You", "Ama"].forEach((text) => {
+    const cell = document.createElement("span");
+    cell.textContent = text;
+    header.append(cell);
+  });
+  reviewSignalTableEl.append(header);
+  Object.entries(AMA_SIGNAL_PRESENTATION).forEach(([id, [label, meaning]]) => {
+    const user = userDiagnostic.signals[id];
+    const ama = amaDiagnostic.signals[id];
+    const row = document.createElement("div");
+    row.className = "review-signal-row";
+    const description = document.createElement("span");
+    const name = document.createElement("strong");
+    const help = document.createElement("small");
+    name.textContent = label;
+    help.textContent = meaning;
+    description.append(name, help);
+    const hasEvidence =
+      diagnosticEvidenceCells(userDiagnostic, id).length > 0 ||
+      diagnosticEvidenceCells(amaDiagnostic, id).length > 0;
+    if (hasEvidence) {
+      const show = document.createElement("button");
+      show.type = "button";
+      show.className = "review-show-evidence";
+      show.textContent = "Show on boards";
+      show.addEventListener("click", () =>
+        renderDiagnosticEvidence(
+          userDiagnostic,
+          amaDiagnostic,
+          id,
+          userPlacementCells,
+          amaPlacementCells,
+        ));
+      description.append(show);
+    }
+    const userValue = document.createElement("span");
+    const amaValue = document.createElement("span");
+    const formName = (diagnostic) => ["GTR", "FRON", "SGTR"][diagnostic.bestForm];
+    userValue.textContent = `${formatSignalCalculation(user)}${
+      id === "formMatch" && formName(userDiagnostic) ? ` · ${formName(userDiagnostic)}` : ""
+    }`;
+    amaValue.textContent = `${formatSignalCalculation(ama)}${
+      id === "formMatch" && formName(amaDiagnostic) ? ` · ${formName(amaDiagnostic)}` : ""
+    }`;
+    row.append(description, userValue, amaValue);
+    reviewSignalTableEl.append(row);
+  });
 }
 
 function appendReviewStat(value, label) {
@@ -893,7 +1194,7 @@ function renderReviewBranchChart(comparisons) {
     const row = document.createElement("div");
     row.className = "review-branch-row";
     const label = document.createElement("strong");
-    label.textContent = `Future ${branch + 1}`;
+    label.textContent = futurePairingLabel(branch);
     const bars = document.createElement("div");
     bars.className = "review-branch-bars";
     [["You", "user", userScore], ["Ama", "ama", amaScore]].forEach(
@@ -924,7 +1225,7 @@ function closeLastMoveReview() {
   reviewOverlay.hidden = true;
 }
 
-function displayLastMoveReview(evaluation, turn) {
+function displayLastMoveReview(evaluation, turn, diagnostics = null) {
   const summaries = {
     "top-choice": "Ama's first choice matches your move.",
     "tied-choice": "Your move tied Ama's first choice.",
@@ -951,12 +1252,10 @@ function displayLastMoveReview(evaluation, turn) {
     "YOUR RANK",
   );
   appendReviewStat(
-    evaluation.user ? evaluation.user.averageScore.toLocaleString() : "—",
-    "YOUR AVG",
-  );
-  appendReviewStat(
-    evaluation.best ? evaluation.best.averageScore.toLocaleString() : "—",
-    "AMA AVG",
+    evaluation.aggregateRetention === null
+      ? "—"
+      : `${Math.round(evaluation.aggregateRetention * 100)}%`,
+    "POTENTIAL RETAINED",
   );
   appendReviewStat(
     evaluation.averageGap === null
@@ -970,22 +1269,31 @@ function displayLastMoveReview(evaluation, turn) {
   reviewRangesEl.replaceChildren();
   appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
   appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");
+  renderFutureCoaching(evaluation);
   renderReviewBranchChart(evaluation.branchComparisons);
   reviewUserPlacementEl.textContent = describePlacement(turn.placement);
   reviewAmaPlacementEl.textContent = evaluation.best
     ? describePlacement(evaluation.best)
     : "No surviving placement";
+  const userPlacementCells = turn.placement.cells;
+  const amaPlacementCells = evaluation.best?.moves[0].cells || [];
   renderReviewMiniBoard(
     reviewUserBoardEl,
-    turn.beforeBoard,
-    turn.beforeRow14,
-    turn.placement.cells,
+    diagnostics?.user?.board || turn.beforeBoard,
+    diagnostics?.user?.row14 ?? turn.beforeRow14,
+    userPlacementCells,
   );
   renderReviewMiniBoard(
     reviewAmaBoardEl,
-    turn.beforeBoard,
-    turn.beforeRow14,
-    evaluation.best?.moves[0].cells || [],
+    diagnostics?.ama?.board || turn.beforeBoard,
+    diagnostics?.ama?.row14 ?? turn.beforeRow14,
+    amaPlacementCells,
+  );
+  renderEvaluationCoaching(
+    diagnostics?.user,
+    diagnostics?.ama,
+    userPlacementCells,
+    amaPlacementCells,
   );
   reviewOverlay.hidden = false;
   closeReviewButton.focus();
@@ -998,7 +1306,10 @@ function displayLastMoveReviewError() {
   reviewStatsEl.replaceChildren();
   reviewBranchesEl.textContent = "";
   reviewRangesEl.replaceChildren();
+  reviewFutureSummaryEl.textContent = "";
+  reviewFutureMetricsEl.replaceChildren();
   renderReviewBranchChart(null);
+  renderEvaluationCoaching(null, null);
   reviewUserPlacementEl.textContent = "";
   reviewAmaPlacementEl.textContent = "";
   reviewUserBoardEl.replaceChildren();
@@ -1043,7 +1354,31 @@ async function showLastMoveReview() {
   }
 
   if (lastTurnReviewKey() !== key) return;
-  displayLastMoveReview(evaluateAmaMove(turn, allCandidates), turn);
+  const evaluation = evaluateAmaMove(turn, allCandidates);
+  let diagnostics = null;
+  if (evaluation.user && evaluation.best) {
+    isSuggesting = true;
+    render();
+    try {
+      const [user, ama] = await pressurelessAmaController.inspectPlacements({
+        board: clone(turn.beforeBoard),
+        row14: turn.beforeRow14,
+        current: { ...turn.current },
+        colors: [...tokopuyoSession.pattern.colors],
+      }, [
+        { col: evaluation.user.col, orientation: evaluation.user.orientation },
+        { col: evaluation.best.col, orientation: evaluation.best.orientation },
+      ]);
+      diagnostics = { user, ama };
+    } catch (error) {
+      console.error("Ama board diagnostics failed", error);
+    } finally {
+      isSuggesting = false;
+      render();
+    }
+  }
+  if (lastTurnReviewKey() !== key) return;
+  displayLastMoveReview(evaluation, turn, diagnostics);
 }
 
 async function showTokopuyoSuggestion() {

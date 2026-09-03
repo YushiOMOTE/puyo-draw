@@ -3,6 +3,11 @@
 This directory contains the application-owned ABI, browser worker, and generated
 WebAssembly artifacts for the Pressureless Ama Tokopuyo planner.
 
+The application-owned diagnostic source evaluates a legal Current placement
+with the same upstream feature functions and `build` weights. The Worker checks
+its reconstructed static and action totals against Ama's evaluator before the
+coaching report uses them.
+
 `pressureless-ama.js` and `pressureless-ama.wasm` are generated with Emscripten
 6.0.9 by running:
 

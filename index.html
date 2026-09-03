@@ -339,7 +339,7 @@
               <li>Chains run automatically after a pair locks.</li>
               <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair.</li>
               <li>Emergency Attack finds the highest-scoring safe firing routes within the current pair, Next, and Next Next. Press it again to rotate through up to ten routes.</li>
-              <li>Review Last Move compares the most recently committed pair with Pressureless Ama's complete analysis of that pre-move position.</li>
+              <li>Review Last Move compares the most recently committed pair with Pressureless Ama's complete analysis, immediate board signals, future potential, and stability across six fixed pairing tests.</li>
               <li>Bright rings highlight the existing connected puyos that would clear first when the current main chain fires. They pulse when the current pair can fire the chain.</li>
               <li>The status reports how many evaluated unknown color pairs have a safe continuation.</li>
               <li>Undo and Redo operate on complete placed pairs.</li>
@@ -368,7 +368,9 @@
           <p id="reviewBranches" class="review-branches"></p>
           <div id="reviewRanges" class="review-ranges"></div>
           <section id="reviewBranchSection" class="review-branch-section">
-            <h3>Six sampled futures</h3>
+            <h3>Future potential and stability</h3>
+            <p id="reviewFutureSummary" class="review-section-summary"></p>
+            <div id="reviewFutureMetrics" class="review-future-metrics"></div>
             <div class="review-branch-legend" aria-hidden="true">
               <span><i class="review-legend-user"></i>Your move</span>
               <span><i class="review-legend-ama"></i>Ama's choice</span>
@@ -379,15 +381,24 @@
             <section>
               <h3>Your move</h3>
               <p id="reviewUserPlacement" class="review-placement-label"></p>
-              <div id="reviewUserBoard" class="review-mini-board" aria-label="Pre-move field with your placement"></div>
+              <div id="reviewUserBoard" class="review-mini-board" aria-label="Field after your move with Ama's trigger probe"></div>
             </section>
             <section>
               <h3>Ama's choice</h3>
               <p id="reviewAmaPlacement" class="review-placement-label"></p>
-              <div id="reviewAmaBoard" class="review-mini-board" aria-label="Pre-move field with Ama's placement"></div>
+              <div id="reviewAmaBoard" class="review-mini-board" aria-label="Field after Ama's move with Ama's trigger probe"></div>
             </section>
           </div>
-          <p class="review-note">Scores are averages of the maximum chain scores found across six sampled futures, not absolute move grades.</p>
+          <section id="reviewEvaluationSection" class="review-evaluation-section" hidden>
+            <h3>How Ama reads these fields</h3>
+            <p id="reviewEvaluationSummary" class="review-section-summary"></p>
+            <div id="reviewInsightCards" class="review-insight-cards"></div>
+            <details class="review-signal-details">
+              <summary>All Ama signals</summary>
+              <div id="reviewSignalTable" class="review-signal-table"></div>
+            </details>
+          </section>
+          <p class="review-note">Future potential is the average maximum chain score found across Ama's six fixed test continuations. Stability compares variation across those tests; it does not affect Ama's ranking.</p>
         </section>
       </div>
     </main>
