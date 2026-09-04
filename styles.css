@@ -370,14 +370,6 @@ body[data-mode="tokopuyo"] .board-card {
   padding: 4px 0;
 }
 
-.app-action-slot {
-  display: contents;
-}
-
-body[data-mode="drawing"] .left-sidebar {
-  display: none;
-}
-
 .toolbar {
   display: flex;
   flex: 0 0 calc(var(--sidebar-size) + 4px);
@@ -627,11 +619,6 @@ body[data-mode="drawing"] .left-sidebar {
   flex: 0 0 1px;
   margin: 3px 0;
   background: #b9c1d080;
-}
-
-.toolbar-trash-divider {
-  margin-top: 3px;
-  margin-bottom: 3px;
 }
 
 .mode-garbage-icon {

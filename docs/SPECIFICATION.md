@@ -4,7 +4,7 @@
 
 - Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
-- The Tokopuyo button is directly above Help at the bottom of the Drawing-mode sidebar. The same position contains the Drawing-mode button while Tokopuyo is active.
+- The left sidebar is present in both modes and is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, and Help. Help is pinned to the bottom.
 - Switching modes preserves each mode's board, history, score, and mode-specific state. Switching modes does not create a history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
@@ -45,7 +45,7 @@
 - Drawing mode shows only the current chain count in a standard-width sidebar button, with `chains` below the number. Tapping it shows the cumulative points and chain count in a toast. Tokopuyo has no chain sidebar button; it instead shows the cumulative score and chain count as `XXX points / XXX chains` below the field. Both modes retain their values without requiring a simulation result toast.
 - Reset and Clear reset the chain count and cumulative score to zero. Undo and Redo restore the board, chain count, and cumulative score together.
 
-The left-side rail is ordered from top to bottom in Tokopuyo mode:
+The left-side rail is ordered from top to bottom in both modes:
 
 1. Reset (trash).
 2. Drawing/Tokopuyo mode.
@@ -62,11 +62,11 @@ The right-side rail is ordered from top to bottom:
 7. Palette.
 8. Garbage puyo mode.
 
-The Help (`i`) button is pinned to the bottom of the left rail. The reset and mode buttons have no divider between them; the help button remains visually separated.
+The Help (`i`) button is pinned to the bottom of the left rail. A divider appears between Reset and the Drawing/Tokopuyo mode button; the Help button remains visually separated.
 
 The Drawing/Tokopuyo mode button displays a small shortcut-style arrow badge at the lower-right of its mode icon. In Tokopuyo mode, the return-to-Drawing icon uses a brush silhouette.
 
-In Drawing mode, the right-side rail's action controls, below the chain-count badge, are ordered from top to bottom as Undo, Redo, Simulate, Suggestion, Palette, Garbage mode, Reset, and Drawing/Tokopuyo mode. A divider appears between Suggestion and Palette, and on both sides of Reset.
+In Drawing mode, the right-side rail's action controls, below the chain-count badge, are ordered from top to bottom as Undo, Redo, Simulate, Suggestion, Palette, and Garbage mode. A divider appears between Suggestion and Palette.
 
 ## Tokopuyo Mode
 
