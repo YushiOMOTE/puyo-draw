@@ -102,11 +102,11 @@ body[data-mode="tokopuyo"] .board-card {
 
 .board-wrap {
   position: relative;
-  width: min(100%, calc((100svh - 16px) * 0.4615));
+  width: min(100%, calc(46.153svh + 0.153px));
   max-width: 100%;
   height: auto;
   padding: 7px;
-  aspect-ratio: 6 / 13;
+  aspect-ratio: auto;
   background: var(--board);
   border-radius: 15px;
   box-shadow: inset 0 2px 5px #111a2d80;
@@ -186,7 +186,7 @@ body[data-mode="tokopuyo"] .board-card {
   grid-template-rows: repeat(13, minmax(0, 1fr));
   grid-template-columns: repeat(6, minmax(0, 1fr));
   width: 100%;
-  height: 100%;
+  height: auto;
   aspect-ratio: 6 / 13;
 }
 
@@ -2057,16 +2057,16 @@ body[data-mode="drawing"] .help-btn {
     container-type: size;
   }
   .board-wrap {
-    width: min(100%, calc((100svh - 40px) * 0.4615));
+    width: min(100%, calc(46.153svh - 10.923px));
     max-height: none;
     padding: 7px;
   }
   @supports (width: 1cqw) {
     .board-wrap {
-      width: min(100cqw, 46.153cqh);
+      width: min(100cqw, calc(46.153cqh + 7.539px));
     }
     body[data-mode="tokopuyo"] .board-wrap {
-      width: min(100cqw, 42.857cqh);
+      width: min(100cqw, calc(42.857cqh + 7.539px));
     }
   }
   .left-sidebar { gap: 7px; padding-top: 2px; }

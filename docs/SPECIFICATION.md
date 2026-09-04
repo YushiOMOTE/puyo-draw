@@ -16,6 +16,7 @@
 - The hidden-area row is outside chain resolution while occupied: its puyos neither form or join clearing groups nor clear as adjacent garbage. Gravity still applies to the full column, so a puyo that falls into the visible twelve rows participates in later group and chain checks normally.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
+- Field sizing includes the surrounding frame and uses all available space without allowing cells to overflow the frame.
 - Narrow mobile Drawing-mode layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
 - Narrow mobile Tokopuyo layouts use the same outer, card, and field-frame spacing as Drawing mode while retaining square cells and the device safe-area insets.
 
