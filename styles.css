@@ -1642,8 +1642,16 @@ body[data-mode="drawing"] .help-btn {
 }
 
 .review-placement-label {
-  min-height: 34px;
+  min-height: 18px;
   font-size: 11px;
+}
+
+.review-board-state {
+  min-height: 16px;
+  margin: 1px 0 0;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
 }
 
 .review-mini-board {

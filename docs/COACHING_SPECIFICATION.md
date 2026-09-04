@@ -46,7 +46,11 @@ not explain why that future is likely in real play.
 ## Evaluation Points
 
 Both alternatives start from the exact recorded pre-move field, special
-fourteenth-row mask, and Current pair.
+fourteenth-row mask, and Current pair. Their default comparison previews stop
+after Current lands so both placed puyos remain visible. These previews are not
+the resolved fields used for static evaluation. Selecting feature evidence
+switches both boards to the post-clear evaluation fields and removes the
+pre-clear placement outlines.
 
 For each alternative, the diagnostic evaluator must use Ama's normal root
 transition:

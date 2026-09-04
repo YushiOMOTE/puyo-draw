@@ -11,7 +11,7 @@ import {
 } from "./engine.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
-import { pairCells } from "./tokopuyo/pair-engine.js";
+import { dropTsumo, pairCells } from "./tokopuyo/pair-engine.js";
 import {
   createTokopuyoSuggestionMarks,
 } from "./tokopuyo/suggestion-markers.js";
@@ -82,6 +82,8 @@ const reviewFutureSummaryEl = document.querySelector("#reviewFutureSummary");
 const reviewFutureMetricsEl = document.querySelector("#reviewFutureMetrics");
 const reviewUserPlacementEl = document.querySelector("#reviewUserPlacement");
 const reviewAmaPlacementEl = document.querySelector("#reviewAmaPlacement");
+const reviewUserBoardStateEl = document.querySelector("#reviewUserBoardState");
+const reviewAmaBoardStateEl = document.querySelector("#reviewAmaBoardState");
 const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
 const reviewAmaBoardEl = document.querySelector("#reviewAmaBoard");
 const reviewEvaluationSectionEl = document.querySelector("#reviewEvaluationSection");
@@ -982,22 +984,30 @@ function renderDiagnosticEvidence(
   userDiagnostic,
   amaDiagnostic,
   signalId,
-  userPlacementCells,
-  amaPlacementCells,
 ) {
   renderReviewMiniBoard(
     reviewUserBoardEl,
     userDiagnostic.board,
     userDiagnostic.row14,
-    userPlacementCells,
+    [],
     diagnosticEvidenceCells(userDiagnostic, signalId),
   );
   renderReviewMiniBoard(
     reviewAmaBoardEl,
     amaDiagnostic.board,
     amaDiagnostic.row14,
-    amaPlacementCells,
+    [],
     diagnosticEvidenceCells(amaDiagnostic, signalId),
+  );
+  reviewUserBoardStateEl.textContent = "Resolved field · evidence";
+  reviewAmaBoardStateEl.textContent = "Resolved field · evidence";
+  reviewUserBoardEl.setAttribute(
+    "aria-label",
+    "Your resolved field with Ama evaluation evidence",
+  );
+  reviewAmaBoardEl.setAttribute(
+    "aria-label",
+    "Ama's resolved field with evaluation evidence",
   );
 }
 
@@ -1166,8 +1176,6 @@ function createDiagnosticInsight(userDiagnostic, amaDiagnostic) {
 function renderContributionChart(
   userDiagnostic,
   amaDiagnostic,
-  userPlacementCells,
-  amaPlacementCells,
 ) {
   reviewContributionChartEl.replaceChildren();
   if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
@@ -1214,8 +1222,6 @@ function renderContributionChart(
         userDiagnostic,
         amaDiagnostic,
         id,
-        userPlacementCells,
-        amaPlacementCells,
       ));
     }
     row.className = "review-contribution-row";
@@ -1240,8 +1246,6 @@ function renderContributionChart(
 function renderEvaluationCoaching(
   userDiagnostic,
   amaDiagnostic,
-  userPlacementCells = [],
-  amaPlacementCells = [],
 ) {
   const available = Boolean(userDiagnostic && amaDiagnostic);
   reviewEvaluationSectionEl.hidden = !available;
@@ -1264,8 +1268,6 @@ function renderEvaluationCoaching(
     renderContributionChart(
       userDiagnostic,
       amaDiagnostic,
-      userPlacementCells,
-      amaPlacementCells,
     );
   } else {
     reviewEvaluationSummaryEl.textContent = "One field was excluded.";
@@ -1310,8 +1312,6 @@ function renderEvaluationCoaching(
           userDiagnostic,
           amaDiagnostic,
           id,
-          userPlacementCells,
-          amaPlacementCells,
         ));
     }
     description.append(name, createReviewHelp(
@@ -1710,26 +1710,54 @@ function displayLastMoveReview(
   reviewAmaReplayButton.title = reviewAmaReplayButton.disabled
     ? "No positive-score future was found"
     : "Replay Ama's highest-scoring tested future";
-  const userPlacementCells = turn.placement.cells;
-  const amaPlacementCells = evaluation.best?.moves[0].cells || [];
+  const userPreview = dropTsumo(
+    turn.beforeBoard,
+    turn.current,
+    turn.placement.col,
+    turn.placement.orientation,
+    turn.beforeRow14,
+  );
+  const amaPreview = evaluation.best
+    ? dropTsumo(
+      turn.beforeBoard,
+      turn.current,
+      evaluation.best.col,
+      evaluation.best.orientation,
+      turn.beforeRow14,
+    )
+    : null;
+  const userPlacementCells = userPreview?.cells || turn.placement.cells;
+  const amaPlacementCells = amaPreview?.cells || [];
+  const userImmediateChains = diagnostics?.user?.signals.immediateClear.rawValue ??
+    turn.result.chains;
+  const amaImmediateChains = diagnostics?.ama?.signals.immediateClear.rawValue ?? 0;
+  reviewUserBoardStateEl.textContent = `Before resolution${
+    userImmediateChains ? ` · fires ${userImmediateChains}-chain` : ""
+  }`;
+  reviewAmaBoardStateEl.textContent = `Before resolution${
+    amaImmediateChains ? ` · fires ${amaImmediateChains}-chain` : ""
+  }`;
+  reviewUserBoardEl.setAttribute(
+    "aria-label",
+    "Your placement preview before chain resolution",
+  );
+  reviewAmaBoardEl.setAttribute(
+    "aria-label",
+    "Ama's placement preview before chain resolution",
+  );
   renderReviewMiniBoard(
     reviewUserBoardEl,
-    diagnostics?.user?.board || turn.beforeBoard,
-    diagnostics?.user?.row14 ?? turn.beforeRow14,
+    userPreview?.board || turn.beforeBoard,
+    userPreview?.row14 ?? turn.beforeRow14,
     userPlacementCells,
   );
   renderReviewMiniBoard(
     reviewAmaBoardEl,
-    diagnostics?.ama?.board || turn.beforeBoard,
-    diagnostics?.ama?.row14 ?? turn.beforeRow14,
+    amaPreview?.board || turn.beforeBoard,
+    amaPreview?.row14 ?? turn.beforeRow14,
     amaPlacementCells,
   );
-  renderEvaluationCoaching(
-    diagnostics?.user,
-    diagnostics?.ama,
-    userPlacementCells,
-    amaPlacementCells,
-  );
+  renderEvaluationCoaching(diagnostics?.user, diagnostics?.ama);
   reviewOverlay.hidden = false;
   closeReviewButton.focus();
 }
@@ -1749,6 +1777,8 @@ function displayLastMoveReviewError() {
   renderEvaluationCoaching(null, null);
   reviewUserPlacementEl.textContent = "";
   reviewAmaPlacementEl.textContent = "";
+  reviewUserBoardStateEl.textContent = "";
+  reviewAmaBoardStateEl.textContent = "";
   reviewUserBoardEl.replaceChildren();
   reviewAmaBoardEl.replaceChildren();
   reviewOverlay.hidden = false;

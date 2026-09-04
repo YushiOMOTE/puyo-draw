@@ -406,6 +406,21 @@ assert.deepEqual(
     { row: ROWS - 3, col: 3, role: "child" },
   ],
 );
+const preResolutionPreviewBoard = emptyBoard();
+for (let col = 0; col < 3; col++) {
+  preResolutionPreviewBoard[ROWS - 1][col] = "red";
+}
+const preResolutionPreview = dropTsumo(
+  preResolutionPreviewBoard,
+  { axis: "blue", child: "red" },
+  2,
+  ORIENTATION.RIGHT,
+);
+assert.equal(findClearingCells(preResolutionPreview.board).length, 4);
+assert.equal(preResolutionPreview.board[ROWS - 1][3], "red");
+const resolvedPreview = simulate(preResolutionPreview.board);
+assert.equal(resolvedPreview.state[ROWS - 1][3], null);
+assert.equal(resolvedPreview.state[ROWS - 1][2], "blue");
 const emptyPairPlacements = enumerateTsumoPlacements(
   emptyBoard(),
   { axis: "red", child: "blue" },
