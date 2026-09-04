@@ -76,6 +76,26 @@ button {
   box-shadow: none;
 }
 
+.tokopuyo-field-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+body[data-mode="tokopuyo"] .tokopuyo-field-stack {
+  transform: translateY(14px);
+}
+
+.tokopuyo-chain-readout {
+  margin: 8px 0 0;
+  color: #59657b;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 body[data-mode="tokopuyo"] .board-card {
   touch-action: none;
 }
@@ -111,6 +131,8 @@ body[data-mode="tokopuyo"] .board-card {
 .tokopuyo-only[hidden],
 .tokopuyo-preview[hidden],
 .tokopuyo-controls[hidden],
+.chain-badge[hidden],
+.tokopuyo-chain-readout[hidden],
 .active-pair-layer[hidden],
 #drawingHelp[hidden],
 #tokopuyoHelp[hidden] {
@@ -505,35 +527,36 @@ body[data-mode="drawing"] .left-sidebar {
 
 .chain-badge {
   appearance: none;
-  border: 0;
-  padding: 0;
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
-  gap: 3px;
-  place-content: center;
-  width: calc(var(--sidebar-size) * 1.5);
-  min-height: calc(var(--sidebar-size) * 1.35);
-  height: auto;
+  justify-content: center;
+  width: var(--sidebar-size);
+  height: var(--sidebar-size);
+  min-height: var(--sidebar-size);
+  padding: 5px;
   color: #fff;
   text-align: center;
   background: linear-gradient(145deg, #556584, #293650);
+  border: 0;
   border-radius: 14px;
   box-shadow: 0 8px 18px #29365030;
 }
 
 .chain-line {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   line-height: 1;
 }
 
 .chain-line span {
   min-width: 0;
-  font-size: clamp(16px, 3.8vw, 22px);
-  font-weight: 900;
+  font-size: 14px;
+  font-weight: 850;
   white-space: nowrap;
 }
 
@@ -2058,14 +2081,12 @@ body[data-mode="drawing"] .help-btn {
   }
   .pair-movement-controls,
   .pair-action-controls { gap: 6px; }
-  .toolbar .chain-badge,
   .toolbar .primary-btn,
   .toolbar .reset-btn,
   .sidebar-btn,
   .help-btn { border-radius: 12px; }
   .toolbar .simulation-row,
   .sidebar-actions { gap: 7px; }
-  .chain-line span { font-size: 18px; }
   .sidebar-btn { font-size: 21px; }
   .review-card { padding: 20px 16px; }
   .review-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }

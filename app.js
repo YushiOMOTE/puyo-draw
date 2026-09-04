@@ -45,7 +45,10 @@ const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
 const statusEl = document.querySelector("#status");
 const chainEl = document.querySelector("#chainNumber");
-const chainScoreEl = document.querySelector("#chainScore");
+const chainBadge = document.querySelector("#chainBadge");
+const tokopuyoChainReadout = document.querySelector("#tokopuyoChainReadout");
+const tokopuyoChainNumberEl = document.querySelector("#tokopuyoChainNumber");
+const tokopuyoChainScoreEl = document.querySelector("#tokopuyoChainScore");
 const suggestionLoadingEl = document.querySelector("#suggestionLoading");
 const flickMenu = document.querySelector("#flickMenu");
 const toastEl = document.querySelector("#toast");
@@ -181,6 +184,11 @@ const messages = {
   score: {
     en: (chains, score) => `${chains} chain${chains === 1 ? "" : "s"}: ${score.toLocaleString()} points`,
     ja: (chains, score) => `${chains}連鎖：累積${score.toLocaleString()}点`,
+  },
+  scoreSummary: {
+    en: (score, chains) =>
+      `${score.toLocaleString()} points / ${chains} chain${chains === 1 ? "" : "s"}`,
+    ja: (score, chains) => `${score.toLocaleString()}点 / ${chains}連鎖`,
   },
   garbageMode: {
     en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
@@ -374,6 +382,8 @@ function updateModeUi() {
   document.querySelectorAll(".drawing-only").forEach((element) => {
     element.hidden = isTokopuyo;
   });
+  chainBadge.hidden = isTokopuyo;
+  tokopuyoChainReadout.hidden = !isTokopuyo;
   tokopuyoPreview.hidden = !isTokopuyo;
   tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
   tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
@@ -536,16 +546,18 @@ function render() {
     "aria-busy",
     String(isSuggesting || (appMode === "tokopuyo" && tokopuyoBusy)),
   );
-  chainEl.textContent = String(
+  const displayedChain =
     appMode === "tokopuyo"
       ? tokopuyoDisplayedChain ?? tokopuyoSession?.chainCount ?? 0
-      : chainCount,
-  );
-  chainScoreEl.textContent = Number(
+      : chainCount;
+  const displayedScore = Number(
     appMode === "tokopuyo"
       ? tokopuyoSession?.cumulativeScore ?? 0
       : cumulativeScore,
-  ).toLocaleString();
+  );
+  chainEl.textContent = String(displayedChain);
+  tokopuyoChainNumberEl.textContent = String(displayedChain);
+  tokopuyoChainScoreEl.textContent = displayedScore.toLocaleString();
   updateModeUi();
   renderActivePair();
 }
@@ -2419,6 +2431,10 @@ document
   );
 document.querySelector("#undo").addEventListener("click", undo);
 document.querySelector("#redo").addEventListener("click", redo);
+chainBadge.addEventListener("click", () => {
+  if (appMode !== "drawing") return;
+  showToast(localizedMessage(messages.scoreSummary, cumulativeScore, chainCount));
+});
 document.querySelector("#clear").addEventListener("click", () => {
   if (appMode !== "drawing" || isSimulating) return;
 

@@ -51,29 +51,34 @@
           </button>
         </aside>
         <section class="board-card" aria-label="Puyo Puyo board">
-          <div class="board-wrap">
-            <div
-              id="board"
-              class="board"
-              role="grid"
-                aria-label="Six-column, thirteen-row board"
-            ></div>
-            <div
-              id="activePairLayer"
-              class="active-pair-layer"
-              aria-label="Active falling pair"
-              hidden
-            ></div>
-            <div
-              id="suggestionLoading"
-              class="suggestion-loading"
-              role="status"
-              aria-live="polite"
-              aria-label="Calculating suggestions"
-              hidden
-            >
-              <span class="loading-spinner" aria-hidden="true"></span>
+          <div class="tokopuyo-field-stack">
+            <div class="board-wrap">
+              <div
+                id="board"
+                class="board"
+                role="grid"
+                  aria-label="Six-column, thirteen-row board"
+              ></div>
+              <div
+                id="activePairLayer"
+                class="active-pair-layer"
+                aria-label="Active falling pair"
+                hidden
+              ></div>
+              <div
+                id="suggestionLoading"
+                class="suggestion-loading"
+                role="status"
+                aria-live="polite"
+                aria-label="Calculating suggestions"
+                hidden
+              >
+                <span class="loading-spinner" aria-hidden="true"></span>
+              </div>
             </div>
+            <p id="tokopuyoChainReadout" class="tokopuyo-chain-readout" aria-live="polite" hidden>
+              <span id="tokopuyoChainScore">0</span> points / <span id="tokopuyoChainNumber">0</span> chains
+            </p>
           </div>
           <div
             id="flickMenu"
@@ -103,14 +108,12 @@
             id="chainBadge"
             type="button"
             class="chain-badge"
-            aria-label="Show cumulative score"
-            title="Show cumulative score"
+            aria-label="Show current score and chain count"
+            title="Show current score and chain count"
             aria-live="polite"
           >
             <span class="chain-line"><span id="chainNumber">0</span><small>chains</small></span>
-            <span class="chain-line"><span id="chainScore">0</span><small>points</small></span>
           </button>
-
           <div class="sidebar-actions" aria-label="History controls">
             <button
               id="undo"
