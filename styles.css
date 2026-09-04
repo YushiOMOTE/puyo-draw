@@ -108,6 +108,7 @@ body[data-mode="tokopuyo"] .board-card {
 }
 
 .drawing-only[hidden],
+.tokopuyo-only[hidden],
 .tokopuyo-preview[hidden],
 .tokopuyo-controls[hidden],
 .active-pair-layer[hidden],
@@ -429,6 +430,11 @@ body[data-mode="drawing"] .left-sidebar {
   background: #d94156;
 }
 
+.tokopuyo-step-controls {
+  justify-content: center;
+  gap: 8px;
+}
+
 .tokopuyo-preview {
   display: flex;
   flex: 0 0 auto;
@@ -563,6 +569,19 @@ body[data-mode="drawing"] .left-sidebar {
   background: #fff;
   border: 0;
   box-shadow: 0 5px 12px #28344d20;
+}
+
+.step-mode-icon {
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+#toggleTokopuyoStepMode.active {
+  color: #fff;
+  background: linear-gradient(145deg, #6aa7ff, #3977d9);
+  box-shadow: 0 5px 12px #3977d940;
 }
 
 .mode-btn.active {

@@ -235,6 +235,16 @@
               <path d="m15.5 15.5 5 5M7.5 10.5l2 2 4-4" />
             </svg>
           </button>
+          <button
+            id="toggleTokopuyoStepMode"
+            class="secondary-btn sidebar-btn tokopuyo-only"
+            aria-label="Enable Tokopuyo chain step mode"
+            aria-pressed="false"
+            title="Enable Tokopuyo chain step mode"
+            hidden
+          >
+            <span class="step-mode-icon" aria-hidden="true">STEP</span>
+          </button>
           <span id="resetSlot" class="app-action-slot"></span>
           <span id="modeSlot" class="app-action-slot"></span>
           <div class="sidebar-actions mode-actions drawing-only" aria-label="Flick menu modes">
@@ -296,6 +306,12 @@
             </svg>
           </button>
         </div>
+      </section>
+      <section id="tokopuyoStepControls" class="tokopuyo-controls tokopuyo-step-controls" aria-label="Tokopuyo chain step controls" hidden>
+        <button id="stepChainBack" type="button" class="pair-control-btn" aria-label="Previous chain step" title="Previous chain step">⏮</button>
+        <button id="stepChainForward" type="button" class="pair-control-btn" aria-label="Next chain step" title="Next chain step">⏭</button>
+        <button id="playChainSteps" type="button" class="pair-control-btn pair-drop-btn" aria-label="Play chain steps automatically" title="Play chain steps automatically">▶</button>
+        <button id="stopChainSteps" type="button" class="pair-control-btn" aria-label="Stop automatic chain playback" title="Stop automatic chain playback">■</button>
       </section>
 
       <div id="helpOverlay" class="help-overlay" hidden>

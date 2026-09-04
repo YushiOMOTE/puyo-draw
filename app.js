@@ -66,6 +66,12 @@ const helpButton = document.querySelector("#help");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
 const tokopuyoControls = document.querySelector("#tokopuyoControls");
+const tokopuyoStepControls = document.querySelector("#tokopuyoStepControls");
+const toggleTokopuyoStepModeButton = document.querySelector("#toggleTokopuyoStepMode");
+const stepChainBackButton = document.querySelector("#stepChainBack");
+const stepChainForwardButton = document.querySelector("#stepChainForward");
+const playChainStepsButton = document.querySelector("#playChainSteps");
+const stopChainStepsButton = document.querySelector("#stopChainSteps");
 const attackSuggestButton = document.querySelector("#attackSuggest");
 const reviewLastMoveButton = document.querySelector("#reviewLastMove");
 const reviewOverlay = document.querySelector("#reviewOverlay");
@@ -125,6 +131,9 @@ let tokopuyoDisplayedChain = null;
 let tokopuyoSuggestionSession = null;
 let tokopuyoAttackSuggestionSession = null;
 let tokopuyoSuggestionMarks = new Map();
+let tokopuyoStepMode = false;
+let tokopuyoStepResolution = null;
+let tokopuyoStepRevision = 0;
 let reviewReplayContext = null;
 let reviewReplayState = null;
 let reviewReplayRevision = 0;
@@ -366,9 +375,11 @@ function updateModeUi() {
     element.hidden = isTokopuyo;
   });
   tokopuyoPreview.hidden = !isTokopuyo;
-  tokopuyoControls.hidden = !isTokopuyo;
+  tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
+  tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
   attackSuggestButton.hidden = !isTokopuyo;
   reviewLastMoveButton.hidden = !isTokopuyo;
+  toggleTokopuyoStepModeButton.hidden = !isTokopuyo;
   drawingHelp.hidden = isTokopuyo;
   tokopuyoHelp.hidden = !isTokopuyo;
 
@@ -386,6 +397,12 @@ function updateModeUi() {
   suggestButton.title = suggestButton.ariaLabel;
   resetButton.ariaLabel = isTokopuyo ? "Start a new Tokopuyo pattern" : "Reset";
   resetButton.title = resetButton.ariaLabel;
+  toggleTokopuyoStepModeButton.classList.toggle("active", tokopuyoStepMode);
+  toggleTokopuyoStepModeButton.ariaPressed = String(tokopuyoStepMode);
+  toggleTokopuyoStepModeButton.ariaLabel = tokopuyoStepMode
+    ? "Disable Tokopuyo chain step mode"
+    : "Enable Tokopuyo chain step mode";
+  toggleTokopuyoStepModeButton.title = toggleTokopuyoStepModeButton.ariaLabel;
 
   if (isTokopuyo && tokopuyoSession) {
     const [next, nextNext] = previewHands(tokopuyoSession);
@@ -468,15 +485,16 @@ function render() {
   );
 
   const tokopuyoBusy = tokopuyoSession?.busy || false;
+  const isTokopuyoStepResolving = Boolean(tokopuyoStepResolution);
   document.querySelector("#undo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.history.length || tokopuyoBusy || isSuggesting
+    ? !tokopuyoSession?.history.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : !history.length || isSimulating || isSuggesting;
   document.querySelector("#redo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.future.length || tokopuyoBusy || isSuggesting
+    ? !tokopuyoSession?.future.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : !future.length || isSimulating || isSuggesting;
   document.querySelector("#simulate").disabled = isSimulating || isSuggesting;
   document.querySelector("#reset").disabled = appMode === "tokopuyo"
-    ? tokopuyoBusy || isSuggesting
+    ? (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : isSimulating || isSuggesting;
   document.querySelector("#suggest").disabled = appMode === "tokopuyo"
     ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver
@@ -494,9 +512,25 @@ function render() {
     !tokopuyoSession?.lastTurn;
   toggleAppModeButton.disabled =
     isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
+  toggleTokopuyoStepModeButton.disabled =
+    appMode !== "tokopuyo" || isSuggesting || Boolean(tokopuyoStepResolution);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
+    if (button.closest("#tokopuyoStepControls")) return;
     button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || tokopuyoSession.gameOver;
   });
+  const stepResolution = tokopuyoStepResolution;
+  stepChainBackButton.disabled =
+    !stepResolution || stepResolution.advancing || stepResolution.stepIndex === 0;
+  stepChainForwardButton.disabled =
+    !stepResolution ||
+    stepResolution.advancing ||
+    stepResolution.stepIndex >= stepResolution.result.rounds.length;
+  playChainStepsButton.disabled =
+    !stepResolution ||
+    stepResolution.advancing ||
+    stepResolution.playing ||
+    stepResolution.stepIndex >= stepResolution.result.rounds.length;
+  stopChainStepsButton.disabled = !stepResolution || !stepResolution.playing;
   suggestionLoadingEl.hidden = !isSuggesting;
   boardEl.setAttribute(
     "aria-busy",
@@ -635,6 +669,7 @@ function cyclePalette() {
 function undo() {
   if (appMode === "tokopuyo") {
     if (isSuggesting) return;
+    cancelTokopuyoStepResolution();
     if (!tokopuyoSession || !undoSession(tokopuyoSession)) return;
     clearTokopuyoSuggestions();
     tokopuyoBoardOverride = null;
@@ -655,6 +690,7 @@ function undo() {
 function redo() {
   if (appMode === "tokopuyo") {
     if (isSuggesting) return;
+    cancelTokopuyoStepResolution();
     if (!tokopuyoSession || !redoSession(tokopuyoSession)) return;
     clearTokopuyoSuggestions();
     tokopuyoBoardOverride = null;
@@ -2067,11 +2103,119 @@ async function animateChainRounds({
   return !isCancelled();
 }
 
+function stepResolutionBoard(resolution) {
+  if (!resolution.stepIndex) return clone(resolution.lockedBoard);
+  return applyGravity(resolution.result.rounds[resolution.stepIndex - 1].state);
+}
+
+function renderTokopuyoStepResolution() {
+  const resolution = tokopuyoStepResolution;
+  if (!resolution) return;
+  tokopuyoBoardOverride = stepResolutionBoard(resolution);
+  tokopuyoDisplayedChain = resolution.stepIndex;
+  render();
+}
+
+function cancelTokopuyoStepResolution() {
+  if (!tokopuyoStepResolution) return false;
+  tokopuyoStepRevision++;
+  tokopuyoStepResolution.playing = false;
+  tokopuyoStepResolution = null;
+  tokopuyoBoardOverride = null;
+  tokopuyoDisplayedChain = null;
+  if (tokopuyoSession) tokopuyoSession.busy = false;
+  return true;
+}
+
+async function advanceTokopuyoStep() {
+  const resolution = tokopuyoStepResolution;
+  if (
+    !resolution ||
+    resolution.advancing ||
+    resolution.stepIndex >= resolution.result.rounds.length
+  ) return false;
+
+  const revision = tokopuyoStepRevision;
+  const round = resolution.result.rounds[resolution.stepIndex];
+  resolution.advancing = true;
+  const clearingBoard = stepResolutionBoard(resolution);
+  tokopuyoBoardOverride = clearingBoard;
+  tokopuyoDisplayedChain = resolution.stepIndex + 1;
+  render();
+  findClearingCells(clearingBoard).forEach(([row, col]) => {
+    boardEl.children[row * COLS + col]?.classList.add("clearing");
+  });
+  await new Promise((resolve) => setTimeout(resolve, CHAIN_CLEAR_DELAY_MS));
+  if (revision !== tokopuyoStepRevision || tokopuyoStepResolution !== resolution) {
+    return false;
+  }
+  resolution.stepIndex++;
+  tokopuyoBoardOverride = applyGravity(round.state);
+  tokopuyoDisplayedChain = resolution.stepIndex;
+  render();
+  await new Promise((resolve) => setTimeout(resolve, CHAIN_GRAVITY_DELAY_MS));
+  if (revision !== tokopuyoStepRevision || tokopuyoStepResolution !== resolution) {
+    return false;
+  }
+  resolution.advancing = false;
+  if (resolution.stepIndex >= resolution.result.rounds.length) {
+    resolution.playing = false;
+    tokopuyoSession.busy = false;
+    tokopuyoStepResolution = null;
+    tokopuyoBoardOverride = null;
+    tokopuyoDisplayedChain = null;
+  }
+  render();
+  return true;
+}
+
+function previousTokopuyoStep() {
+  const resolution = tokopuyoStepResolution;
+  if (!resolution || resolution.advancing || !resolution.stepIndex) return;
+  resolution.playing = false;
+  resolution.stepIndex--;
+  renderTokopuyoStepResolution();
+}
+
+async function playTokopuyoSteps() {
+  const resolution = tokopuyoStepResolution;
+  if (
+    !resolution ||
+    resolution.advancing ||
+    resolution.stepIndex >= resolution.result.rounds.length
+  ) return;
+  resolution.playing = true;
+  render();
+  while (resolution.playing && tokopuyoStepResolution === resolution) {
+    const advanced = await advanceTokopuyoStep();
+    if (!advanced) break;
+  }
+}
+
+function stopTokopuyoSteps() {
+  if (!tokopuyoStepResolution) return;
+  tokopuyoStepResolution.playing = false;
+  render();
+}
+
 async function dropTokopuyoPair() {
   if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
   const committed = commitActivePair(tokopuyoSession);
   if (!committed) return;
   clearTokopuyoSuggestions();
+
+  if (tokopuyoStepMode && committed.result.chains) {
+    tokopuyoSession.busy = true;
+    tokopuyoStepResolution = {
+      lockedBoard: clone(committed.lockedBoard),
+      result: committed.result,
+      stepIndex: 0,
+      playing: false,
+      advancing: false,
+    };
+    renderTokopuyoStepResolution();
+    return;
+  }
 
   tokopuyoSession.busy = true;
   tokopuyoBoardOverride = committed.lockedBoard;
@@ -2299,7 +2443,9 @@ document.querySelector("#clear").addEventListener("click", () => {
 });
 document.querySelector("#reset").addEventListener("click", () => {
   if (appMode === "tokopuyo") {
-    if (tokopuyoSession?.busy || isSuggesting) return;
+    if (isSuggesting) return;
+    cancelTokopuyoStepResolution();
+    if (tokopuyoSession?.busy) return;
     clearTokopuyoSuggestions();
     tokopuyoSession = createSession(randomSeed());
     tokopuyoBoardOverride = null;
@@ -2340,6 +2486,19 @@ document.querySelector("#movePairRight").addEventListener("click", () => perform
 document.querySelector("#rotatePairLeft").addEventListener("click", () => performTokopuyoAction("counterclockwise"));
 document.querySelector("#rotatePairRight").addEventListener("click", () => performTokopuyoAction("clockwise"));
 document.querySelector("#dropPair").addEventListener("click", () => performTokopuyoAction("drop"));
+toggleTokopuyoStepModeButton.addEventListener("click", () => {
+  if (appMode !== "tokopuyo" || tokopuyoStepResolution) return;
+  tokopuyoStepMode = !tokopuyoStepMode;
+  render();
+});
+stepChainBackButton.addEventListener("click", previousTokopuyoStep);
+stepChainForwardButton.addEventListener("click", () => {
+  void advanceTokopuyoStep();
+});
+playChainStepsButton.addEventListener("click", () => {
+  void playTokopuyoSteps();
+});
+stopChainStepsButton.addEventListener("click", stopTokopuyoSteps);
 document.querySelector("#toggleGarbage").addEventListener("click", () => {
   setGarbageMode(!garbageMode);
 });
