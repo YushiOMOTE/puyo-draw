@@ -215,6 +215,30 @@
               <path d="m18.7 4.5.7-1.2M5.3 4.5l-.7-1.2M12 3V1.6" />
             </svg>
           </button>
+          <span class="toolbar-divider drawing-only" aria-hidden="true"></span>
+          <button
+            id="cyclePalette"
+            class="secondary-btn sidebar-btn palette-cycle-btn drawing-only"
+            aria-label="Change four-color palette"
+            title="Change four-color palette"
+          >
+            <span class="palette-icon" aria-hidden="true"></span>
+          </button>
+          <div class="sidebar-actions drawing-only" aria-label="Garbage puyo mode">
+            <button
+              id="toggleGarbage"
+              class="secondary-btn sidebar-btn mode-btn"
+              aria-label="Garbage puyo mode"
+              aria-pressed="false"
+              title="Garbage puyo mode"
+            >
+              <span class="mode-garbage-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+          <span class="toolbar-divider toolbar-trash-divider drawing-only" aria-hidden="true"></span>
+          <span id="resetSlot" class="app-action-slot"></span>
+          <span class="toolbar-divider toolbar-trash-divider drawing-only" aria-hidden="true"></span>
+          <span id="modeSlot" class="app-action-slot"></span>
           <button
             id="attackSuggest"
             class="secondary-btn sidebar-btn suggestion-btn"
@@ -248,27 +272,6 @@
           >
             <span class="step-mode-icon" aria-hidden="true">STEP</span>
           </button>
-          <span id="resetSlot" class="app-action-slot"></span>
-          <span id="modeSlot" class="app-action-slot"></span>
-          <div class="sidebar-actions mode-actions drawing-only" aria-label="Flick menu modes">
-            <button
-              id="cyclePalette"
-              class="secondary-btn sidebar-btn palette-cycle-btn"
-              aria-label="Change four-color palette"
-              title="Change four-color palette"
-            >
-              <span class="palette-icon" aria-hidden="true"></span>
-            </button>
-            <button
-              id="toggleGarbage"
-              class="secondary-btn sidebar-btn mode-btn"
-              aria-label="Garbage puyo mode"
-              aria-pressed="false"
-              title="Garbage puyo mode"
-            >
-              <span class="mode-garbage-icon" aria-hidden="true"></span>
-            </button>
-          </div>
           <span id="helpSlot" class="app-action-slot"></span>
         </section>
       </div>

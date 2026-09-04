@@ -586,6 +586,14 @@ body[data-mode="drawing"] .left-sidebar {
   border-radius: 14px;
 }
 
+.left-sidebar .reset-btn,
+.toolbar .reset-btn {
+  color: #4f5b73;
+  background: #fff;
+  border: 0;
+  box-shadow: 0 5px 12px #28344d20;
+}
+
 .sidebar-btn {
   color: #4f5b73;
   font-size: 23px;
@@ -613,9 +621,17 @@ body[data-mode="drawing"] .left-sidebar {
   box-shadow: 0 5px 12px #3977d940;
 }
 
-.mode-actions {
-  padding-top: 10px;
-  border-top: 1px solid #b9c1d080;
+.toolbar-divider {
+  width: calc(100% - 8px);
+  height: 1px;
+  flex: 0 0 1px;
+  margin: 3px 0;
+  background: #b9c1d080;
+}
+
+.toolbar-trash-divider {
+  margin-top: 3px;
+  margin-bottom: 3px;
 }
 
 .mode-garbage-icon {
@@ -656,21 +672,30 @@ body[data-mode="drawing"] .left-sidebar {
 }
 
 .drawing-mode-icon {
-  font-size: 28px;
-  font-weight: 800;
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: auto;
+  color: #4f5b73;
+  fill: currentColor;
 }
 
 .app-mode-btn {
   position: relative;
 }
 
-body[data-mode="drawing"] .app-mode-btn::before {
+.app-mode-btn::after {
   position: absolute;
-  top: -10px;
-  right: 0;
-  left: 0;
+  right: calc(50% - 17px);
+  bottom: calc(50% - 17px);
+  width: 16px;
+  height: 16px;
   content: "";
-  border-top: 1px solid #b9c1d080;
+  background: rgb(255 255 255 / 72%) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 20c-1-7 2-13 10-13h6M15 3l5 4-5 4' fill='none' stroke='%234f5b73' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  border: 0;
+  border-radius: 5px;
+  filter: drop-shadow(0 1px 1px #28344d40);
+  pointer-events: none;
 }
 
 body[data-mode="drawing"] .help-btn {
@@ -799,15 +824,6 @@ body[data-mode="drawing"] .help-btn {
   margin-top: auto;
 }
 
-.left-sidebar .help-btn::before {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 5px);
-  left: 0;
-  content: "";
-  border-top: 1px solid #b9c1d080;
-}
-
 .history-icon {
   display: block;
   width: 27px;
@@ -855,13 +871,6 @@ body[data-mode="drawing"] .help-btn {
   color: #eef0f4;
   background: #aeb6c4;
   box-shadow: none;
-}
-
-.toolbar .reset-btn {
-  color: #4f5b73;
-  background: #fff;
-  border: 0;
-  box-shadow: 0 2px 6px #28344d14;
 }
 
 .secondary-btn:disabled,

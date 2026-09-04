@@ -45,7 +45,7 @@
 - Drawing mode shows only the current chain count in a standard-width sidebar button, with `chains` below the number. Tapping it shows the cumulative points and chain count in a toast. Tokopuyo has no chain sidebar button; it instead shows the cumulative score and chain count as `XXX points / XXX chains` below the field. Both modes retain their values without requiring a simulation result toast.
 - Reset and Clear reset the chain count and cumulative score to zero. Undo and Redo restore the board, chain count, and cumulative score together.
 
-The left-side rail is ordered from top to bottom:
+The left-side rail is ordered from top to bottom in Tokopuyo mode:
 
 1. Reset (trash).
 2. Drawing/Tokopuyo mode.
@@ -63,6 +63,10 @@ The right-side rail is ordered from top to bottom:
 8. Garbage puyo mode.
 
 The Help (`i`) button is pinned to the bottom of the left rail. The reset and mode buttons have no divider between them; the help button remains visually separated.
+
+The Drawing/Tokopuyo mode button displays a small shortcut-style arrow badge at the lower-right of its mode icon. In Tokopuyo mode, the return-to-Drawing icon uses a brush silhouette.
+
+In Drawing mode, the right-side rail's action controls, below the chain-count badge, are ordered from top to bottom as Undo, Redo, Simulate, Suggestion, Palette, Garbage mode, Reset, and Drawing/Tokopuyo mode. A divider appears between Suggestion and Palette, and on both sides of Reset.
 
 ## Tokopuyo Mode
 
