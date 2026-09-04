@@ -2,9 +2,16 @@
 
 ## Before Making Changes
 
-Read the project documentation in `docs/` before changing the application. The current product concept is in `docs/CONCEPT.md`, and the behavioral and UI requirements are in `docs/SPECIFICATION.md`.
+Read only the relevant project documentation in `docs/` before changing the application. The current product concept is in `docs/CONCEPT.md`, and the behavioral and UI requirements are in `docs/SPECIFICATION.md`.
 
 Keep the existing mobile-first interaction model and preserve the core chain rules unless a specification change is explicitly requested.
+
+### Working with Codex
+
+- Treat context as scarce: use `rg` to locate relevant symbols first, read focused ranges, keep command output concise, and do not reread unchanged material or scan unrelated areas.
+- Separate the user's goal from a proposed implementation. Before editing, surface material trade-offs, objections, and any inferred product or architectural rule; challenge an approach that would materially worsen behavior, maintainability, or scope.
+- If plausible interpretations would materially change behavior, architecture, API, data, or UI, ask one concise clarifying question before editing. For low-impact, reversible details, make the smallest reasonable assumption and state it.
+- Keep progress updates terse: report only decisions, ambiguities, unexpected findings, blockers, and final results.
 
 ## Documentation Synchronization
 
@@ -24,7 +31,9 @@ Keep the existing mobile-first interaction model and preserve the core chain rul
 
 ## Verification
 
-Run the following checks after changes:
+Use risk-based validation. For small, iterative CSS/layout tweaks, defer browser and full-test cycles until the change is near-final; group nearby tweaks and verify once. Run targeted checks first for local behavior changes and broader checks for cross-cutting changes. Do not repeat an expensive check unless a later change could invalidate it.
+
+For application changes, run the following checks as appropriate:
 
 ```sh
 node --check app.js
