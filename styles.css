@@ -74,6 +74,7 @@ button {
   border: 0;
   border-radius: 16px;
   box-shadow: none;
+  container-type: size;
 }
 
 .tokopuyo-field-stack {
@@ -110,6 +111,18 @@ body[data-mode="tokopuyo"] .board-card {
   background: var(--board);
   border-radius: 15px;
   box-shadow: inset 0 2px 5px #111a2d80;
+}
+
+@supports (width: 1cqw) {
+  .board-wrap {
+    /* Size the field from its card, not the full viewport. */
+    width: min(100cqw, calc(46.153cqh + 7.539px));
+  }
+
+  body[data-mode="tokopuyo"] .board-wrap {
+    /* Leave room for the score, lower controls, and pair preview. */
+    width: min(100cqw, calc(42.857cqh + 7.539px));
+  }
 }
 
 .suggestion-loading {
@@ -2253,20 +2266,11 @@ body[data-mode="drawing"] .help-btn {
   .board-card {
     padding: 16px 10px;
     overflow: hidden;
-    container-type: size;
   }
   .board-wrap {
     width: min(100%, calc(46.153svh - 10.923px));
     max-height: none;
     padding: 7px;
-  }
-  @supports (width: 1cqw) {
-    .board-wrap {
-      width: min(100cqw, calc(46.153cqh + 7.539px));
-    }
-    body[data-mode="tokopuyo"] .board-wrap {
-      width: min(100cqw, calc(42.857cqh + 7.539px));
-    }
   }
   .left-sidebar { gap: 7px; padding-top: 2px; }
   .toolbar { gap: 7px; padding-top: 2px; }
