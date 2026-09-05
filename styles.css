@@ -602,6 +602,13 @@ body[data-mode="tokopuyo"] .board-card {
   fill: currentColor;
 }
 
+.step-control-icon {
+  display: block;
+  width: 34px;
+  height: 34px;
+  fill: currentColor;
+}
+
 #toggleTokopuyoStepMode.active {
   color: #fff;
   background: linear-gradient(145deg, #6aa7ff, #3977d9);

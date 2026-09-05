@@ -312,10 +312,26 @@
         </div>
       </section>
       <section id="tokopuyoStepControls" class="tokopuyo-controls tokopuyo-step-controls" aria-label="Tokopuyo chain step controls" hidden>
-        <button id="stepChainBack" type="button" class="pair-control-btn" aria-label="Previous chain step" title="Previous chain step">⏮</button>
-        <button id="stepChainForward" type="button" class="pair-control-btn" aria-label="Next chain step" title="Next chain step">⏭</button>
-        <button id="playChainSteps" type="button" class="pair-control-btn pair-drop-btn" aria-label="Play chain steps automatically" title="Play chain steps automatically">▶</button>
-        <button id="stopChainSteps" type="button" class="pair-control-btn" aria-label="Stop automatic chain playback" title="Stop automatic chain playback">■</button>
+        <button id="stepChainBack" type="button" class="pair-control-btn" aria-label="Previous chain step" title="Previous chain step">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.5 7.3h1.8v9.4H3.5V7.3Zm8.3.3v8.8L5 12l6.8-4.4Zm7.2 0v8.8L12.2 12 19 7.6Z" />
+          </svg>
+        </button>
+        <button id="stepChainForward" type="button" class="pair-control-btn" aria-label="Next chain step" title="Next chain step">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18.7 7.3h1.8v9.4h-1.8V7.3ZM5 7.6l6.8 4.4L5 16.4V7.6Zm7.2 0L19 12l-6.8 4.4V7.6Z" />
+          </svg>
+        </button>
+        <button id="playChainSteps" type="button" class="pair-control-btn pair-drop-btn" aria-label="Play chain steps automatically" title="Play chain steps automatically">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.7 4.7v14.6L18 12 6.7 4.7Z" />
+          </svg>
+        </button>
+        <button id="stopChainSteps" type="button" class="pair-control-btn" aria-label="Stop automatic chain playback" title="Stop automatic chain playback">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5.5 5.5h13v13h-13v-13Z" />
+          </svg>
+        </button>
       </section>
 
       <div id="helpOverlay" class="help-overlay" hidden>
