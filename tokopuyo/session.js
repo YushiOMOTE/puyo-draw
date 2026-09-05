@@ -382,7 +382,7 @@ function commitDroppedGarbage(session, dropped) {
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
   session.lastTurn = null;
-  session.activePair = createGarbagePair();
+  session.activePair = createGarbagePair(dropped.pair.axis.col);
 
   return {
     droppedPair: dropped.pair,

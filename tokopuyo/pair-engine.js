@@ -29,9 +29,9 @@ export function createActivePair(tsumo) {
   };
 }
 
-export function createGarbagePair() {
+export function createGarbagePair(col = SPAWN_COL) {
   return {
-    axis: { row: SPAWN_ROW, col: SPAWN_COL },
+    axis: { row: SPAWN_ROW, col },
     axisColor: GARBAGE,
     childColor: null,
     orientation: ORIENTATION.UP,

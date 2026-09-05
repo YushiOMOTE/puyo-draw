@@ -764,6 +764,7 @@ assert.ok(garbageDrop);
 assert.equal(garbageModeSession.handIndex, 0);
 assert.equal(garbageModeSession.history.length, 1);
 assert.equal(garbageModeSession.board[ROWS - 1][1], "garbage");
+assert.equal(garbageModeSession.activePair.axis.col, 1);
 assert.equal(garbageModeSession.chainCount, 0);
 assert.equal(garbageModeSession.cumulativeScore, 0);
 assert.deepEqual(
@@ -775,6 +776,7 @@ assert.equal(garbageModeSession.board[ROWS - 1][1], null);
 assert.equal(garbageModeSession.garbageMode, true);
 assert.equal(redoSession(garbageModeSession), true);
 assert.equal(garbageModeSession.board[ROWS - 1][1], "garbage");
+assert.equal(garbageModeSession.activePair.axis.col, 1);
 assert.equal(setGarbageMode(garbageModeSession, false), true);
 assert.equal(garbageModeSession.garbageMode, false);
 assert.equal(garbageModeSession.activePair.axisColor, savedCurrent.axisColor);
