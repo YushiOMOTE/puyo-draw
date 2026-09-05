@@ -37,6 +37,7 @@ import {
   actOnPair,
   commitActivePair,
   createSession,
+  createSessionFromPosition,
   previewHands,
   redoSession,
   undoSession,
@@ -69,6 +70,7 @@ const nextPairEl = document.querySelector("#nextPair");
 const nextNextPairEl = document.querySelector("#nextNextPair");
 const patternNumberEl = document.querySelector("#patternNumber");
 const toggleAppModeButton = document.querySelector("#toggleAppMode");
+const startTokopuyoFromDrawingButton = document.querySelector("#startTokopuyoFromDrawing");
 const leftSidebar = document.querySelector(".left-sidebar");
 const leftModeDivider = document.querySelector("#leftModeDivider");
 const resetButton = document.querySelector("#reset");
@@ -87,6 +89,13 @@ const stopChainStepsButton = document.querySelector("#stopChainSteps");
 const attackSuggestButton = document.querySelector("#attackSuggest");
 const reviewLastMoveButton = document.querySelector("#reviewLastMove");
 const reviewOverlay = document.querySelector("#reviewOverlay");
+const customTokopuyoOverlay = document.querySelector("#customTokopuyoOverlay");
+const closeCustomTokopuyoButton = document.querySelector("#closeCustomTokopuyo");
+const confirmCustomTokopuyoButton = document.querySelector("#confirmCustomTokopuyo");
+const customTokopuyoPaletteEl = document.querySelector("#customTokopuyoPalette");
+const customPaletteLockedEl = document.querySelector("#customPaletteLocked");
+const customOpeningPairsEl = document.querySelector("#customOpeningPairs");
+const customRow14El = document.querySelector("#customRow14");
 const closeReviewButton = document.querySelector("#closeReview");
 const reviewTitleEl = document.querySelector("#reviewTitle");
 const reviewSummaryEl = document.querySelector("#reviewSummary");
@@ -157,6 +166,7 @@ let tokopuyoStepRevision = 0;
 let reviewReplayContext = null;
 let reviewReplayState = null;
 let reviewReplayRevision = 0;
+let customTokopuyoDraft = null;
 const amaAnalysisCache = new Map();
 const AMA_ANALYSIS_CACHE_LIMIT = 8;
 const suggestionController = new SuggestionController();
@@ -198,7 +208,98 @@ let flick = {
   suppressClick: false,
   pointerId: null,
   intent: "straight",
+  openingPair: null,
+  openingSlot: null,
 };
+
+function drawingBoardStartIssue() {
+  const colors = new Set(board.flat().filter((color) => color && color !== "garbage"));
+  if (colors.size > 4) return "five-colors";
+  if (!boardsEqual(board, applyGravity(board))) return "floating";
+  if (findClearingCells(board).length) return "firing";
+  if (board[HIDDEN_ROWS][2]) return "game-over";
+  return null;
+}
+
+function eligibleCustomPalettes() {
+  const boardColors = new Set(board.flat().filter((color) => color && color !== "garbage"));
+  return fourColorPalettes.map((palette) =>
+    [...boardColors].every((color) => palette.includes(color))
+  );
+}
+
+function customOpeningHasColor() {
+  return customTokopuyoDraft?.hands.some(({ axis, child }) => axis || child) || false;
+}
+
+function renderCustomTokopuyoDraft() {
+  if (!customTokopuyoDraft) return;
+  const eligible = eligibleCustomPalettes();
+  const paletteLocked = customOpeningHasColor();
+  customPaletteLockedEl.hidden = !paletteLocked;
+
+  customTokopuyoPaletteEl.querySelectorAll("[data-custom-palette]").forEach((button) => {
+    const index = Number(button.dataset.customPalette);
+    const selected = index === customTokopuyoDraft.paletteIndex;
+    button.disabled = !eligible[index] || paletteLocked;
+    button.classList.toggle("active", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+
+  customOpeningPairsEl.querySelectorAll("[data-opening-pair]").forEach((cell) => {
+    const pairIndex = Number(cell.dataset.openingPair);
+    const slot = cell.dataset.openingSlot;
+    const color = customTokopuyoDraft.hands[pairIndex][slot];
+    cell.dataset.color = color || "empty";
+    cell.replaceChildren();
+    const pairLabel = [t("app.current"), t("app.next"), t("app.nextNext")][pairIndex];
+    cell.ariaLabel = `${t("app.customOpeningCell", pairLabel, t(`color.${slot}`))}: ${t(`color.${color || "empty"}`)}`;
+    cell.title = cell.ariaLabel;
+  });
+
+  customRow14El.querySelectorAll("[data-row14-column]").forEach((button) => {
+    const col = Number(button.dataset.row14Column);
+    const occupied = Boolean(customTokopuyoDraft.row14 & (1 << col));
+    button.classList.toggle("active", occupied);
+    button.setAttribute("aria-pressed", String(occupied));
+  });
+
+  confirmCustomTokopuyoButton.disabled = customTokopuyoDraft.hands.some(
+    ({ axis, child }) => !axis || !child,
+  );
+}
+
+function openCustomTokopuyo() {
+  if (appMode !== "drawing" || drawingBoardStartIssue()) return;
+  const eligible = eligibleCustomPalettes();
+  const preferred = paletteIndex < fourColorPalettes.length && eligible[paletteIndex]
+    ? paletteIndex
+    : eligible.findIndex(Boolean);
+  customTokopuyoDraft = {
+    paletteIndex: preferred,
+    hands: Array.from({ length: 3 }, () => ({ axis: null, child: null })),
+    row14: 0,
+  };
+  renderCustomTokopuyoDraft();
+  customTokopuyoOverlay.hidden = false;
+  closeCustomTokopuyoButton.focus();
+}
+
+function closeCustomTokopuyo(restoreFocus = true) {
+  if (flick.kind === "custom-opening") {
+    closeFlick();
+    flick.row = -1;
+  }
+  customTokopuyoOverlay.hidden = true;
+  customTokopuyoDraft = null;
+  if (restoreFocus) startTokopuyoFromDrawingButton.focus();
+}
+
+function setCustomOpeningColor(pairIndex, slot, color) {
+  if (!customTokopuyoDraft) return;
+  customTokopuyoDraft.hands[pairIndex][slot] = color;
+  renderCustomTokopuyoDraft();
+}
 
 function renderPreviewPair(element, tsumo) {
   element.innerHTML = "";
@@ -266,7 +367,13 @@ function renderActivePair() {
 
 function updateModeUi() {
   const isTokopuyo = appMode === "tokopuyo";
-  leftSidebar.append(resetButton, leftModeDivider, toggleAppModeButton, helpButton);
+  leftSidebar.append(
+    resetButton,
+    leftModeDivider,
+    toggleAppModeButton,
+    startTokopuyoFromDrawingButton,
+    helpButton,
+  );
   document.body.dataset.mode = appMode;
   document.querySelectorAll(".drawing-only").forEach((element) => {
     element.hidden = isTokopuyo;
@@ -287,6 +394,15 @@ function updateModeUi() {
   toggleAppModeButton.innerHTML = isTokopuyo
     ? '<svg class="drawing-mode-icon" viewBox="0 0 28 32" aria-hidden="true"><path d="M12.1 14.3 23.1.4c.8-1 2.1-1.1 3-.2 1 .9 1.2 2.3.4 3.4l-9.1 14.3-5.3-3.6Z"/><path d="m11.4 15.1 5.3 3.5-1.6 2.5c-1 1.7-2.5 2.1-4 .9l-1.4-1.1c-1.6-1.3-1.7-2.3-.1-4.3l1.8-1.5Z"/><path fill-rule="evenodd" d="M8.1 21.1c-2.7-.2-4.7 1.8-5.5 5.3-.6 2.9-1.5 4.7-1.5 4.7 3.5 1.4 7.3-.1 9.8-2.6 2.4-2.4 1.4-5 1.4-5L9 21.2l-.9-.1Zm.9 1.1c-2 0-3.2 1.5-3.7 3.1-.2.9.5 1.4 1.2.8l1-.7c.6-.5 1.3.1.9.8l-.6.9c-.3.7.4 1.1 1 .5l.6-.6c.7-.6 1.4.1 1 1l-.6.8c-.5.8.4 1.3 1.1.7 1.5-1.2 2-3.6 1.1-5.5l-3-1.8Z"/></svg>'
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
+  if (!isTokopuyo) {
+    const issue = drawingBoardStartIssue();
+    startTokopuyoFromDrawingButton.disabled = Boolean(issue) || isSimulating || isSuggesting;
+    const label = issue
+      ? t(`message.customTokopuyoUnavailable.${issue}`)
+      : t("app.startTokopuyoFromDrawing");
+    startTokopuyoFromDrawingButton.ariaLabel = label;
+    startTokopuyoFromDrawingButton.title = label;
+  }
   const suggestButton = document.querySelector("#suggest");
   suggestButton.ariaLabel = t(isTokopuyo ? "app.suggestTokopuyo" : "app.suggest");
   suggestButton.title = suggestButton.ariaLabel;
@@ -301,7 +417,9 @@ function updateModeUi() {
     const [next, nextNext] = previewHands(tokopuyoSession);
     renderPreviewPair(nextPairEl, next);
     renderPreviewPair(nextNextPairEl, nextNext);
-    patternNumberEl.textContent = `No.${tokopuyoSession.pattern.number}`;
+    patternNumberEl.textContent = tokopuyoSession.customOpening
+      ? "No. -"
+      : `No.${tokopuyoSession.pattern.number}`;
   }
 }
 
@@ -2313,6 +2431,41 @@ function openFlick(row, col, event) {
   setStatus(t("message.flickChoose"));
 }
 
+function openCustomOpeningFlick(pairIndex, slot, event) {
+  if (flick.row >= 0 || !customTokopuyoDraft || customTokopuyoOverlay.hidden) return;
+  const tools = fourColorPalettes[customTokopuyoDraft.paletteIndex];
+  flick = {
+    kind: "custom-opening",
+    row: 0,
+    col: 0,
+    startX: event.clientX,
+    startY: event.clientY,
+    moved: false,
+    choice: null,
+    tools,
+    suppressClick: false,
+    pointerId: event.pointerId,
+    intent: "straight",
+    openingPair: pairIndex,
+    openingSlot: slot,
+  };
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  buildFlickMenu(tools);
+  flickMenu.classList.add("modal-flick-menu");
+  flickMenu.style.left = `${event.clientX}px`;
+  flickMenu.style.top = `${event.clientY}px`;
+  flickMenu.hidden = false;
+}
+
+function applyFlickTool(tool) {
+  if (flick.kind === "custom-opening") {
+    setCustomOpeningColor(flick.openingPair, flick.openingSlot, tool);
+    return;
+  }
+  selectedTool = tool;
+  editCell(flick.row, flick.col);
+}
+
 function flickIndex(x, y) {
   const dx = x - flick.startX;
   const dy = y - flick.startY;
@@ -2333,6 +2486,7 @@ function highlightFlick(index) {
 
 function closeFlick() {
   flickMenu.hidden = true;
+  flickMenu.classList.remove("modal-flick-menu");
 }
 
 function buildFlickMenu(tools) {
@@ -2357,10 +2511,15 @@ function buildFlickMenu(tools) {
     button.style.left = `calc(50% + ${Math.cos(angle) * 62}px)`;
     button.style.top = `calc(50% + ${Math.sin(angle) * 62}px)`;
     button.addEventListener("click", () => {
-      setTool(tool);
+      if (flick.kind === "custom-opening") {
+        setCustomOpeningColor(flick.openingPair, flick.openingSlot, tool);
+      } else {
+        setTool(tool);
+      }
       flick.suppressClick = true;
       closeFlick();
-      setStatus(t("message.optionSelected"));
+      if (flick.kind !== "custom-opening") setStatus(t("message.optionSelected"));
+      flick.row = -1;
     });
     flickMenu.append(button);
   });
@@ -2423,17 +2582,19 @@ window.addEventListener("pointerup", (event) => {
   if (event.pointerId !== flick.pointerId) return;
 
   if (flick.moved && flick.choice !== null) {
-    selectedTool = flick.tools[flick.choice];
-    editCell(flick.row, flick.col);
+    const selectedFlickTool = flick.tools[flick.choice];
+    applyFlickTool(selectedFlickTool);
     flick.suppressClick = true;
-    setStatus(
-      selectedTool === "erase"
-        ? t("message.erased")
-        : t("message.placed", t(`color.${selectedTool}`)),
-    );
+    if (flick.kind !== "custom-opening") {
+      setStatus(t("message.placed", t(`color.${selectedFlickTool}`)));
+    }
   } else {
-    selectedTool = "erase";
-    editCell(flick.row, flick.col);
+    if (flick.kind === "custom-opening") {
+      setCustomOpeningColor(flick.openingPair, flick.openingSlot, null);
+    } else {
+      selectedTool = "erase";
+      editCell(flick.row, flick.col);
+    }
     flick.suppressClick = true;
   }
 
@@ -2545,11 +2706,56 @@ document.querySelector("#toggleGarbage").addEventListener("click", () => {
 });
 document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 toggleAppModeButton.addEventListener("click", switchAppMode);
+startTokopuyoFromDrawingButton.addEventListener("click", openCustomTokopuyo);
+closeCustomTokopuyoButton.addEventListener("click", closeCustomTokopuyo);
+customTokopuyoPaletteEl.querySelectorAll("[data-custom-palette]").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (!customTokopuyoDraft || customOpeningHasColor()) return;
+    const index = Number(button.dataset.customPalette);
+    if (!eligibleCustomPalettes()[index]) return;
+    customTokopuyoDraft.paletteIndex = index;
+    renderCustomTokopuyoDraft();
+  });
+});
+customOpeningPairsEl.querySelectorAll("[data-opening-pair]").forEach((cell) => {
+  cell.addEventListener("pointerdown", (event) => {
+    openCustomOpeningFlick(
+      Number(cell.dataset.openingPair),
+      cell.dataset.openingSlot,
+      event,
+    );
+  });
+});
+customRow14El.querySelectorAll("[data-row14-column]").forEach((button) => {
+  button.addEventListener("click", () => {
+    if (!customTokopuyoDraft) return;
+    customTokopuyoDraft.row14 ^= 1 << Number(button.dataset.row14Column);
+    renderCustomTokopuyoDraft();
+  });
+});
+confirmCustomTokopuyoButton.addEventListener("click", () => {
+  if (!customTokopuyoDraft || confirmCustomTokopuyoButton.disabled) return;
+  const draft = customTokopuyoDraft;
+  tokopuyoSession = createSessionFromPosition({
+    board,
+    row14: draft.row14,
+    openingHands: draft.hands,
+    palette: fourColorPalettes[draft.paletteIndex],
+  });
+  clearTokopuyoSuggestions();
+  tokopuyoBoardOverride = null;
+  tokopuyoDisplayedChain = null;
+  cancelTokopuyoStepResolution();
+  appMode = "tokopuyo";
+  closeCustomTokopuyo(false);
+  render();
+});
 languageSelect.value = getLocale();
 languageSelect.addEventListener("change", () => {
   setLocale(languageSelect.value);
   localizeDocument();
   renderHelpControlPreviews();
+  renderCustomTokopuyoDraft();
   if (reviewReplayContext && !reviewOverlay.hidden) {
     displayLastMoveReview(
       reviewReplayContext.evaluation,
@@ -2595,6 +2801,9 @@ playReviewReplayButton.addEventListener("click", () => {
 helpOverlay.addEventListener("click", (event) => {
   if (event.target === helpOverlay) closeHelp();
 });
+customTokopuyoOverlay.addEventListener("click", (event) => {
+  if (event.target === customTokopuyoOverlay) closeCustomTokopuyo();
+});
 reviewOverlay.addEventListener("click", (event) => {
   const selectedHelp = event.target.closest?.(".review-help") || null;
   reviewOverlay.querySelectorAll(".review-help[open]").forEach((details) => {
@@ -2606,6 +2815,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!reviewOverlay.hidden) closeLastMoveReview();
     else if (!helpOverlay.hidden) closeHelp();
+    else if (!customTokopuyoOverlay.hidden) closeCustomTokopuyo();
     return;
   }
 
@@ -2616,6 +2826,7 @@ document.addEventListener("keydown", (event) => {
     event.altKey ||
     !reviewOverlay.hidden ||
     !helpOverlay.hidden ||
+    !customTokopuyoOverlay.hidden ||
     event.target.closest?.("input, select, textarea, [contenteditable='true']")
   ) return;
 

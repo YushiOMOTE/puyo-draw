@@ -2,6 +2,25 @@ const COLOR_NAMES = ["red", "green", "blue", "yellow", "purple"];
 const PATTERN_COUNT = 0x10000;
 const PUYOS_PER_PATTERN = 0x100;
 
+function assertPalette(palette) {
+  if (
+    !Array.isArray(palette) ||
+    palette.length !== 4 ||
+    new Set(palette).size !== palette.length ||
+    palette.some((color) => !COLOR_NAMES.includes(color))
+  ) {
+    throw new TypeError("Tokopuyo palette must contain four distinct colors");
+  }
+}
+
+function paletteMatches(pattern, palette) {
+  return (
+    pattern.colors.length === palette.length &&
+    pattern.colors.every((color) => palette.includes(color)) &&
+    palette.every((color) => pattern.colors.includes(color))
+  );
+}
+
 function assertSeed(seed) {
   if (!Number.isInteger(seed) || seed < 0 || seed >= PATTERN_COUNT) {
     throw new RangeError("Tokopuyo seed must be an integer from 0 to 65535");
@@ -101,6 +120,31 @@ export function getTsumo(pattern, handIndex) {
 
 export function randomSeed(random = Math.random) {
   return Math.floor(random() * PATTERN_COUNT);
+}
+
+/**
+ * Pick a seed whose generated four-color set is exactly `palette`.
+ *
+ * Starting at a random seed and walking the finite pattern space means this
+ * remains deterministic for injected random functions while still making a
+ * fresh random choice for normal callers. Every valid palette has matching
+ * patterns, so the bounded walk always finds one.
+ */
+export function randomSeedForPalette(palette, random = Math.random) {
+  assertPalette(palette);
+  if (typeof random !== "function") {
+    throw new TypeError("Tokopuyo seed picker must be a function");
+  }
+  const sample = random();
+  if (!Number.isFinite(sample) || sample < 0 || sample > 1) {
+    throw new RangeError("Tokopuyo seed picker must return a number from 0 to 1");
+  }
+  const start = Math.min(PATTERN_COUNT - 1, Math.floor(sample * PATTERN_COUNT));
+  for (let offset = 0; offset < PATTERN_COUNT; offset++) {
+    const seed = (start + offset) % PATTERN_COUNT;
+    if (paletteMatches(generatePattern(seed), palette)) return seed;
+  }
+  throw new Error("No Tokopuyo seed matches the selected palette");
 }
 
 export { PATTERN_COUNT, PUYOS_PER_PATTERN };

@@ -11,10 +11,30 @@ const translations = {
       japanese: "Japanese",
       chains: "chains",
       points: "points",
+      current: "Current",
       next: "Next",
       nextNext: "Next Next",
       reset: "Reset",
       openTokopuyo: "Open Tokopuyo mode",
+      startTokopuyoFromDrawing: "Start Tokopuyo from this board",
+      customTokopuyo: "Start Tokopuyo from this board",
+      customTokopuyoTitle: "Start Tokopuyo from this board",
+      customTokopuyoIntro: "Choose a four-color palette, then flick each opening puyo to set Current, Next, and Next Next.",
+      closeCustomTokopuyo: "Close custom Tokopuyo setup",
+      customPaletteTitle: "Palette",
+      customPaletteGroup: "Opening palette",
+      customPaletteHelp: "Only palettes that include every color already on the board can be selected.",
+      customPaletteLocked: "Locked after setting an opening puyo",
+      customPaletteOption: (number) => `Four-color palette ${number}`,
+      customOpeningTitle: "Opening pairs",
+      customOpeningGroup: "Current, Next, and Next Next opening pairs",
+      customOpeningHelp: "Hold a cell and flick toward a color to set it. Only colors in the selected palette are available.",
+      customOpeningCell: (pair, slot) => `${pair} ${slot} puyo`,
+      customRow14Title: "14th row occupancy",
+      customRow14Group: "14th row occupancy by column",
+      customRow14Help: "Tap a column to toggle its colorless 14th-row occupancy.",
+      customRow14Column: (column) => `14th row, column ${column}`,
+      confirmCustomTokopuyo: "Start Tokopuyo",
       returnDrawing: "Return to Drawing mode",
       help: "How to use",
       closeHelp: "Close help",
@@ -56,7 +76,7 @@ const translations = {
       tokopuyoStepsTitle: "Chain step controls",
       shortcuts: { undo: " (Shortcut: U)", redo: " (Shortcut: R)", simulate: " (Shortcut: Space)", suggest: " (Shortcut: S)", palette: " (Shortcuts: 1–6)", garbage: " (Shortcut: O)", reset: " (Shortcut: Delete)", attack: " (Shortcut: A)", review: " (Shortcut: I)", stepMode: " (Shortcut: P)", left: " (Shortcut: Left Arrow)", right: " (Shortcut: Right Arrow)", drop: " (Shortcut: Down Arrow)", rotateLeft: " (Shortcut: Z)", rotateRight: " (Shortcut: X)", previous: " (Shortcut: Left Arrow)", next: " (Shortcut: Right Arrow)", play: " (Shortcut: Space)", stop: " (Shortcut: Space)" },
       controlHelp: {
-        drawing: { reset: "Clear the board and reset the score.", mode: "Switch to Tokopuyo practice mode.", help: "Open this help.", chain: "Show the current score and chain count.", undo: "Undo the latest board change.", redo: "Restore an undone board change.", simulate: "Run the current board's chain reaction.", suggest: "Show dotted puyos for a chain extension.", palette: "Cycle the available four- and five-color palettes.", garbage: "Add garbage puyos to the flick menu." },
+        drawing: { reset: "Clear the board and reset the score.", mode: "Switch to Tokopuyo practice mode.", customTokopuyo: "Choose opening pairs and start Tokopuyo from the current Drawing board.", help: "Open this help.", chain: "Show the current score and chain count.", undo: "Undo the latest board change.", redo: "Restore an undone board change.", simulate: "Run the current board's chain reaction.", suggest: "Show dotted puyos for a chain extension.", palette: "Cycle the available four- and five-color palettes.", garbage: "Add garbage puyos to the flick menu." },
         tokopuyo: { reset: "Start a new random pattern.", mode: "Return to Drawing mode.", help: "Open this help.", undo: "Undo one complete placed pair.", redo: "Restore one undone placed pair.", suggest: "Suggest a resilient long-chain construction move.", attack: "Find the highest-scoring safe attack in the visible pairs.", review: "Compare the last placed pair with Pressureless Ama's analysis.", stepMode: "Enable or disable chain step mode." },
         tsumo: { left: "Move the active pair left.", right: "Move the active pair right.", rotateLeft: "Rotate the active pair counterclockwise.", drop: "Hard-drop the active pair.", rotateRight: "Rotate the active pair clockwise." },
         steps: { previous: "Show the previous completed chain round.", first: "Jump to just before the first chain round fires.", last: "Jump to just before the final chain round fires.", next: "Advance to the next chain round.", play: "Play the remaining chain rounds automatically.", stop: "Pause automatic chain playback." },
@@ -79,6 +99,13 @@ const translations = {
       tokopuyoSuggestion: (index, total, potential, efficiency, ignition, emergency) => `${emergency ? "Emergency clear · " : ""}Plan ${index}/${total}: ${potential ? `${potential}-chain main potential` : "building a main-chain base"} · ${efficiency}% resource connection · ${ignition}`,
       tokopuyoAttackSearching: "Finding the strongest visible attacks…", tokopuyoAttackNone: "No safe attack was found within the visible pairs",
       tokopuyoAttack: (index, total, score, chains, timing) => `Attack ${index}/${total}: ${formatNumber(score)} points · ${chains} chain${chains === 1 ? "" : "s"} · fires on ${timing}`,
+      customOpeningCell: (pair, role, color) => `${pair} ${role}: ${color}`,
+      customTokopuyoUnavailable: {
+        "five-colors": "This board uses five colors",
+        floating: "Land all puyos before starting Tokopuyo",
+        firing: "This board can already fire",
+        "game-over": "The choke point is occupied",
+      },
       flickChoose: "Flick to choose an option, then release to place it", optionSelected: "Option selected. Tap a board cell to place it", deleteWithoutFlicking: "Delete without flicking", erased: "Erased puyo", placed: (color) => `Placed ${color} puyo`,
       activePuyo: (role, color) => `${role} ${color} puyo`,
       cell: (hidden, row, column, color, choke) => `${hidden ? "Hidden area " : ""}${row} row ${column} column ${color}${choke ? " choke point" : ""}`,
@@ -87,12 +114,12 @@ const translations = {
   },
   ja: {
     app: {
-      title: "ぷよ連鎖シミュレーター", description: "タッチ操作に対応したぷよぷよ連鎖シミュレーター", controls: "操作", board: "ぷよぷよ盤面", language: "言語", english: "English", japanese: "日本語", chains: "連鎖", points: "点", next: "NEXT", nextNext: "NEXT NEXT",
-      reset: "リセット", openTokopuyo: "とこぷよモードを開く", returnDrawing: "描画モードに戻る", help: "使い方", closeHelp: "ヘルプを閉じる", undo: "元に戻す", redo: "やり直す", simulate: "連鎖をシミュレート", suggest: "連鎖の伸ばし方を提案", suggestTokopuyo: "長連鎖の構築手を提案", attackSuggest: "最大攻撃を提案", reviewLastMove: "直前の手をレビュー", stepModeOn: "とこぷよ連鎖ステップモードを有効化", stepModeOff: "とこぷよ連鎖ステップモードを無効化", palette: "4色パレットを変更", paletteFive: "5色パレット", garbage: "おじゃまぷよモード", pairControls: "とこぷよ操作", movePair: "組ぷよを移動", rotateDrop: "回転または落下", moveLeft: "組ぷよを左へ移動", moveRight: "組ぷよを右へ移動", rotateLeft: "組ぷよを左回転", rotateRight: "組ぷよを右回転", drop: "組ぷよを落とす", stepControls: "連鎖ステップ操作", previousStep: "前の連鎖ステップ", firstStep: "最初の連鎖ステップへ移動", lastStep: "最後の連鎖ステップへ移動", nextStep: "次の連鎖ステップ", playSteps: "連鎖ステップを自動再生", stopSteps: "連鎖ステップの自動再生を停止", calculating: "提案を計算中", flickMenu: "フリックして選択",
+      title: "ぷよ連鎖シミュレーター", description: "タッチ操作に対応したぷよぷよ連鎖シミュレーター", controls: "操作", board: "ぷよぷよ盤面", language: "言語", english: "English", japanese: "日本語", chains: "連鎖", points: "点", current: "CURRENT", next: "NEXT", nextNext: "NEXT NEXT",
+      reset: "リセット", openTokopuyo: "とこぷよモードを開く", startTokopuyoFromDrawing: "この盤面からとこぷよを開始", customTokopuyo: "この盤面からとこぷよを開始", customTokopuyoTitle: "この盤面からとこぷよを開始", customTokopuyoIntro: "4色パレットを選び、出だしのCURRENT・NEXT・NEXT NEXTをそれぞれフリックして設定します。", closeCustomTokopuyo: "カスタムとこぷよ設定を閉じる", customPaletteTitle: "パレット", customPaletteGroup: "出だしのパレット", customPaletteHelp: "盤面上のすべての色を含むパレットだけを選択できます。", customPaletteLocked: "出だしのぷよを設定すると固定されます", customPaletteOption: (number) => `4色パレット ${number}`, customOpeningTitle: "出だしのツモ", customOpeningGroup: "CURRENT・NEXT・NEXT NEXTの出だしのツモ", customOpeningHelp: "マスを長押しして色の方向へフリックします。選択したパレット内の色だけを使えます。", customOpeningCell: (pair, slot) => `${pair} ${slot}ぷよ`, customRow14Title: "14段目の占有", customRow14Group: "列ごとの14段目の占有", customRow14Help: "列をタップして、色を持たない14段目の占有を切り替えます。", customRow14Column: (column) => `14段目 ${column}列`, confirmCustomTokopuyo: "とこぷよを開始", returnDrawing: "描画モードに戻る", help: "使い方", closeHelp: "ヘルプを閉じる", undo: "元に戻す", redo: "やり直す", simulate: "連鎖をシミュレート", suggest: "連鎖の伸ばし方を提案", suggestTokopuyo: "長連鎖の構築手を提案", attackSuggest: "最大攻撃を提案", reviewLastMove: "直前の手をレビュー", stepModeOn: "とこぷよ連鎖ステップモードを有効化", stepModeOff: "とこぷよ連鎖ステップモードを無効化", palette: "4色パレットを変更", paletteFive: "5色パレット", garbage: "おじゃまぷよモード", pairControls: "とこぷよ操作", movePair: "組ぷよを移動", rotateDrop: "回転または落下", moveLeft: "組ぷよを左へ移動", moveRight: "組ぷよを右へ移動", rotateLeft: "組ぷよを左回転", rotateRight: "組ぷよを右回転", drop: "組ぷよを落とす", stepControls: "連鎖ステップ操作", previousStep: "前の連鎖ステップ", firstStep: "最初の連鎖ステップへ移動", lastStep: "最後の連鎖ステップへ移動", nextStep: "次の連鎖ステップ", playSteps: "連鎖ステップを自動再生", stopSteps: "連鎖ステップの自動再生を停止", calculating: "提案を計算中", flickMenu: "フリックして選択",
       drawingHelpIntro: "マスを長押しして、置きたい方向へフリックします。", drawingGestureHelp: "色付きの丸へフリックするとその色を置き、灰色の丸へフリックするとおじゃまぷよを置きます。フリックせずに離すとマスを削除します。", drawingControlsTitle: "描画モードのボタン", tokopuyoHelpIntro: "とこぷよの操作は、以下のボタンで行います。", tokopuyoSidebarTitle: "サイドバーのボタン", tokopuyoTsumoTitle: "ツモ操作のボタン", tokopuyoStepsTitle: "連鎖ステップのボタン",
       shortcuts: { undo: "（ショートカット: U）", redo: "（ショートカット: R）", simulate: "（ショートカット: Space）", suggest: "（ショートカット: S）", palette: "（ショートカット: 1〜6）", garbage: "（ショートカット: O）", reset: "（ショートカット: Delete）", attack: "（ショートカット: A）", review: "（ショートカット: I）", stepMode: "（ショートカット: P）", left: "（ショートカット: ←）", right: "（ショートカット: →）", drop: "（ショートカット: ↓）", rotateLeft: "（ショートカット: Z）", rotateRight: "（ショートカット: X）", previous: "（ショートカット: ←）", next: "（ショートカット: →）", play: "（ショートカット: Space）", stop: "（ショートカット: Space）" },
       controlHelp: {
-        drawing: { reset: "盤面を空にして、得点をリセットします。", mode: "とこぷよの練習モードに切り替えます。", help: "この操作説明を開きます。", chain: "現在の得点と連鎖数を表示します。", undo: "直前の盤面変更を元に戻します。", redo: "元に戻した盤面変更をやり直します。", simulate: "現在の盤面で連鎖を実行します。", suggest: "連鎖を伸ばすための点線ぷよを表示します。", palette: "使用できる4色・5色パレットを切り替えます。", garbage: "フリックメニューにおじゃまぷよを追加します。" },
+        drawing: { reset: "盤面を空にして、得点をリセットします。", mode: "とこぷよの練習モードに切り替えます。", customTokopuyo: "現在の描画盤面を使い、出だしのツモを指定してとこぷよを開始します。", help: "この操作説明を開きます。", chain: "現在の得点と連鎖数を表示します。", undo: "直前の盤面変更を元に戻します。", redo: "元に戻した盤面変更をやり直します。", simulate: "現在の盤面で連鎖を実行します。", suggest: "連鎖を伸ばすための点線ぷよを表示します。", palette: "使用できる4色・5色パレットを切り替えます。", garbage: "フリックメニューにおじゃまぷよを追加します。" },
         tokopuyo: { reset: "新しいランダムパターンで最初から始めます。", mode: "描画モードに戻ります。", help: "この操作説明を開きます。", undo: "配置済みの組ぷよ1手分を元に戻します。", redo: "元に戻した組ぷよ1手分をやり直します。", suggest: "長連鎖を構築するための手を提案します。", attack: "見えているツモ内で最大得点の安全な攻撃を探します。", review: "直前の配置をPressureless Amaの分析と比較します。", stepMode: "連鎖ステップモードをオン・オフします。" },
         tsumo: { left: "組ぷよを左へ移動します。", right: "組ぷよを右へ移動します。", rotateLeft: "組ぷよを左回転します。", drop: "組ぷよを一気に落とします。", rotateRight: "組ぷよを右回転します。" },
         steps: { previous: "1つ前の連鎖段を表示します。", first: "最初の連鎖が発火する直前へ移動します。", last: "最後の連鎖が発火する直前へ移動します。", next: "次の連鎖段へ進みます。", play: "残りの連鎖段を自動再生します。", stop: "連鎖の自動再生を一時停止します。" },
@@ -101,7 +128,7 @@ const translations = {
     message: {
       erased: "ぷよを削除しました",
       placed: (color) => `${color}ぷよを置きました`,
-      noChain: "4個以上つながったぷよがありません", undo: "元に戻しました", redo: "やり直しました", cleared: "盤面をクリアしました", reset: "盤面をリセットしました", garbageMode: (enabled) => `おじゃまありを${enabled ? "オン" : "オフ"}にしました`, palette: (index, total) => index === total ? "5色パレット" : `4色パレット ${index + 1}/${total}`, chain: (count, puyos, score, cumulative) => `${count}連鎖目：${puyos}個消去、+${formatNumber(score)}点（累積${formatNumber(cumulative)}点）`, complete: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`, scoreSummary: (score, chains) => `${formatNumber(score)}点 / ${chains}連鎖`, suggestionSearching: "連鎖の伸ばし方を探索中…", suggestionNone: "連鎖を伸ばす候補が見つかりませんでした", suggestionError: "提案を計算できませんでした", suggestion: (index, total, chains, additions, gain) => `提案 ${index}/${total}：${additions}個追加で${chains}連鎖候補（+${gain}連鎖）`, pressurelessAmaSuggestion: (index, total, score, branches, elapsed) => `Pressureless Ama ${index}/${total}：${branches}未来列の平均 ${formatNumber(score)}点（${formatNumber(elapsed)}ms）`, suggestionAlreadyFiring: "すでに発火可能な盤面のため、提案を計算できません", suggestionFloating: "すべてのぷよを着地させてから提案を計算してください", tokopuyoReset: (number) => `新しいパターン No.${number} を開始しました`, tokopuyoGameOver: "ゲームオーバー：リセットまたはUndoで続けられます", tokopuyoSuggestionSearching: "長連鎖へ育つ積み方を探索中…", tokopuyoSuggestionNone: "安全な構築手が見つかりませんでした", tokopuyoSuggestion: (index, total, potential, efficiency, ignition, emergency) => `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${potential ? `本線候補${potential}連鎖` : "本線土台を構築中"} · 連結効率${efficiency}% · ${ignition}`, tokopuyoAttackSearching: "見えているツモから最大攻撃を探索中…", tokopuyoAttackNone: "見えているツモ内に安全な発火手順がありません", tokopuyoAttack: (index, total, score, chains, timing) => `攻撃候補 ${index}/${total}：${formatNumber(score)}点・${chains}連鎖・${timing}で発火`, flickChoose: "フリックして選択し、離して配置します", optionSelected: "選択しました。盤面のマスをタップして配置できます", deleteWithoutFlicking: "フリックせずに削除", activePuyo: (role, color) => `${role}の${color}ぷよ`, cell: (hidden, row, column, color, choke) => `${hidden ? "隠し領域、" : ""}${row}段目、${column}列目、${color}${choke ? "、ちぎり判定位置" : ""}`,
+      noChain: "4個以上つながったぷよがありません", undo: "元に戻しました", redo: "やり直しました", cleared: "盤面をクリアしました", reset: "盤面をリセットしました", garbageMode: (enabled) => `おじゃまありを${enabled ? "オン" : "オフ"}にしました`, palette: (index, total) => index === total ? "5色パレット" : `4色パレット ${index + 1}/${total}`, chain: (count, puyos, score, cumulative) => `${count}連鎖目：${puyos}個消去、+${formatNumber(score)}点（累積${formatNumber(cumulative)}点）`, complete: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`, scoreSummary: (score, chains) => `${formatNumber(score)}点 / ${chains}連鎖`, suggestionSearching: "連鎖の伸ばし方を探索中…", suggestionNone: "連鎖を伸ばす候補が見つかりませんでした", suggestionError: "提案を計算できませんでした", suggestion: (index, total, chains, additions, gain) => `提案 ${index}/${total}：${additions}個追加で${chains}連鎖候補（+${gain}連鎖）`, pressurelessAmaSuggestion: (index, total, score, branches, elapsed) => `Pressureless Ama ${index}/${total}：${branches}未来列の平均 ${formatNumber(score)}点（${formatNumber(elapsed)}ms）`, suggestionAlreadyFiring: "すでに発火可能な盤面のため、提案を計算できません", suggestionFloating: "すべてのぷよを着地させてから提案を計算してください", tokopuyoReset: (number) => `新しいパターン No.${number} を開始しました`, tokopuyoGameOver: "ゲームオーバー：リセットまたはUndoで続けられます", tokopuyoSuggestionSearching: "長連鎖へ育つ積み方を探索中…", tokopuyoSuggestionNone: "安全な構築手が見つかりませんでした", tokopuyoSuggestion: (index, total, potential, efficiency, ignition, emergency) => `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${potential ? `本線候補${potential}連鎖` : "本線土台を構築中"} · 連結効率${efficiency}% · ${ignition}`, tokopuyoAttackSearching: "見えているツモから最大攻撃を探索中…", tokopuyoAttackNone: "見えているツモ内に安全な発火手順がありません", tokopuyoAttack: (index, total, score, chains, timing) => `攻撃候補 ${index}/${total}：${formatNumber(score)}点・${chains}連鎖・${timing}で発火`, customOpeningCell: (pair, role, color) => `${pair} ${role}：${color}`, customTokopuyoUnavailable: { "five-colors": "盤面に5色あります", floating: "すべてのぷよを着地させてから開始してください", firing: "すでに発火可能な盤面です", "game-over": "ちぎり判定位置が埋まっています" }, flickChoose: "フリックして選択し、離して配置します", optionSelected: "選択しました。盤面のマスをタップして配置できます", deleteWithoutFlicking: "フリックせずに削除", activePuyo: (role, color) => `${role}の${color}ぷよ`, cell: (hidden, row, column, color, choke) => `${hidden ? "隠し領域、" : ""}${row}段目、${column}列目、${color}${choke ? "、ちぎり判定位置" : ""}`,
     },
     color: { red: "赤", green: "緑", blue: "青", yellow: "黄", purple: "紫", garbage: "おじゃま", empty: "空", axis: "軸", child: "子" },
   },
@@ -170,6 +197,7 @@ export function localizeDocument() {
     "#reset": "app.reset", "#help": "app.help", "#undo": "app.undo", "#redo": "app.redo",
     "#simulate": "app.simulate", "#suggest": "app.suggest", "#attackSuggest": "app.attackSuggest",
     "#reviewLastMove": "app.reviewLastMove", "#cyclePalette": "app.palette", "#toggleGarbage": "app.garbage",
+    "#startTokopuyoFromDrawing": "app.startTokopuyoFromDrawing", "#closeCustomTokopuyo": "app.closeCustomTokopuyo",
     "#movePairLeft": "app.moveLeft", "#movePairRight": "app.moveRight", "#rotatePairLeft": "app.rotateLeft",
     "#rotatePairRight": "app.rotateRight", "#dropPair": "app.drop", "#stepChainBack": "app.previousStep", "#stepChainFirst": "app.firstStep", "#stepChainLast": "app.lastStep",
     "#stepChainForward": "app.nextStep", "#playChainSteps": "app.playSteps", "#stopChainSteps": "app.stopSteps",
@@ -191,6 +219,23 @@ export function localizeDocument() {
   document.querySelector("#tokopuyoChainChainsLabel").textContent = t("app.chains");
   document.querySelector("#tokopuyoPreview small").textContent = t("app.next");
   document.querySelector(".next-next small").textContent = t("app.nextNext");
+  const openingPairLabels = [t("app.current"), t("app.next"), t("app.nextNext")];
+  document.querySelectorAll(".custom-opening-cell").forEach((element) => {
+    const pair = openingPairLabels[Number(element.dataset.openingPair)] ?? "";
+    const slot = t(`color.${element.dataset.openingSlot}`);
+    element.ariaLabel = t("app.customOpeningCell", pair, slot);
+    element.title = element.ariaLabel;
+  });
+  document.querySelectorAll(".custom-palette-option").forEach((element) => {
+    const label = t("app.customPaletteOption", Number(element.dataset.customPalette) + 1);
+    element.ariaLabel = label;
+    element.title = label;
+  });
+  document.querySelectorAll(".row14-toggle").forEach((element) => {
+    const label = t("app.customRow14Column", Number(element.dataset.row14Column) + 1);
+    element.ariaLabel = label;
+    element.title = label;
+  });
   document.querySelectorAll("[data-help-text]").forEach((element) => {
     element.textContent = t(`app.controlHelp.${element.dataset.helpText}`);
   });

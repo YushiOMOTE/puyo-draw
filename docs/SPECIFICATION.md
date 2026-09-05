@@ -4,7 +4,7 @@
 
 - Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
-- The left sidebar is present in both modes and is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, and Help. Help is pinned to the bottom.
+- The left sidebar is present in both modes. In Drawing mode it is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. The custom-start action is unavailable in Tokopuyo mode. Help is pinned to the bottom.
 - Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
@@ -51,7 +51,8 @@ The left-side rail is ordered from top to bottom in both modes:
 
 1. Reset (trash).
 2. Drawing/Tokopuyo mode.
-3. Help (`i`).
+3. Start Tokopuyo from This Board (Drawing mode only).
+4. Help (`i`).
 
 The right-side rail is ordered from top to bottom:
 
@@ -80,7 +81,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 
 ## Tokopuyo Mode
 
-- The first entry starts immediately with a uniformly selected seed from 0 through 65,535. Reset clears Tokopuyo state and starts another randomly selected pattern.
+- The first standard entry starts immediately with a uniformly selected seed from 0 through 65,535. Reset clears Tokopuyo state and starts another randomly selected standard pattern.
 - The selected four-color pattern contains 128 axis/child pairs and loops after hand 128. The displayed pattern number is `seed + 1` and remains visible near the previews.
 - The active pair starts vertically over the third column, with the child above the axis. A virtual row above the modeled thirteen-row board allows the spawn position to be rendered without changing the locked-board model.
 - Tokopuyo legal placements match Ama's move generator, including spawn-path checks, floor kicks, quick turns, the special fourteenth row, and the standard third-column death check. Manual movement and rotation can reach every placement accepted by that generator, and a drop cannot commit a placement it rejects.
@@ -100,6 +101,17 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - The Tokopuyo right-side rail contains a chain step-mode toggle. The same blue highlight used for enabled garbage mode identifies when step mode is enabled. When enabled, a committed pair that starts a chain replaces the five pair controls at the bottom with Previous Step, Jump to First, Jump to Last, Next Step, Play, and Stop controls. Jump to First shows the locked field just before the first chain fires; Jump to Last shows the state just before the final chain fires. Previous and Next move between the locked field and each completed chain round; advancing a round shows its clearing and gravity animation. Jumping pauses automatic playback. Play advances the remaining rounds automatically, and Stop pauses that automatic playback without discarding the current step. The six step controls use smaller buttons as needed to fit the bottom bar at narrow widths.
 - While a Tokopuyo chain is in step mode, Undo, Redo, and Reset remain available. Undo or Redo first cancels the in-progress step view and then restores the normal atomic pre-placement or post-placement history snapshot; Reset cancels it and starts a new pattern.
 - The Help overlay shows instructions for the active mode.
+
+### Start Tokopuyo from This Board
+
+- Drawing mode provides a square custom-start button directly below the normal Tokopuyo mode switch. It starts a new Tokopuyo session from the current Drawing board rather than switching to the retained Tokopuyo session.
+- The button is disabled whenever the Drawing board has five distinct colors, has a floating puyo, already contains a group that can clear, or has the standard third-column choke cell occupied. Garbage puyos do not count as colors but otherwise remain part of the copied board.
+- The setup dialog is a scrollable modal with a close button, backdrop close, and Escape close. Closing it never mutates either mode; its unfinished palette, opening pairs, and fourteenth-row settings are discarded.
+- The dialog first selects one of the five normal four-color palettes. A palette is selectable only when it contains every Drawing-board color. Confirmation chooses a compatible random seed; the selected seed's normal four-color pattern supplies hands after the opening. Setting any one of the six opening-pair cells locks the palette for that dialog instance.
+- Current, Next, and Next Next are three vertical two-cell editors in one row. Each cell uses the same hold-and-flick color interaction as Drawing mode and offers only colors in the selected palette. All six cells must have colors before confirmation.
+- The dialog also has six left-to-right toggle buttons for the colorless special fourteenth-row occupancy mask. An enabled button sets its corresponding column bit.
+- Confirming copies the settled Drawing board, the selected opening three pairs, and the special-row mask into a fresh Tokopuyo session; it clears Tokopuyo history, score, chain count, move review, and suggestion state. The three edited pairs replace hands 1 through 3; hand 4 onward comes from the compatible random pattern. The pattern display reads `No. -` because this customized opening is not reproducible by pattern number alone.
+- Reset after custom start retains its existing meaning: it creates an empty-board session with a new ordinary random pattern, not another copy of the custom start position.
 
 The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
 

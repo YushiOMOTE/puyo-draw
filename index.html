@@ -41,6 +41,18 @@
           >
             <span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>
           </button>
+          <button
+            id="startTokopuyoFromDrawing"
+            class="secondary-btn sidebar-btn custom-tokopuyo-start-btn drawing-only"
+            aria-label="Start Tokopuyo from this board"
+            title="Start Tokopuyo from this board"
+          >
+            <svg class="custom-tokopuyo-start-icon" viewBox="0 0 32 32" aria-hidden="true">
+              <circle cx="12" cy="10" r="6" />
+              <circle cx="12" cy="22" r="6" />
+              <path d="m20 16 8 0m-4-4 4 4-4 4" />
+            </svg>
+          </button>
           <span id="leftModeDivider" class="toolbar-divider" aria-hidden="true"></span>
           <button
             id="help"
@@ -385,6 +397,7 @@
                 <tr><td data-help-control="#toggleGarbage"></td><td><span data-help-text="drawing.garbage">Garbage mode</span><span class="desktop-shortcut" data-help-shortcut="garbage"></span></td></tr>
                 <tr><td data-help-control="#reset"></td><td><span data-help-text="drawing.reset">Reset</span><span class="desktop-shortcut" data-help-shortcut="reset"></span></td></tr>
                 <tr><td data-help-control="#toggleAppMode"></td><td data-help-text="drawing.mode">Tokopuyo</td></tr>
+                <tr><td data-help-control="#startTokopuyoFromDrawing"></td><td data-help-text="drawing.customTokopuyo">Start Tokopuyo from this board</td></tr>
                 <tr><td data-help-control="#help"></td><td data-help-text="drawing.help">Help</td></tr>
               </tbody>
             </table>
@@ -421,6 +434,89 @@
               <tr><td data-help-control="#stopChainSteps"></td><td><span data-help-text="steps.stop">Stop</span><span class="desktop-shortcut" data-help-shortcut="stop"></span></td></tr>
             </tbody></table>
           </div>
+        </section>
+      </div>
+
+      <div id="customTokopuyoOverlay" class="custom-tokopuyo-overlay" hidden>
+        <section
+          class="custom-tokopuyo-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="customTokopuyoTitle"
+        >
+          <button id="closeCustomTokopuyo" class="help-close" aria-label="Close custom Tokopuyo setup">
+            ×
+          </button>
+          <h2 id="customTokopuyoTitle" data-i18n="app.customTokopuyoTitle">Start Tokopuyo from this board</h2>
+          <p class="custom-tokopuyo-intro" data-i18n="app.customTokopuyoIntro">Choose a four-color palette, then flick each opening puyo to set Current, Next, and Next Next.</p>
+
+          <section class="custom-palette-section" aria-labelledby="customPaletteTitle">
+            <div class="custom-section-heading">
+              <h3 id="customPaletteTitle" data-i18n="app.customPaletteTitle">Palette</h3>
+              <span id="customPaletteLocked" class="custom-palette-locked" hidden data-i18n="app.customPaletteLocked">Locked after setting an opening puyo</span>
+            </div>
+            <p data-i18n="app.customPaletteHelp">Only palettes that include every color already on the board can be selected.</p>
+            <div id="customTokopuyoPalette" class="custom-palette-options" role="group" aria-label="Opening palette" data-i18n-aria-label="app.customPaletteGroup">
+              <button type="button" class="custom-palette-option" data-custom-palette="0" aria-label="Four-color palette 1" title="Four-color palette 1">
+                <span class="custom-palette-dots" aria-hidden="true"><i class="red"></i><i class="green"></i><i class="blue"></i><i class="yellow"></i></span>
+              </button>
+              <button type="button" class="custom-palette-option" data-custom-palette="1" aria-label="Four-color palette 2" title="Four-color palette 2">
+                <span class="custom-palette-dots" aria-hidden="true"><i class="green"></i><i class="blue"></i><i class="yellow"></i><i class="purple"></i></span>
+              </button>
+              <button type="button" class="custom-palette-option" data-custom-palette="2" aria-label="Four-color palette 3" title="Four-color palette 3">
+                <span class="custom-palette-dots" aria-hidden="true"><i class="red"></i><i class="blue"></i><i class="yellow"></i><i class="purple"></i></span>
+              </button>
+              <button type="button" class="custom-palette-option" data-custom-palette="3" aria-label="Four-color palette 4" title="Four-color palette 4">
+                <span class="custom-palette-dots" aria-hidden="true"><i class="red"></i><i class="green"></i><i class="yellow"></i><i class="purple"></i></span>
+              </button>
+              <button type="button" class="custom-palette-option" data-custom-palette="4" aria-label="Four-color palette 5" title="Four-color palette 5">
+                <span class="custom-palette-dots" aria-hidden="true"><i class="red"></i><i class="green"></i><i class="blue"></i><i class="purple"></i></span>
+              </button>
+            </div>
+          </section>
+
+          <section class="custom-opening-section" aria-labelledby="customOpeningTitle">
+            <h3 id="customOpeningTitle" data-i18n="app.customOpeningTitle">Opening pairs</h3>
+            <p data-i18n="app.customOpeningHelp">Hold a cell and flick toward a color to set it. Only colors in the selected palette are available.</p>
+            <div id="customOpeningPairs" class="custom-opening-pairs" role="group" aria-label="Current, Next, and Next Next opening pairs" data-i18n-aria-label="app.customOpeningGroup">
+              <section class="custom-opening-pair" aria-labelledby="customOpeningCurrent">
+                <h4 id="customOpeningCurrent" data-i18n="app.current">Current</h4>
+                <div class="custom-opening-cells">
+                  <button type="button" class="custom-opening-cell" data-opening-pair="0" data-opening-slot="child" aria-label="Current child puyo"></button>
+                  <button type="button" class="custom-opening-cell" data-opening-pair="0" data-opening-slot="axis" aria-label="Current axis puyo"></button>
+                </div>
+              </section>
+              <section class="custom-opening-pair" aria-labelledby="customOpeningNext">
+                <h4 id="customOpeningNext" data-i18n="app.next">Next</h4>
+                <div class="custom-opening-cells">
+                  <button type="button" class="custom-opening-cell" data-opening-pair="1" data-opening-slot="child" aria-label="Next child puyo"></button>
+                  <button type="button" class="custom-opening-cell" data-opening-pair="1" data-opening-slot="axis" aria-label="Next axis puyo"></button>
+                </div>
+              </section>
+              <section class="custom-opening-pair" aria-labelledby="customOpeningNextNext">
+                <h4 id="customOpeningNextNext" data-i18n="app.nextNext">Next Next</h4>
+                <div class="custom-opening-cells">
+                  <button type="button" class="custom-opening-cell" data-opening-pair="2" data-opening-slot="child" aria-label="Next Next child puyo"></button>
+                  <button type="button" class="custom-opening-cell" data-opening-pair="2" data-opening-slot="axis" aria-label="Next Next axis puyo"></button>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="custom-row14-section" aria-labelledby="customRow14Title">
+            <h3 id="customRow14Title" data-i18n="app.customRow14Title">14th row occupancy</h3>
+            <p data-i18n="app.customRow14Help">Tap a column to toggle its colorless 14th-row occupancy.</p>
+            <div id="customRow14" class="custom-row14-toggles" role="group" aria-label="14th row occupancy by column" data-i18n-aria-label="app.customRow14Group">
+              <button type="button" class="row14-toggle" data-row14-column="0" aria-label="14th row, column 1" aria-pressed="false">1</button>
+              <button type="button" class="row14-toggle" data-row14-column="1" aria-label="14th row, column 2" aria-pressed="false">2</button>
+              <button type="button" class="row14-toggle" data-row14-column="2" aria-label="14th row, column 3" aria-pressed="false">3</button>
+              <button type="button" class="row14-toggle" data-row14-column="3" aria-label="14th row, column 4" aria-pressed="false">4</button>
+              <button type="button" class="row14-toggle" data-row14-column="4" aria-label="14th row, column 5" aria-pressed="false">5</button>
+              <button type="button" class="row14-toggle" data-row14-column="5" aria-label="14th row, column 6" aria-pressed="false">6</button>
+            </div>
+          </section>
+
+          <button id="confirmCustomTokopuyo" type="button" class="primary-btn custom-tokopuyo-confirm" data-i18n="app.confirmCustomTokopuyo">Start Tokopuyo</button>
         </section>
       </div>
 

@@ -25,7 +25,11 @@ import { createSearchPolicy } from "./solver/search-policy.js";
 import { solveSuggestion } from "./solver/solver-registry.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
-import { generatePattern, getTsumo } from "./tokopuyo/queue.js";
+import {
+  generatePattern,
+  getTsumo,
+  randomSeedForPalette,
+} from "./tokopuyo/queue.js";
 import {
   DRAG_RETURN_HYSTERESIS_RATIO,
   DRAG_STEP_RATIO,
@@ -58,6 +62,7 @@ import {
   commitPairAtColumn,
   commitPairAtPlacement,
   createSession,
+  createSessionFromPosition,
   previewHands,
   previewPairAtColumn,
   previewPairAtPlacement,
@@ -347,6 +352,133 @@ assert.equal(
     .map(({ axis, child }) => `${axis[0]}${child[0]}`)
     .join(""),
   "bpbpbpypgybgbpbb",
+);
+
+const customPalette = [...seedZeroPattern.colors];
+assert.equal(
+  randomSeedForPalette(customPalette, () => 0),
+  seedZeroPattern.seed,
+);
+assert.throws(
+  () => randomSeedForPalette(["red", "red", "blue", "green"], () => 0),
+  TypeError,
+);
+const customBoard = emptyBoard();
+customBoard[ROWS - 1][0] = "red";
+customBoard[ROWS - 2][0] = "blue";
+const openingHands = [
+  { axis: "red", child: "yellow" },
+  { axis: "purple", child: "red" },
+  { axis: "blue", child: "blue" },
+];
+const customSession = createSessionFromPosition(
+  {
+    board: customBoard,
+    row14: 0b101010,
+    openingHands,
+    palette: customPalette,
+  },
+  () => 0,
+);
+assert.equal(customSession.customOpening, true);
+assert.equal(customSession.seed, seedZeroPattern.seed);
+assert.deepEqual(customSession.board, customBoard);
+assert.equal(customSession.row14, 0b101010);
+assert.deepEqual(getTsumo(customSession.pattern, 0), openingHands[0]);
+assert.deepEqual(getTsumo(customSession.pattern, 1), openingHands[1]);
+assert.deepEqual(getTsumo(customSession.pattern, 2), openingHands[2]);
+assert.deepEqual(
+  getTsumo(customSession.pattern, 3),
+  getTsumo(seedZeroPattern, 3),
+);
+assert.equal(customSession.activePair.axisColor, openingHands[0].axis);
+assert.equal(customSession.activePair.childColor, openingHands[0].child);
+assert.equal(customSession.activePair.axis.col, 2);
+customBoard[ROWS - 1][0] = null;
+assert.equal(customSession.board[ROWS - 1][0], "red");
+customSession.board[ROWS - 1][1] = "green";
+assert.equal(customBoard[ROWS - 1][1], null);
+customBoard[ROWS - 1][0] = "red";
+assert.ok(commitPairAtPlacement(customSession, 5, ORIENTATION.UP));
+assert.equal(customSession.handIndex, 1);
+assert.equal(customSession.activePair.axisColor, openingHands[1].axis);
+assert.ok(commitPairAtPlacement(customSession, 5, ORIENTATION.UP));
+assert.ok(commitPairAtPlacement(customSession, 5, ORIENTATION.UP));
+assert.equal(customSession.handIndex, 3);
+assert.deepEqual(
+  {
+    axis: customSession.activePair.axisColor,
+    child: customSession.activePair.childColor,
+  },
+  getTsumo(seedZeroPattern, 3),
+);
+assert.throws(
+  () => createSessionFromPosition({
+    board: customBoard,
+    row14: 64,
+    openingHands,
+    palette: customPalette,
+  }, () => 0),
+  RangeError,
+);
+assert.throws(
+  () => createSessionFromPosition({
+    board: customBoard,
+    row14: 0,
+    openingHands: openingHands.slice(0, 2),
+    palette: customPalette,
+  }, () => 0),
+  TypeError,
+);
+const fiveColorBoard = emptyBoard();
+fiveColorBoard[ROWS - 1][0] = "green";
+assert.throws(
+  () => createSessionFromPosition({
+    board: fiveColorBoard,
+    openingHands,
+    palette: ["red", "blue", "yellow", "purple"],
+  }, () => 0),
+  RangeError,
+);
+const floatingStartBoard = emptyBoard();
+floatingStartBoard[ROWS - 2][0] = "red";
+assert.throws(
+  () => createSessionFromPosition({
+    board: floatingStartBoard,
+    openingHands,
+    palette: customPalette,
+  }, () => 0),
+  RangeError,
+);
+const hiddenFloatingStartBoard = emptyBoard();
+hiddenFloatingStartBoard[0][0] = "red";
+assert.throws(
+  () => createSessionFromPosition({
+    board: hiddenFloatingStartBoard,
+    openingHands,
+    palette: customPalette,
+  }, () => 0),
+  RangeError,
+);
+const firingStartBoard = emptyBoard();
+for (let col = 0; col < 4; col++) firingStartBoard[ROWS - 1][col] = "red";
+assert.throws(
+  () => createSessionFromPosition({
+    board: firingStartBoard,
+    openingHands,
+    palette: customPalette,
+  }, () => 0),
+  RangeError,
+);
+const chokeStartBoard = emptyBoard();
+chokeStartBoard[HIDDEN_ROWS][2] = "red";
+assert.throws(
+  () => createSessionFromPosition({
+    board: chokeStartBoard,
+    openingHands,
+    palette: customPalette,
+  }, () => 0),
+  RangeError,
 );
 
 const activePair = createActivePair({ axis: "red", child: "blue" });

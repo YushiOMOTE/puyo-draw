@@ -66,7 +66,7 @@ The application has two top-level, mutually exclusive modes:
 1. **Drawing mode** is the existing free-form board editor and chain simulator.
 2. **Tokopuyo mode** is a turn-based practice mode driven by a fixed official-style tsumo pattern.
 
-The Tokopuyo mode button is placed at the bottom of the drawing-mode sidebar, directly above the Help button. Selecting it switches to Tokopuyo mode. Tokopuyo mode provides a corresponding Drawing mode button in the same lower sidebar area.
+The normal Tokopuyo mode button appears in the Drawing-mode left rail. Directly below it, Drawing mode also provides Start Tokopuyo from This Board; it opens a custom-start dialog rather than switching to the retained Tokopuyo session. Tokopuyo mode provides the corresponding Drawing mode button in the same rail area.
 
 Switching from Tokopuyo mode to Drawing mode imports the settled thirteen-row Tokopuyo field as one normal Drawing-mode board change. If the imported board differs from the current Drawing board, the previous Drawing board is saved in Drawing Undo history and Drawing Redo is cleared; if there is no board difference, Drawing history is unchanged. In both cases, the Drawing chain count and cumulative score reset to zero. The active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session and does not import Drawing edits. A mode switch is not a Tokopuyo history entry.
 
@@ -99,6 +99,16 @@ The Tokopuyo sidebar follows the current square-button visual language. Below th
 Reset and the Drawing mode button are in the left-side app rail. The Help button remains pinned at the bottom and opens mode-appropriate instructions.
 
 Palette, garbage, Clear, and Simulate controls are hidden rather than merely disabled.
+
+### Custom start from Drawing mode
+
+Custom start copies a settled Drawing board into a new Tokopuyo session. Its launcher is disabled while any of these conditions holds: the board uses all five physical colors, a puyo is floating, a group of four or more can already clear, or the third-column choke cell is occupied. Garbage does not count toward the four-color limit, but is copied as an obstacle when the other conditions are valid.
+
+The setup dialog has a close button and scrolls internally at narrow heights. It is disposable: close, backdrop click, or Escape discards all unfinished choices without changing either board or the retained Tokopuyo session.
+
+The user selects one of the five normal four-color palettes. Only palettes containing every physical color already on the Drawing board are selectable. Confirmation chooses a random compatible seed; that seed supplies the ordinary deterministic queue after the edited opening. Current, Next, and Next Next are three two-cell vertical editors in one row. Each cell uses the Drawing hold-and-flick gesture, limits its colors to the selected palette, and is required before confirmation. Once any opening cell has a color, the palette remains locked for that dialog instance.
+
+Six left-to-right toggle buttons set the colorless special-fourteenth-row mask. Confirmation starts a fresh session with the copied board, the chosen mask, and the edited three pairs as hands 1–3. The selected pattern's hand 4 and later hands retain their ordinary ordering and wrap behavior. History, score, chain count, last-move review, and suggestion caches all start empty. The compact pattern label displays `No. -` because a customized opening cannot be reproduced by its seed alone. Reset still starts an empty ordinary random pattern; it does not recreate the custom position.
 
 ## Long-chain construction suggestions
 
@@ -167,6 +177,7 @@ A movement or rotation that cannot fit leaves the pair in place. A preview may m
 - The selected seed, pattern number, selected four colors, and current hand index are session state.
 - The first upcoming hand is hand 1 at index 0.
 - The UI should expose the pattern number so a session can be reproduced.
+- A custom-start session is the explicit exception: it retains a compatible seed for hands after the opening but replaces hands 1–3 with user input. Its pattern number is displayed as `No. -`, not as a reproducibility claim.
 
 ### Advance
 
@@ -267,6 +278,10 @@ Before release, add focused tests for:
 - axis/child parsing order;
 - deterministic repeated reads for the same seed and hand;
 - rejection of malformed pattern data;
+- custom-start rejection for five-color, floating, firing, and choke-occupied Drawing boards;
+- compatible custom-palette selection, palette locking after the first opening color, and palette-limited opening flick choices;
+- custom-start copy of board and fourteenth-row mask, opening-pair hand order, and transition to the compatible seed at hand 4;
+- custom-start `No. -` display and ordinary-empty-random Reset behavior;
 - restart preserving the seed and new-pattern changing it;
 - persistence/replay including seed, selected colors, hand index, and board state;
 - one-column horizontal movement and collision rejection;
