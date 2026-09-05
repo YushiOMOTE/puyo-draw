@@ -1752,6 +1752,13 @@ function displayLastMoveReview(
     "Your placement's rank among Ama's legal Current placements. Rank 1 is Ama's top choice.",
     { inline: true },
   );
+  appendReviewStat(
+    reviewRankingStatEl,
+    evaluation.userStats?.maximum.toLocaleString() ?? "—",
+    "YOUR MAX SCORE",
+    "The highest score your placement found in any one of Ama's six tested futures. It is evidence, not the value used to rank moves.",
+    { inline: true },
+  );
   reviewRangesEl.replaceChildren();
   appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
   appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");

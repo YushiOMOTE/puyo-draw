@@ -1119,17 +1119,24 @@ body[data-mode="drawing"] .help-btn {
   font-size: 10px;
 }
 
-.review-ranking-stat {
-  grid-template-columns: minmax(0, 1fr);
+.review-stats.review-ranking-stat {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 7px;
 }
+
+.review-ranking-stat .review-stat-inline {
+  gap: 5px;
+  padding: 8px;
+}
+
+.review-ranking-stat .review-stat-label { gap: 3px; }
 
 .review-stat-inline {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 20px;
 }
 
 .review-stat-inline .review-stat-label {
@@ -1139,6 +1146,8 @@ body[data-mode="drawing"] .help-btn {
 
 .review-stat-inline strong {
   flex: 0 0 auto;
+  min-width: 4ch;
+  text-align: right;
 }
 
 .review-stat:first-child .review-help-body {
@@ -1155,6 +1164,12 @@ body[data-mode="drawing"] .help-btn {
 .review-stat:last-child .review-help-body {
   right: 0;
   left: auto;
+}
+
+.review-ranking-stat .review-stat:nth-child(2) .review-help-body {
+  right: -52px;
+  left: auto;
+  transform: none;
 }
 
 .review-ranges {

@@ -383,10 +383,10 @@ modify the live board, score, history, or caches.
 The existing last-move report is extended in this order:
 
 1. Current-placement comparison, without textual placement or pre-resolution labels;
-2. a five-row Ranking table below the comparison, starting with a full-width
-   user-rank summary and showing each candidate's rank, text placement, and
-   maximum single-future score, with one closable candidate placement preview at
-   a time;
+2. a five-row Ranking table below the comparison, starting with adjacent
+   user-rank and user-maximum-score summaries and showing each candidate's rank,
+   text placement, and maximum single-future score, with one closable candidate
+   placement preview at a time;
 3. "Future potential and stability," containing potential, variation, found
    ranges, the six branch chart, mapped color-pair labels, mean, range,
    standard deviation, and relative dispersion;
