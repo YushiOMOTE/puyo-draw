@@ -774,7 +774,11 @@ const amaRankingRows = createAmaRankingRows(amaAllCandidates, 1);
 assert.equal(amaRankingRows.length, 1);
 assert.equal(amaRankingRows[0].rank, 1);
 assert.equal(amaRankingRows[0].candidate, amaAllCandidates[0]);
-assert.equal(amaRankingRows[0].maximumScore, 600);
+assert.equal(amaRankingRows[0].averageScore, 350);
+const fractionalAmaRankingRows = createAmaRankingRows([{
+  branchScores: [1, 2, 3, 4, 5, 7],
+}]);
+assert.equal(fractionalAmaRankingRows[0].averageScore, 11 / 3);
 assert.throws(() => createAmaRankingRows(amaAllCandidates, 0), /positive integer/);
 const reviewedMove = evaluateAmaMove({
   placement: { cells: amaAllCandidates[1].moves[0].cells },

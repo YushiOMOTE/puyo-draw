@@ -143,7 +143,7 @@ export function createAmaRankingRows(candidates, limit = 5) {
   return candidates.slice(0, limit).map((candidate, index) => ({
     rank: index + 1,
     candidate,
-    maximumScore: summarizeAmaBranchScores(candidate.branchScores).maximum,
+    averageScore: summarizeAmaBranchScores(candidate.branchScores).mean,
   }));
 }
 

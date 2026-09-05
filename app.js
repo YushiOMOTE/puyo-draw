@@ -1277,7 +1277,7 @@ function renderEvaluationCoaching(
   });
 }
 
-function appendReviewStat(container, value, label, help, { inline = false } = {}) {
+function appendReviewStat(container, value, label, { inline = false } = {}) {
   const stat = document.createElement("article");
   stat.className = `review-stat${inline ? " review-stat-inline" : ""}`;
   const strong = document.createElement("strong");
@@ -1286,7 +1286,7 @@ function appendReviewStat(container, value, label, help, { inline = false } = {}
   const small = document.createElement("small");
   small.textContent = label;
   labelGroup.className = "review-stat-label";
-  labelGroup.append(small, createReviewHelp(label, help));
+  labelGroup.append(small);
   stat.append(...(inline ? [labelGroup, strong] : [strong, labelGroup]));
   container.append(stat);
 }
@@ -1514,9 +1514,9 @@ function renderReviewRanking(candidates, turn) {
     });
     moveContent.append(label, previewButton);
     move.append(moveContent);
-    const maximumScore = document.createElement("td");
-    maximumScore.textContent = formatNumber(row.maximumScore);
-    tableRow.append(rank, move, maximumScore);
+    const averageScore = document.createElement("td");
+    averageScore.textContent = formatNumber(Math.round(row.averageScore));
+    tableRow.append(rank, move, averageScore);
     reviewRankingBodyEl.append(tableRow);
   }
 }
@@ -1534,17 +1534,16 @@ function renderReviewRankingChart(candidates, userRank) {
     return;
   }
 
-  const scores = candidates.map((candidate) =>
-    Math.max(...candidate.branchScores, 0));
+  const scores = candidates.map((candidate) => candidate.averageScore);
   const highestScore = Math.max(...scores, 1);
   reviewRankingMaxScoreEl.textContent = formatNumber(highestScore);
-  reviewRankingMidScoreEl.textContent = formatNumber(Math.round(highestScore / 2));
+  reviewRankingMidScoreEl.textContent = formatNumber(highestScore / 2);
   reviewRankingBarsEl.style.setProperty("--ranking-count", candidates.length);
   reviewRankingBarsEl.setAttribute(
     "aria-label",
-    `${t("review.maxScore")} (${t("review.rank")} 1–${candidates.length}). ` +
+    `${t("review.score")} (${t("review.rank")} 1–${candidates.length}). ` +
       `${t("review.yourMove")}：${userRank ?? "—"}. ` +
-      scores.map((score, index) => `${t("review.rank")} ${index + 1}: ${score}.`).join(" "),
+      scores.map((score, index) => `${t("review.rank")} ${index + 1}: ${formatNumber(score)}.`).join(" "),
   );
   scores.forEach((score, index) => {
     const bar = document.createElement("span");
@@ -1552,7 +1551,7 @@ function renderReviewRankingChart(candidates, userRank) {
     bar.className = "review-ranking-bar";
     if (rank === userRank) bar.classList.add("user");
     bar.style.setProperty("--bar-height", `${Math.max((score / highestScore) * 100, 2)}%`);
-    bar.title = `${t("review.rank")} ${rank}: ${formatNumber(score)} ${t("review.maxScore")}${rank === userRank ? ` (${t("review.yourMove")})` : ""}`;
+    bar.title = `${t("review.rank")} ${rank}: ${formatNumber(score)} ${t("review.score")}${rank === userRank ? ` (${t("review.yourMove")})` : ""}`;
     bar.setAttribute("aria-hidden", "true");
     reviewRankingBarsEl.append(bar);
   });
@@ -1682,14 +1681,12 @@ function displayLastMoveReview(
     reviewRankingStatEl,
     evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
     t("review.yourRank"),
-    t("review.ranking"),
     { inline: true },
   );
   appendReviewStat(
     reviewRankingStatEl,
-    evaluation.userStats ? formatNumber(evaluation.userStats.maximum) : "—",
-    t("review.yourMaxScore"),
-    t("review.maxScore"),
+    evaluation.userStats ? formatNumber(evaluation.userStats.mean) : "—",
+    t("review.yourScore"),
     { inline: true },
   );
   renderReviewRankingChart(allCandidates, evaluation.rank);

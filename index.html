@@ -408,12 +408,12 @@
               <h3>Ranking</h3>
               <details class="review-help">
                 <summary aria-label="Explain candidate ranking">?</summary>
-                <p>Rank follows the total score across all six tested futures. Max score is the highest score found in any one of those futures.</p>
+                <p>Rank and score both use the average across all six tested futures.</p>
               </details>
             </div>
             <div id="reviewRankingStat" class="review-stats review-ranking-stat"></div>
             <figure id="reviewRankingChart" class="review-ranking-chart" hidden>
-              <figcaption>MAX SCORE BY RANK</figcaption>
+              <figcaption>SCORE</figcaption>
               <div class="review-ranking-plot">
                 <div class="review-ranking-y-axis" aria-hidden="true">
                   <span id="reviewRankingMaxScore"></span>
@@ -433,7 +433,7 @@
                   <tr>
                     <th scope="col">Rank</th>
                     <th scope="col">Candidate move</th>
-                    <th scope="col">Max score</th>
+                    <th scope="col">Score</th>
                   </tr>
                 </thead>
                 <tbody id="reviewRankingBody"></tbody>
