@@ -796,6 +796,26 @@ function describePlacement({ col, orientation }) {
   return t("review.placement", col + 1, t("review.directions")[orientation]);
 }
 
+function createPlacementLabel(candidate, pair) {
+  const label = document.createElement("span");
+  const axis = document.createElement("i");
+  const axisColumn = document.createElement("span");
+  const separator = document.createElement("span");
+  const child = document.createElement("i");
+  const direction = document.createElement("span");
+  label.className = "review-placement-label";
+  label.setAttribute("role", "img");
+  label.setAttribute("aria-label", describePlacement(candidate));
+  axis.className = `review-color-dot ${pair.axis}`;
+  axisColumn.textContent = t("review.axisColumn", candidate.col + 1);
+  separator.className = "review-placement-separator";
+  separator.textContent = t("review.placementSeparator");
+  child.className = `review-color-dot ${pair.child}`;
+  direction.textContent = t("review.directions")[candidate.orientation];
+  label.append(axis, axisColumn, separator, child, direction);
+  return label;
+}
+
 function renderReviewMiniBoard(
   element,
   board,
@@ -1453,7 +1473,10 @@ function showReviewRankingPreview(row, turn, button) {
       candidateButton === button ? "true" : "false",
     );
   });
-  reviewRankingPreviewSourceEl.textContent = `${t("review.rank").toUpperCase()} ${row.rank} · ${describePlacement(row.candidate)}`;
+  reviewRankingPreviewSourceEl.replaceChildren(
+    document.createTextNode(`${t("review.rank").toUpperCase()} ${row.rank} · `),
+    createPlacementLabel(row.candidate, turn.current),
+  );
   renderReviewMiniBoard(
     reviewRankingPreviewBoardEl,
     preview.board,
@@ -1477,8 +1500,7 @@ function renderReviewRanking(candidates, turn) {
     const move = document.createElement("td");
     const moveContent = document.createElement("div");
     moveContent.className = "review-ranking-move";
-    const label = document.createElement("span");
-    label.textContent = describePlacement(row.candidate);
+    const label = createPlacementLabel(row.candidate, turn.current);
     const previewButton = document.createElement("button");
     previewButton.type = "button";
     previewButton.textContent = t("review.preview");

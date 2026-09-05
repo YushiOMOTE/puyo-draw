@@ -109,6 +109,8 @@ const translations = {
 const reviewTranslations = {
   en: {
     ama: "Ama",
+    axisColumn: (col) => `Col. ${col}`,
+    placementSeparator: " · ",
     explainRanking: "Rank follows the total score across all six tested futures. Max score is the highest score found in any one of those futures.",
     explainFuture: "Potential is the average maximum score Ama found. Stability is the variation across six fixed test continuations; lower variation is more consistent.",
     explainEvaluation: "These weighted features decide which fields remain in Ama's beam search. They do not directly decide the final move ranking.",
@@ -117,6 +119,8 @@ const reviewTranslations = {
   },
   ja: {
     ama: "Ama",
+    axisColumn: (col) => `${col}列目`,
+    placementSeparator: "、",
     explainRanking: "順位は6通りのテスト未来における合計スコアで決まります。最大得点は、そのうち1つの未来で見つかった最高得点です。",
     explainFuture: "将来性はAmaが見つけた最大得点の平均です。安定性は6通りの固定テスト未来におけるばらつきで、小さいほど一貫しています。",
     explainEvaluation: "これらの重み付き特徴量は、Amaのビーム探索に残す盤面を決めます。最終的な手の順位を直接決めるものではありません。",
@@ -124,6 +128,12 @@ const reviewTranslations = {
     signal: { potentialChain: ["プローブ連鎖", "Amaの最良発火プローブで見つかった連鎖段数。"], triggerHeight: ["発火高さ", "選択した仮想発火列の高さ。"], requiredPuyos: ["発火に必要なぷよ", "選択したプローブで追加する同色ぷよの数。少ないほど評価されます。"], extensionSpace: ["拡張余地", "選択した発火点の周辺でAmaが検出した横方向の余地。"], quietLink2: ["プローブ後の2連結", "仮想発火後に残る2連結の目印。"], quietLink3: ["プローブ後の3連結", "仮想発火後に残る3連結の目印。"], formMatch: ["形の一致度", "AmaのGTR・FRON・SGTRテンプレートへの相対色一致度。"], shapeDeviation: ["形のずれ", "Amaが好む相対列高プロファイルとの差。小さいほど評価されます。"], wells: ["谷の深さ", "隣より低い列の合計深さ。小さいほど評価されます。"], bumps: ["山の高さ", "両隣より高い内側列の合計高さ。小さいほど評価されます。"], boardLink2: ["盤面の2連結", "Amaが2連結の目印として分類したマス。"], boardLink3: ["盤面の3連結", "Amaが3連結の目印として分類したマス。"], row14Blockage: ["14段目の占有", "横方向の到達可能な空間を減らす特殊段の占有。"], sideBias: ["左右の偏り", "中央に対する左右の高さ。現在の重みは0です。"], garbageCount: ["おじゃまぷよ", "評価対象の盤面にあるおじゃまぷよ。"], pairSplit: ["組ぷよの分離", "横向きのCurrentが高さの違いで分かれたか。"], immediateClear: ["即時消去", "Currentで発火した連鎖段数。Amaは手数コストを加えます。"] },
   },
 };
+
+Object.assign(reviewTranslations.ja, {
+  explainRanking: "順位は6通りの未来テストにおける合計スコアで決まります。最大得点は、そのうち1つの未来で見つかった最高得点です。",
+  explainFuture: "将来性はAmaが見つけた最大得点の平均です。安定性は6通りの固定未来テストにおけるばらつきで、小さいほど一貫しています。",
+  sixFutures: "6通りの未来テスト",
+});
 
 let locale = navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
 
@@ -190,7 +200,6 @@ export function localizeDocument() {
     ".review-comparison section:nth-child(2) h3": "review.amaChoice",
     "#reviewRankingSection h3": "review.ranking",
     ".review-ranking-chart figcaption": "review.maxScore",
-    ".review-ranking-y-title": "review.maxScore",
     ".review-ranking-table th:nth-child(1)": "review.rank",
     ".review-ranking-table th:nth-child(2)": "review.candidateMove",
     ".review-ranking-table th:nth-child(3)": "review.maxScore",
