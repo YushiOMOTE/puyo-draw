@@ -1698,7 +1698,7 @@ function displayLastMoveReview(
   );
   appendReviewStat(
     reviewRankingStatEl,
-    evaluation.userStats ? formatNumber(evaluation.userStats.mean) : "—",
+    evaluation.userStats ? formatNumber(Math.round(evaluation.userStats.mean)) : "—",
     t("review.yourScore"),
     { inline: true },
   );
