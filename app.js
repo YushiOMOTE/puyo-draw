@@ -40,6 +40,7 @@ import {
   createSessionFromPosition,
   previewHands,
   redoSession,
+  setActivePairAtPlacement,
   setGarbageMode as setTokopuyoGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
@@ -880,6 +881,7 @@ function tokopuyoAttackSuggestionKey() {
 }
 
 function displayTokopuyoSuggestion(candidate, index, total) {
+  syncActivePairToSuggestion(candidate);
   tokopuyoSuggestionMarks = createTokopuyoSuggestionMarks(
     candidate,
     tokopuyoSession.board,
@@ -917,7 +919,18 @@ function displayTokopuyoSuggestion(candidate, index, total) {
   );
 }
 
+function syncActivePairToSuggestion(candidate) {
+  const placement = candidate?.moves?.[0];
+  if (!placement || !tokopuyoSession) return;
+  setActivePairAtPlacement(
+    tokopuyoSession,
+    placement.col,
+    placement.orientation,
+  );
+}
+
 function displayTokopuyoAttackSuggestion(candidate, index, total) {
+  syncActivePairToSuggestion(candidate);
   tokopuyoSuggestionMarks = new Map();
   [...candidate.moves].reverse().forEach((move) => {
     const step = move.handOffset + 1;

@@ -69,6 +69,7 @@ import {
   previewPairAtColumn,
   previewPairAtPlacement,
   redoSession,
+  setActivePairAtPlacement,
   setGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
@@ -492,6 +493,21 @@ assert.deepEqual(pairCells(activePair), [
 const movedPair = movePair(emptyBoard(), activePair, 1);
 assert.equal(movedPair.axis.col, 3);
 assert.equal(rotatePair(emptyBoard(), activePair, 1).orientation, ORIENTATION.RIGHT);
+
+const suggestedPlacementSession = createSession(0);
+assert.equal(
+  setActivePairAtPlacement(suggestedPlacementSession, 4, ORIENTATION.LEFT),
+  true,
+);
+assert.equal(suggestedPlacementSession.activePair.axis.col, 4);
+assert.equal(suggestedPlacementSession.activePair.orientation, ORIENTATION.LEFT);
+assert.equal(suggestedPlacementSession.history.length, 0);
+assert.equal(
+  setActivePairAtPlacement(suggestedPlacementSession, 2, ORIENTATION.UP),
+  true,
+);
+assert.equal(suggestedPlacementSession.activePair.axis.col, 2);
+assert.equal(suggestedPlacementSession.activePair.orientation, ORIENTATION.UP);
 
 const wallPair = {
   ...activePair,

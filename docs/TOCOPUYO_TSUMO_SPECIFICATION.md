@@ -136,6 +136,8 @@ Replay starts at the recorded pre-move field. Next processes one whole hand: sho
 
 Up to four ranked Current placements are cached. The current pair is shown at its final landing cells as colored dashed circles with centered sparkles, including a virtual-row marker when the child occupies the special fourteenth row. Pressing Suggestion again cycles through cached alternatives without searching again. A committed hand, Undo, Redo, Reset, or mode change invalidates the cache and stale in-flight results.
 
+When a long-chain or emergency-attack suggestion is displayed, the Current pair is directly moved and rotated to the suggestion's first placement. This presentation change is not a history entry. Pressing Drop then commits that placement through the normal legal-placement and chain-resolution path. If the user subsequently moves or rotates the pair manually, the suggestion markers remain visible; the displayed markers continue to describe the selected suggestion rather than the modified active pair.
+
 The status line reports the candidate index, the average of its six sampled maximum-chain scores, and elapsed search time. That scalar is search evidence rather than a calibrated probability, an optimality proof, or a causal coaching explanation.
 
 ## Emergency-attack suggestions

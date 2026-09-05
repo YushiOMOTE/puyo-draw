@@ -278,6 +278,25 @@ export function actOnPair(session, action) {
   return session.activePair !== before;
 }
 
+/**
+ * Move the current pair directly to a previously validated suggestion
+ * placement. This is presentation state, so it is not a history entry.
+ */
+export function setActivePairAtPlacement(session, col, orientation) {
+  if (
+    session.busy ||
+    session.gameOver ||
+    session.garbageMode ||
+    !Number.isInteger(col) ||
+    !Object.values(ORIENTATION).includes(orientation)
+  ) return false;
+
+  const pair = pairAtPlacement(session, col, orientation);
+  if (!pair) return false;
+  session.activePair = pair;
+  return true;
+}
+
 export function setGarbageMode(session, enabled) {
   if (session.busy) return false;
   const next = Boolean(enabled);
