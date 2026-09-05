@@ -2325,6 +2325,36 @@ function closeHelp() {
   helpOverlay.hidden = true;
 }
 
+function renderHelpControlPreviews() {
+  document.querySelectorAll("[data-help-control]").forEach((cell) => {
+    const source = document.querySelector(cell.dataset.helpControl);
+    if (!source) return;
+
+    const preview = source.cloneNode(true);
+    preview.removeAttribute("id");
+    preview.querySelectorAll("[id]").forEach((element) => {
+      element.removeAttribute("id");
+    });
+    preview.hidden = false;
+    preview.disabled = false;
+    preview.tabIndex = -1;
+    preview.ariaHidden = "true";
+    preview.removeAttribute("aria-label");
+    preview.removeAttribute("aria-live");
+    preview.removeAttribute("aria-pressed");
+    preview.removeAttribute("title");
+    preview.classList.add("help-control-preview");
+
+    const sourceRail = source.closest(".toolbar, .left-sidebar");
+    const context = document.createElement("span");
+    context.className = "help-control-source";
+    if (sourceRail?.classList.contains("toolbar")) context.classList.add("toolbar");
+    if (sourceRail?.classList.contains("left-sidebar")) context.classList.add("left-sidebar");
+    context.append(preview);
+    cell.replaceChildren(context);
+  });
+}
+
 window.addEventListener("pointermove", (event) => {
   if (flick.row < 0) return;
   if (event.pointerId !== flick.pointerId) return;
@@ -2466,6 +2496,7 @@ languageSelect.value = getLocale();
 languageSelect.addEventListener("change", () => {
   setLocale(languageSelect.value);
   localizeDocument();
+  renderHelpControlPreviews();
   if (reviewReplayContext && !reviewOverlay.hidden) {
     displayLastMoveReview(
       reviewReplayContext.evaluation,
@@ -2477,6 +2508,7 @@ languageSelect.addEventListener("change", () => {
   render();
 });
 document.querySelector("#help").addEventListener("click", () => {
+  renderHelpControlPreviews();
   helpOverlay.hidden = false;
 });
 closeHelpButton.addEventListener("click", closeHelp);

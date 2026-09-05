@@ -336,7 +336,7 @@
             </select>
           </label>
           <div id="drawingHelp">
-            <p>Hold a cell, then flick toward an option to place it.</p>
+            <p data-i18n="app.drawingHelpIntro">Hold a cell, then flick toward an option to place it.</p>
             <div class="help-flick-demo" aria-label="Flick menu example">
               <span class="help-flick-option red"><i></i></span>
               <span class="help-flick-option green"><i></i></span>
@@ -346,32 +346,52 @@
               <span class="help-flick-option garbage"><i></i></span>
               <span class="help-flick-delete">⌫</span>
             </div>
-            <ul>
-              <li>Flick toward a colored circle to place that color.</li>
-              <li>Flick toward the gray circle to place garbage.</li>
-              <li>Release without flicking to delete the cell.</li>
-              <li>Simulate runs the current board's chain reaction.</li>
-              <li>Suggestion shows dotted chain-extension and trigger puyos.</li>
-              <li>Palette cycles through the available four- and five-color choices.</li>
-              <li>Garbage mode adds garbage to the flick menu.</li>
-              <li>Tokopuyo opens step-driven falling-pair practice.</li>
-            </ul>
+            <p class="help-gesture-note" data-i18n="app.drawingGestureHelp">Flick toward a colored circle to place that color. Flick toward the gray circle to place garbage. Release without flicking to delete the cell.</p>
+            <h3 data-i18n="app.drawingControlsTitle">Drawing mode controls</h3>
+            <table class="help-controls-table">
+              <tbody>
+                <tr><td data-help-control="#chainBadge"></td><td data-help-text="drawing.chain">Chain count</td></tr>
+                <tr><td data-help-control="#undo"></td><td data-help-text="drawing.undo">Undo</td></tr>
+                <tr><td data-help-control="#redo"></td><td data-help-text="drawing.redo">Redo</td></tr>
+                <tr><td data-help-control="#simulate"></td><td data-help-text="drawing.simulate">Simulate</td></tr>
+                <tr><td data-help-control="#suggest"></td><td data-help-text="drawing.suggest">Suggestion</td></tr>
+                <tr><td data-help-control="#cyclePalette"></td><td data-help-text="drawing.palette">Palette</td></tr>
+                <tr><td data-help-control="#toggleGarbage"></td><td data-help-text="drawing.garbage">Garbage mode</td></tr>
+                <tr><td data-help-control="#reset"></td><td data-help-text="drawing.reset">Reset</td></tr>
+                <tr><td data-help-control="#toggleAppMode"></td><td data-help-text="drawing.mode">Tokopuyo</td></tr>
+                <tr><td data-help-control="#help"></td><td data-help-text="drawing.help">Help</td></tr>
+              </tbody>
+            </table>
           </div>
           <div id="tokopuyoHelp" hidden>
-            <p>Use the bottom controls to move or rotate the active pair, then drop it.</p>
-            <ul>
-              <li>The left controls move the pair horizontally.</li>
-              <li>The right controls rotate the pair counterclockwise or clockwise, or drop it.</li>
-              <li>Chains run automatically after a pair locks.</li>
-              <li>Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair.</li>
-              <li>Emergency Attack finds the highest-scoring safe firing routes within the current pair, Next, and Next Next. Press it again to rotate through up to ten routes.</li>
-              <li>Review Last Move compares the most recently committed pair with Pressureless Ama's complete analysis, immediate board signals, future potential, and stability across six fixed pairing tests.</li>
-              <li>Bright rings highlight the existing connected puyos that would clear first when the current main chain fires. They pulse when the current pair can fire the chain.</li>
-              <li>The status reports how many evaluated unknown color pairs have a safe continuation.</li>
-              <li>Undo and Redo operate on complete placed pairs.</li>
-              <li>Reset starts over with a new random pattern.</li>
-              <li>Use the mode button to return to Drawing mode.</li>
-            </ul>
+            <p data-i18n="app.tokopuyoHelpIntro">Use the buttons below to operate Tokopuyo.</p>
+            <h3 data-i18n="app.tokopuyoSidebarTitle">Sidebar controls</h3>
+            <table class="help-controls-table"><tbody>
+              <tr><td data-help-control="#undo"></td><td data-help-text="tokopuyo.undo">Undo</td></tr>
+              <tr><td data-help-control="#redo"></td><td data-help-text="tokopuyo.redo">Redo</td></tr>
+              <tr><td data-help-control="#suggest"></td><td data-help-text="tokopuyo.suggest">Long-chain suggestion</td></tr>
+              <tr><td data-help-control="#attackSuggest"></td><td data-help-text="tokopuyo.attack">Emergency Attack</td></tr>
+              <tr><td data-help-control="#reviewLastMove"></td><td data-help-text="tokopuyo.review">Review Last Move</td></tr>
+              <tr><td data-help-control="#toggleTokopuyoStepMode"></td><td data-help-text="tokopuyo.stepMode">Step mode</td></tr>
+              <tr><td data-help-control="#reset"></td><td data-help-text="tokopuyo.reset">Reset</td></tr>
+              <tr><td data-help-control="#toggleAppMode"></td><td data-help-text="tokopuyo.mode">Drawing mode</td></tr>
+              <tr><td data-help-control="#help"></td><td data-help-text="tokopuyo.help">Help</td></tr>
+            </tbody></table>
+            <h3 data-i18n="app.tokopuyoTsumoTitle">Tsumo controls</h3>
+            <table class="help-controls-table"><tbody>
+              <tr><td data-help-control="#movePairLeft"></td><td data-help-text="tsumo.left">Move left</td></tr>
+              <tr><td data-help-control="#movePairRight"></td><td data-help-text="tsumo.right">Move right</td></tr>
+              <tr><td data-help-control="#rotatePairLeft"></td><td data-help-text="tsumo.rotateLeft">Rotate counterclockwise</td></tr>
+              <tr><td data-help-control="#dropPair"></td><td data-help-text="tsumo.drop">Drop</td></tr>
+              <tr><td data-help-control="#rotatePairRight"></td><td data-help-text="tsumo.rotateRight">Rotate clockwise</td></tr>
+            </tbody></table>
+            <h3 data-i18n="app.tokopuyoStepsTitle">Chain step controls</h3>
+            <table class="help-controls-table"><tbody>
+              <tr><td data-help-control="#stepChainBack"></td><td data-help-text="steps.previous">Previous step</td></tr>
+              <tr><td data-help-control="#stepChainForward"></td><td data-help-text="steps.next">Next step</td></tr>
+              <tr><td data-help-control="#playChainSteps"></td><td data-help-text="steps.play">Play</td></tr>
+              <tr><td data-help-control="#stopChainSteps"></td><td data-help-text="steps.stop">Stop</td></tr>
+            </tbody></table>
           </div>
         </section>
       </div>

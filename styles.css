@@ -2100,48 +2100,38 @@ body[data-mode="drawing"] .help-btn {
   font-size: 15px;
 }
 
-.help-controls {
-  display: grid;
-  gap: 8px;
-  margin-top: 0 !important;
-  padding-left: 0 !important;
-  list-style: none;
+.help-gesture-note { margin-top: 14px !important; }
+
+.help-controls-table {
+  --sidebar-size: clamp(44px, 12vw, 58px);
+
+  width: 100%;
+  margin: 0;
+  border-spacing: 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.help-controls li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.help-controls-table td:first-child {
+  width: 68px;
+  padding-right: 10px;
+  vertical-align: middle;
 }
 
-.help-action-icon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  place-items: center;
-  color: #4f5b73;
-  font-size: 18px;
-  font-weight: 800;
-  background: #fff;
-  border-radius: 9px;
-  box-shadow: 0 3px 8px #28344d20;
+.help-control-preview {
+  pointer-events: none;
+  cursor: default;
 }
 
-.help-action-icon .history-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.help-action-icon .suggestion-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.chain-icon {
-  color: #fff;
-  font-size: 15px;
-  background: linear-gradient(145deg, #556584, #293650);
+.help-control-source.toolbar,
+.help-control-source.left-sidebar {
+  display: block;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  flex: none;
+  padding: 0;
 }
 
 .help-close {

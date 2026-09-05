@@ -45,29 +45,19 @@ const translations = {
       stopSteps: "Stop automatic chain playback",
       calculating: "Calculating suggestions",
       flickMenu: "Flick to select an option",
-      drawingHelp: [
-        "Hold a cell, then flick toward an option to place it.",
-        "Flick toward a colored circle to place that color.",
-        "Flick toward the gray circle to place garbage.",
-        "Release without flicking to delete the cell.",
-        "Simulate runs the current board's chain reaction.",
-        "Suggestion shows dotted chain-extension and trigger puyos.",
-        "Palette cycles through the available four- and five-color choices.",
-        "Garbage mode adds garbage to the flick menu.",
-        "Tokopuyo opens step-driven falling-pair practice.",
-      ],
-      tokopuyoHelp: [
-        "Use the bottom controls to move or rotate the active pair, then drop it.",
-        "The left controls move the pair horizontally.",
-        "The right controls rotate the pair counterclockwise or clockwise, or drop it.",
-        "Chains run automatically after a pair locks.",
-        "Suggestion plans toward a long-chain structure. Starred dotted circles show where to place the current pair.",
-        "Emergency Attack finds the highest-scoring safe firing routes within the current pair, Next, and Next Next.",
-        "Review Last Move compares your pair with Pressureless Ama's analysis.",
-        "Undo and Redo operate on complete placed pairs.",
-        "Reset starts over with a new random pattern.",
-        "Use the mode button to return to Drawing mode.",
-      ],
+      drawingHelpIntro: "Hold a cell, then flick toward an option to place it.",
+      drawingGestureHelp: "Flick toward a colored circle to place that color. Flick toward the gray circle to place garbage. Release without flicking to delete the cell.",
+      drawingControlsTitle: "Drawing mode controls",
+      tokopuyoHelpIntro: "Use the buttons below to operate Tokopuyo.",
+      tokopuyoSidebarTitle: "Sidebar controls",
+      tokopuyoTsumoTitle: "Tsumo controls",
+      tokopuyoStepsTitle: "Chain step controls",
+      controlHelp: {
+        drawing: { reset: "Clear the board and reset the score.", mode: "Switch to Tokopuyo practice mode.", help: "Open this help.", chain: "Show the current score and chain count.", undo: "Undo the latest board change.", redo: "Restore an undone board change.", simulate: "Run the current board's chain reaction.", suggest: "Show dotted puyos for a chain extension.", palette: "Cycle the available four- and five-color palettes.", garbage: "Add garbage puyos to the flick menu." },
+        tokopuyo: { reset: "Start a new random pattern.", mode: "Return to Drawing mode.", help: "Open this help.", undo: "Undo one complete placed pair.", redo: "Restore one undone placed pair.", suggest: "Suggest a resilient long-chain construction move.", attack: "Find the highest-scoring safe attack in the visible pairs.", review: "Compare the last placed pair with Pressureless Ama's analysis.", stepMode: "Enable or disable chain step mode." },
+        tsumo: { left: "Move the active pair left.", right: "Move the active pair right.", rotateLeft: "Rotate the active pair counterclockwise.", drop: "Hard-drop the active pair.", rotateRight: "Rotate the active pair clockwise." },
+        steps: { previous: "Show the previous completed chain round.", next: "Advance to the next chain round.", play: "Play the remaining chain rounds automatically.", stop: "Pause automatic chain playback." },
+      },
     },
     message: {
       noChain: "No group of four or more can be cleared",
@@ -95,7 +85,14 @@ const translations = {
   ja: {
     app: {
       title: "ぷよ連鎖シミュレーター", description: "タッチ操作に対応したぷよぷよ連鎖シミュレーター", controls: "操作", board: "ぷよぷよ盤面", language: "言語", english: "English", japanese: "日本語", chains: "連鎖", points: "点", next: "NEXT", nextNext: "NEXT NEXT",
-      reset: "リセット", openTokopuyo: "とこぷよモードを開く", returnDrawing: "描画モードに戻る", help: "使い方", closeHelp: "ヘルプを閉じる", undo: "元に戻す", redo: "やり直す", simulate: "連鎖をシミュレート", suggest: "連鎖の伸ばし方を提案", suggestTokopuyo: "長連鎖の構築手を提案", attackSuggest: "最大攻撃を提案", reviewLastMove: "直前の手をレビュー", stepModeOn: "とこぷよ連鎖ステップモードを有効化", stepModeOff: "とこぷよ連鎖ステップモードを無効化", palette: "4色パレットを変更", paletteFive: "5色パレット", garbage: "おじゃまぷよモード", pairControls: "とこぷよ操作", movePair: "組ぷよを移動", rotateDrop: "回転または落下", moveLeft: "組ぷよを左へ移動", moveRight: "組ぷよを右へ移動", rotateLeft: "組ぷよを左回転", rotateRight: "組ぷよを右回転", drop: "組ぷよを落とす", stepControls: "連鎖ステップ操作", previousStep: "前の連鎖ステップ", nextStep: "次の連鎖ステップ", playSteps: "連鎖ステップを自動再生", stopSteps: "連鎖ステップの自動再生を停止", calculating: "提案を計算中", flickMenu: "フリックして選択", drawingHelp: ["マスを長押しして、置きたい方向へフリックします。", "色付きの丸へフリックすると、その色を置きます。", "灰色の丸へフリックすると、おじゃまぷよを置きます。", "フリックせずに離すとマスを削除します。", "シミュレートで現在の盤面の連鎖を実行します。", "提案は点線の連鎖延長・発火ぷよを表示します。", "パレットで4色・5色の組み合わせを切り替えます。", "おじゃまモードでフリックメニューにおじゃまぷよを追加します。", "とこぷよでは落下組ぷよの練習ができます。"], tokopuyoHelp: ["下部のボタンで組ぷよを移動・回転してから落とします。", "左側のボタンで横移動します。", "右側のボタンで左回転・落下・右回転を行います。", "組ぷよが固定されると連鎖は自動で実行されます。", "提案は長連鎖に向けた構築手を示します。星付きの点線は現在の組ぷよの置き場所です。", "緊急攻撃は現在・NEXT・NEXT NEXT内で安全に発火できる最大得点の手順を探します。", "直前の手をレビューでは、Pressureless Ama の評価と比較します。", "Undo と Redo は置いた組ぷよ単位で動作します。", "リセットで新しいランダムパターンを開始します。", "モードボタンで描画モードに戻れます。"],
+      reset: "リセット", openTokopuyo: "とこぷよモードを開く", returnDrawing: "描画モードに戻る", help: "使い方", closeHelp: "ヘルプを閉じる", undo: "元に戻す", redo: "やり直す", simulate: "連鎖をシミュレート", suggest: "連鎖の伸ばし方を提案", suggestTokopuyo: "長連鎖の構築手を提案", attackSuggest: "最大攻撃を提案", reviewLastMove: "直前の手をレビュー", stepModeOn: "とこぷよ連鎖ステップモードを有効化", stepModeOff: "とこぷよ連鎖ステップモードを無効化", palette: "4色パレットを変更", paletteFive: "5色パレット", garbage: "おじゃまぷよモード", pairControls: "とこぷよ操作", movePair: "組ぷよを移動", rotateDrop: "回転または落下", moveLeft: "組ぷよを左へ移動", moveRight: "組ぷよを右へ移動", rotateLeft: "組ぷよを左回転", rotateRight: "組ぷよを右回転", drop: "組ぷよを落とす", stepControls: "連鎖ステップ操作", previousStep: "前の連鎖ステップ", nextStep: "次の連鎖ステップ", playSteps: "連鎖ステップを自動再生", stopSteps: "連鎖ステップの自動再生を停止", calculating: "提案を計算中", flickMenu: "フリックして選択",
+      drawingHelpIntro: "マスを長押しして、置きたい方向へフリックします。", drawingGestureHelp: "色付きの丸へフリックするとその色を置き、灰色の丸へフリックするとおじゃまぷよを置きます。フリックせずに離すとマスを削除します。", drawingControlsTitle: "描画モードのボタン", tokopuyoHelpIntro: "とこぷよの操作は、以下のボタンで行います。", tokopuyoSidebarTitle: "サイドバーのボタン", tokopuyoTsumoTitle: "ツモ操作のボタン", tokopuyoStepsTitle: "連鎖ステップのボタン",
+      controlHelp: {
+        drawing: { reset: "盤面を空にして、得点をリセットします。", mode: "とこぷよの練習モードに切り替えます。", help: "この操作説明を開きます。", chain: "現在の得点と連鎖数を表示します。", undo: "直前の盤面変更を元に戻します。", redo: "元に戻した盤面変更をやり直します。", simulate: "現在の盤面で連鎖を実行します。", suggest: "連鎖を伸ばすための点線ぷよを表示します。", palette: "使用できる4色・5色パレットを切り替えます。", garbage: "フリックメニューにおじゃまぷよを追加します。" },
+        tokopuyo: { reset: "新しいランダムパターンで最初から始めます。", mode: "描画モードに戻ります。", help: "この操作説明を開きます。", undo: "配置済みの組ぷよ1手分を元に戻します。", redo: "元に戻した組ぷよ1手分をやり直します。", suggest: "長連鎖を構築するための手を提案します。", attack: "見えているツモ内で最大得点の安全な攻撃を探します。", review: "直前の配置をPressureless Amaの分析と比較します。", stepMode: "連鎖ステップモードをオン・オフします。" },
+        tsumo: { left: "組ぷよを左へ移動します。", right: "組ぷよを右へ移動します。", rotateLeft: "組ぷよを左回転します。", drop: "組ぷよを一気に落とします。", rotateRight: "組ぷよを右回転します。" },
+        steps: { previous: "1つ前の連鎖段を表示します。", next: "次の連鎖段へ進みます。", play: "残りの連鎖段を自動再生します。", stop: "連鎖の自動再生を一時停止します。" },
+      },
     },
     message: {
       erased: "ぷよを削除しました",
@@ -190,12 +187,9 @@ export function localizeDocument() {
   document.querySelector("#tokopuyoChainChainsLabel").textContent = t("app.chains");
   document.querySelector("#tokopuyoPreview small").textContent = t("app.next");
   document.querySelector(".next-next small").textContent = t("app.nextNext");
-  const drawingItems = translations[locale].app.drawingHelp;
-  const tokopuyoItems = translations[locale].app.tokopuyoHelp;
-  document.querySelector("#drawingHelp p").textContent = drawingItems[0];
-  document.querySelector("#drawingHelp ul").replaceChildren(...drawingItems.slice(1).map((text) => Object.assign(document.createElement("li"), { textContent: text })));
-  document.querySelector("#tokopuyoHelp p").textContent = tokopuyoItems[0];
-  document.querySelector("#tokopuyoHelp ul").replaceChildren(...tokopuyoItems.slice(1).map((text) => Object.assign(document.createElement("li"), { textContent: text })));
+  document.querySelectorAll("[data-help-text]").forEach((element) => {
+    element.textContent = t(`app.controlHelp.${element.dataset.helpText}`);
+  });
   const reviewText = {
     "#reviewTitle": "review.title",
     ".review-comparison section:nth-child(1) h3": "review.yourMove",
