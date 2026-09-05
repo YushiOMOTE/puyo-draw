@@ -596,9 +596,10 @@ body[data-mode="tokopuyo"] .board-card {
 
 .step-mode-icon {
   display: block;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
+  width: 29px;
+  height: 29px;
+  margin-inline: auto;
+  fill: currentColor;
 }
 
 #toggleTokopuyoStepMode.active {
