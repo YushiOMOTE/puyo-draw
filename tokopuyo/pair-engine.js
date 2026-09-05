@@ -1,4 +1,4 @@
-import { COLS, ROWS, applyGravity, clone } from "../engine.js";
+import { COLS, ROWS, GARBAGE, applyGravity, clone } from "../engine.js";
 
 export const SPAWN_ROW = 0;
 export const SPAWN_COL = 2;
@@ -29,17 +29,28 @@ export function createActivePair(tsumo) {
   };
 }
 
+export function createGarbagePair() {
+  return {
+    axis: { row: SPAWN_ROW, col: SPAWN_COL },
+    axisColor: GARBAGE,
+    childColor: null,
+    orientation: ORIENTATION.UP,
+    blockedRotation: null,
+  };
+}
+
 export function pairCells(pair) {
   const [rowDelta, colDelta] = OFFSETS[pair.orientation];
-  return [
+  const cells = [
     { ...pair.axis, color: pair.axisColor, role: "axis" },
-    {
+  ];
+  if (pair.childColor !== null && pair.childColor !== undefined) cells.push({
       row: pair.axis.row + rowDelta,
       col: pair.axis.col + colDelta,
       color: pair.childColor,
       role: "child",
-    },
-  ];
+    });
+  return cells;
 }
 
 function hasRow14Puyo(row14, col) {
@@ -286,5 +297,38 @@ export function hardDrop(board, pair, row14 = EMPTY_ROW_14) {
       blockedRotation: null,
     },
     board: applyGravity(dropped.board),
+  };
+}
+
+function garbageLandingCell(board, pair) {
+  const topmostOccupied = board.findIndex((row) => row[pair.axis.col] !== null);
+  return {
+    ...pair.axis,
+    row: topmostOccupied === -1 ? ROWS - 1 : topmostOccupied - 1,
+    color: GARBAGE,
+    role: "axis",
+  };
+}
+
+export function hardDropGarbage(board, pair) {
+  if (pair.childColor !== null && pair.childColor !== undefined) {
+    throw new TypeError("Garbage drops require a single-puyo active pair");
+  }
+  if (!Number.isInteger(pair.axis.col) || pair.axis.col < 0 || pair.axis.col >= COLS) {
+    return null;
+  }
+  const cell = garbageLandingCell(board, pair);
+  if (cell.row < VIRTUAL_TOP_ROW) return null;
+  const locked = clone(board);
+  locked[cell.row][cell.col] = GARBAGE;
+  return {
+    board: applyGravity(locked),
+    row14: EMPTY_ROW_14,
+    cells: [cell],
+    pair: {
+      ...pair,
+      axis: { row: cell.row, col: cell.col },
+      blockedRotation: null,
+    },
   };
 }

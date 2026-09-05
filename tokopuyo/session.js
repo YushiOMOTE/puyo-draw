@@ -15,6 +15,8 @@ import {
   createActivePair,
   dropTsumo,
   hardDrop,
+  hardDropGarbage,
+  createGarbagePair,
   pairAtPlacement as createPairAtPlacement,
   pairCells,
   movePair,
@@ -153,6 +155,14 @@ function cloneLastTurn(lastTurn) {
   };
 }
 
+function cloneActivePair(pair) {
+  if (!pair) return null;
+  return {
+    ...pair,
+    axis: { ...pair.axis },
+  };
+}
+
 function canonicalSnapshot(session) {
   return {
     board: clone(session.board),
@@ -162,6 +172,9 @@ function canonicalSnapshot(session) {
     cumulativeScore: session.cumulativeScore,
     gameOver: session.gameOver,
     lastTurn: cloneLastTurn(session.lastTurn),
+    garbageMode: session.garbageMode,
+    savedActivePair: cloneActivePair(session.savedActivePair),
+    activePair: session.garbageMode ? cloneActivePair(session.activePair) : null,
   };
 }
 
@@ -173,7 +186,11 @@ function restoreSnapshot(session, snapshot) {
   session.cumulativeScore = snapshot.cumulativeScore;
   session.gameOver = snapshot.gameOver;
   session.lastTurn = cloneLastTurn(snapshot.lastTurn);
-  session.activePair = createActivePair(getTsumo(session.pattern, session.handIndex));
+  session.garbageMode = Boolean(snapshot.garbageMode);
+  session.savedActivePair = cloneActivePair(snapshot.savedActivePair);
+  session.activePair = session.garbageMode
+    ? cloneActivePair(snapshot.activePair) || createGarbagePair()
+    : createActivePair(getTsumo(session.pattern, session.handIndex));
 }
 
 export function createSession(seed) {
@@ -189,6 +206,8 @@ export function createSession(seed) {
     cumulativeScore: 0,
     gameOver: false,
     lastTurn: null,
+    garbageMode: false,
+    savedActivePair: null,
     busy: false,
     history: [],
     future: [],
@@ -221,6 +240,8 @@ export function createSessionFromPosition(
     cumulativeScore: 0,
     gameOver: false,
     lastTurn: null,
+    garbageMode: false,
+    savedActivePair: null,
     busy: false,
     history: [],
     future: [],
@@ -245,14 +266,33 @@ export function actOnPair(session, action) {
     session.activePair = movePair(session.board, before, -1);
   } else if (action === "right") {
     session.activePair = movePair(session.board, before, 1);
-  } else if (action === "counterclockwise") {
+  } else if (action === "counterclockwise" && !session.garbageMode) {
     session.activePair = rotatePair(session.board, before, -1);
-  } else if (action === "clockwise") {
+  } else if (action === "clockwise" && !session.garbageMode) {
     session.activePair = rotatePair(session.board, before, 1);
+  } else if (action === "counterclockwise" || action === "clockwise") {
+    return false;
   } else {
     throw new RangeError(`Unsupported Tokopuyo action: ${action}`);
   }
   return session.activePair !== before;
+}
+
+export function setGarbageMode(session, enabled) {
+  if (session.busy) return false;
+  const next = Boolean(enabled);
+  if (session.garbageMode === next) return false;
+
+  if (next) {
+    session.savedActivePair = cloneActivePair(session.activePair);
+    session.activePair = createGarbagePair();
+  } else {
+    session.activePair = cloneActivePair(session.savedActivePair) ||
+      createActivePair(getTsumo(session.pattern, session.handIndex));
+    session.savedActivePair = null;
+  }
+  session.garbageMode = next;
+  return true;
 }
 
 function commitDroppedPair(session, dropped) {
@@ -304,8 +344,33 @@ function commitDroppedPair(session, dropped) {
 }
 
 function commitPair(session, pair) {
-  const dropped = hardDrop(session.board, pair, session.row14);
+  const dropped = session.garbageMode
+    ? hardDropGarbage(session.board, pair)
+    : hardDrop(session.board, pair, session.row14);
+  if (session.garbageMode) return commitDroppedGarbage(session, dropped);
   return commitDroppedPair(session, dropped);
+}
+
+function commitDroppedGarbage(session, dropped) {
+  if (session.busy || session.gameOver || !dropped) return null;
+
+  const before = canonicalSnapshot(session);
+  const result = simulate(dropped.board);
+  session.history.push(before);
+  session.future = [];
+  session.board = result.state;
+  session.chainCount = result.chains;
+  session.cumulativeScore = result.score;
+  session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
+  session.lastTurn = null;
+  session.activePair = createGarbagePair();
+
+  return {
+    droppedPair: dropped.pair,
+    lockedBoard: dropped.board,
+    lockedRow14: session.row14,
+    result,
+  };
 }
 
 export function commitActivePair(session) {

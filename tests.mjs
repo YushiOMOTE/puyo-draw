@@ -69,6 +69,7 @@ import {
   previewPairAtColumn,
   previewPairAtPlacement,
   redoSession,
+  setGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
 import {
@@ -732,6 +733,46 @@ actOnPair(tokopuyoSession, "left");
 const committed = commitActivePair(tokopuyoSession);
 assert.ok(committed);
 assert.equal(tokopuyoSession.handIndex, 1);
+
+const garbageModeSession = createSession(0);
+const savedCurrent = { ...garbageModeSession.activePair };
+assert.equal(setGarbageMode(garbageModeSession, true), true);
+assert.equal(garbageModeSession.garbageMode, true);
+assert.deepEqual(pairCells(garbageModeSession.activePair), [
+  { row: 0, col: 2, color: "garbage", role: "axis" },
+]);
+actOnPair(garbageModeSession, "left");
+assert.equal(actOnPair(garbageModeSession, "clockwise"), false);
+const garbageDrop = commitActivePair(garbageModeSession);
+assert.ok(garbageDrop);
+assert.equal(garbageModeSession.handIndex, 0);
+assert.equal(garbageModeSession.history.length, 1);
+assert.equal(garbageModeSession.board[ROWS - 1][1], "garbage");
+assert.equal(garbageModeSession.chainCount, 0);
+assert.equal(garbageModeSession.cumulativeScore, 0);
+assert.deepEqual(
+  { axisColor: garbageModeSession.savedActivePair.axisColor, childColor: garbageModeSession.savedActivePair.childColor },
+  { axisColor: savedCurrent.axisColor, childColor: savedCurrent.childColor },
+);
+assert.equal(undoSession(garbageModeSession), true);
+assert.equal(garbageModeSession.board[ROWS - 1][1], null);
+assert.equal(garbageModeSession.garbageMode, true);
+assert.equal(redoSession(garbageModeSession), true);
+assert.equal(garbageModeSession.board[ROWS - 1][1], "garbage");
+assert.equal(setGarbageMode(garbageModeSession, false), true);
+assert.equal(garbageModeSession.garbageMode, false);
+assert.equal(garbageModeSession.activePair.axisColor, savedCurrent.axisColor);
+assert.equal(garbageModeSession.activePair.childColor, savedCurrent.childColor);
+
+const garbageGameOverSession = createSession(0);
+for (let row = 1; row < ROWS; row++) {
+  garbageGameOverSession.board[row][2] = row % 2 ? "red" : "blue";
+}
+setGarbageMode(garbageGameOverSession, true);
+assert.ok(commitActivePair(garbageGameOverSession));
+assert.equal(garbageGameOverSession.gameOver, true);
+assert.equal(undoSession(garbageGameOverSession), true);
+assert.equal(garbageGameOverSession.gameOver, false);
 assert.equal(tokopuyoSession.history.length, 1);
 assert.equal(undoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 0);

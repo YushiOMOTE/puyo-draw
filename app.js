@@ -40,6 +40,7 @@ import {
   createSessionFromPosition,
   previewHands,
   redoSession,
+  setGarbageMode as setTokopuyoGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
 import {
@@ -70,6 +71,7 @@ const nextPairEl = document.querySelector("#nextPair");
 const nextNextPairEl = document.querySelector("#nextNextPair");
 const patternNumberEl = document.querySelector("#patternNumber");
 const toggleAppModeButton = document.querySelector("#toggleAppMode");
+const toggleTokopuyoGarbageButton = document.querySelector("#toggleTokopuyoGarbage");
 const startTokopuyoFromDrawingButton = document.querySelector("#startTokopuyoFromDrawing");
 const leftSidebar = document.querySelector(".left-sidebar");
 const leftModeDivider = document.querySelector("#leftModeDivider");
@@ -371,6 +373,7 @@ function updateModeUi() {
     resetButton,
     leftModeDivider,
     toggleAppModeButton,
+    toggleTokopuyoGarbageButton,
     startTokopuyoFromDrawingButton,
     helpButton,
   );
@@ -383,6 +386,7 @@ function updateModeUi() {
   tokopuyoPreview.hidden = !isTokopuyo;
   tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
   tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
+  toggleTokopuyoGarbageButton.hidden = !isTokopuyo;
   attackSuggestButton.hidden = !isTokopuyo;
   reviewLastMoveButton.hidden = !isTokopuyo;
   toggleTokopuyoStepModeButton.hidden = !isTokopuyo;
@@ -391,6 +395,12 @@ function updateModeUi() {
 
   toggleAppModeButton.ariaLabel = t(isTokopuyo ? "app.returnDrawing" : "app.openTokopuyo");
   toggleAppModeButton.title = toggleAppModeButton.ariaLabel;
+  toggleTokopuyoGarbageButton.classList.toggle("active", Boolean(tokopuyoSession?.garbageMode));
+  toggleTokopuyoGarbageButton.ariaPressed = String(Boolean(tokopuyoSession?.garbageMode));
+  toggleTokopuyoGarbageButton.ariaLabel = t(
+    tokopuyoSession?.garbageMode ? "app.tokopuyoGarbageOff" : "app.tokopuyoGarbageOn",
+  );
+  toggleTokopuyoGarbageButton.title = toggleTokopuyoGarbageButton.ariaLabel;
   toggleAppModeButton.innerHTML = isTokopuyo
     ? '<svg class="drawing-mode-icon" viewBox="0 0 28 32" aria-hidden="true"><path d="M12.1 14.3 23.1.4c.8-1 2.1-1.1 3-.2 1 .9 1.2 2.3.4 3.4l-9.1 14.3-5.3-3.6Z"/><path d="m11.4 15.1 5.3 3.5-1.6 2.5c-1 1.7-2.5 2.1-4 .9l-1.4-1.1c-1.6-1.3-1.7-2.3-.1-4.3l1.8-1.5Z"/><path fill-rule="evenodd" d="M8.1 21.1c-2.7-.2-4.7 1.8-5.5 5.3-.6 2.9-1.5 4.7-1.5 4.7 3.5 1.4 7.3-.1 9.8-2.6 2.4-2.4 1.4-5 1.4-5L9 21.2l-.9-.1Zm.9 1.1c-2 0-3.2 1.5-3.7 3.1-.2.9.5 1.4 1.2.8l1-.7c.6-.5 1.3.1.9.8l-.6.9c-.3.7.4 1.1 1 .5l.6-.6c.7-.6 1.4.1 1 1l-.6.8c-.5.8.4 1.3 1.1.7 1.5-1.2 2-3.6 1.1-5.5l-3-1.8Z"/></svg>'
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
@@ -504,14 +514,15 @@ function render() {
     ? (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : isSimulating || isSuggesting;
   document.querySelector("#suggest").disabled = appMode === "tokopuyo"
-    ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver
+    ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver || tokopuyoSession.garbageMode
     : isSimulating || isSuggesting;
   attackSuggestButton.disabled =
     appMode !== "tokopuyo" ||
     isSuggesting ||
     tokopuyoBusy ||
     !tokopuyoSession ||
-    tokopuyoSession.gameOver;
+    tokopuyoSession.gameOver ||
+    tokopuyoSession.garbageMode;
   reviewLastMoveButton.disabled =
     appMode !== "tokopuyo" ||
     isSuggesting ||
@@ -519,11 +530,17 @@ function render() {
     !tokopuyoSession?.lastTurn;
   toggleAppModeButton.disabled =
     isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
+  toggleTokopuyoGarbageButton.disabled =
+    appMode !== "tokopuyo" || isSuggesting || Boolean(tokopuyoSession?.busy) || Boolean(tokopuyoStepResolution);
   toggleTokopuyoStepModeButton.disabled =
     appMode !== "tokopuyo" || isSuggesting || Boolean(tokopuyoStepResolution);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
     if (button.closest("#tokopuyoStepControls")) return;
     button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || tokopuyoSession.gameOver;
+  });
+  ["#rotatePairLeft", "#rotatePairRight"].forEach((selector) => {
+    const button = document.querySelector(selector);
+    button.disabled ||= Boolean(tokopuyoSession?.garbageMode);
   });
   const stepResolution = tokopuyoStepResolution;
   stepChainBackButton.disabled =
@@ -2373,6 +2390,20 @@ function performTokopuyoAction(action) {
   renderActivePair();
 }
 
+function toggleTokopuyoGarbageMode() {
+  if (
+    appMode !== "tokopuyo" ||
+    !tokopuyoSession ||
+    tokopuyoSession.busy ||
+    isSuggesting ||
+    tokopuyoStepResolution
+  ) return;
+  if (!setTokopuyoGarbageMode(tokopuyoSession, !tokopuyoSession.garbageMode)) return;
+  clearTokopuyoSuggestions();
+  render();
+  showToast(t("message.tokopuyoGarbageMode", tokopuyoSession.garbageMode));
+}
+
 function switchAppMode() {
   if (isSimulating || isSuggesting || tokopuyoSession?.busy) return;
   closeFlick();
@@ -2686,6 +2717,7 @@ document.querySelector("#movePairRight").addEventListener("click", () => perform
 document.querySelector("#rotatePairLeft").addEventListener("click", () => performTokopuyoAction("counterclockwise"));
 document.querySelector("#rotatePairRight").addEventListener("click", () => performTokopuyoAction("clockwise"));
 document.querySelector("#dropPair").addEventListener("click", () => performTokopuyoAction("drop"));
+toggleTokopuyoGarbageButton.addEventListener("click", toggleTokopuyoGarbageMode);
 toggleTokopuyoStepModeButton.addEventListener("click", () => {
   if (appMode !== "tokopuyo" || tokopuyoStepResolution) return;
   tokopuyoStepMode = !tokopuyoStepMode;

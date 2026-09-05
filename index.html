@@ -42,6 +42,16 @@
             <span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>
           </button>
           <button
+            id="toggleTokopuyoGarbage"
+            class="secondary-btn sidebar-btn mode-btn tokopuyo-only"
+            aria-label="Enable Tokopuyo garbage mode"
+            aria-pressed="false"
+            title="Enable Tokopuyo garbage mode"
+            hidden
+          >
+            <span class="mode-garbage-icon" aria-hidden="true"></span>
+          </button>
+          <button
             id="startTokopuyoFromDrawing"
             class="secondary-btn sidebar-btn custom-tokopuyo-start-btn drawing-only"
             aria-label="Start Tokopuyo from this board"
@@ -412,6 +422,7 @@
               <tr><td data-help-control="#attackSuggest"></td><td><span data-help-text="tokopuyo.attack">Emergency Attack</span><span class="desktop-shortcut" data-help-shortcut="attack"></span></td></tr>
               <tr><td data-help-control="#reviewLastMove"></td><td><span data-help-text="tokopuyo.review">Review Last Move</span><span class="desktop-shortcut" data-help-shortcut="review"></span></td></tr>
               <tr><td data-help-control="#toggleTokopuyoStepMode"></td><td><span data-help-text="tokopuyo.stepMode">Step mode</span><span class="desktop-shortcut" data-help-shortcut="stepMode"></span></td></tr>
+              <tr><td data-help-control="#toggleTokopuyoGarbage"></td><td data-help-text="tokopuyo.garbage">Garbage mode</td></tr>
               <tr><td data-help-control="#reset"></td><td><span data-help-text="tokopuyo.reset">Reset</span><span class="desktop-shortcut" data-help-shortcut="reset"></span></td></tr>
               <tr><td data-help-control="#toggleAppMode"></td><td data-help-text="tokopuyo.mode">Drawing mode</td></tr>
               <tr><td data-help-control="#help"></td><td data-help-text="tokopuyo.help">Help</td></tr>
