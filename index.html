@@ -381,40 +381,15 @@
           <p class="review-eyebrow">Pressureless Ama</p>
           <h2 id="reviewTitle">Last move review</h2>
           <p id="reviewSummary" class="review-summary"></p>
-          <p id="reviewOutcome" class="review-outcome"></p>
-          <div id="reviewStats" class="review-stats"></div>
-          <div id="reviewBranches" class="review-branches"></div>
-          <div id="reviewRanges" class="review-ranges"></div>
-          <section id="reviewBranchSection" class="review-branch-section">
-            <div class="review-section-heading">
-              <h3>Future potential and stability</h3>
-              <details class="review-help">
-                <summary aria-label="Explain future potential and stability">?</summary>
-                <p>Potential is the average maximum score Ama found. Stability is the variation across six fixed test continuations; lower variation is more consistent.</p>
-              </details>
-            </div>
-            <p id="reviewFutureSummary" class="review-section-summary"></p>
-            <div id="reviewFutureMetrics" class="review-future-metrics"></div>
-            <details class="review-future-details">
-              <summary>Six tested futures</summary>
-              <div class="review-branch-legend" aria-hidden="true">
-                <span><i class="review-legend-user"></i>Your move</span>
-                <span><i class="review-legend-ama"></i>Ama's choice</span>
-              </div>
-              <div id="reviewBranchChart" class="review-branch-chart"></div>
-            </details>
-          </section>
           <div class="review-comparison">
             <section>
               <h3>Your move</h3>
-              <p id="reviewUserPlacement" class="review-placement-label"></p>
               <p id="reviewUserBoardState" class="review-board-state"></p>
               <div id="reviewUserBoard" class="review-mini-board" aria-label="Your placement preview before chain resolution"></div>
               <button id="reviewUserReplay" class="review-replay-launch" type="button">▶ Best future</button>
             </section>
             <section>
               <h3>Ama's choice</h3>
-              <p id="reviewAmaPlacement" class="review-placement-label"></p>
               <p id="reviewAmaBoardState" class="review-board-state"></p>
               <div id="reviewAmaBoard" class="review-mini-board" aria-label="Ama's placement preview before chain resolution"></div>
               <button id="reviewAmaReplay" class="review-replay-launch" type="button">▶ Best future</button>
@@ -428,6 +403,7 @@
                 <p>Rank follows the total score across all six tested futures. Max score is the highest score found in any one of those futures.</p>
               </details>
             </div>
+            <div id="reviewRankingStat" class="review-stats review-ranking-stat"></div>
             <div class="review-ranking-table-wrap">
               <table class="review-ranking-table">
                 <thead>
@@ -448,9 +424,28 @@
                 </div>
                 <button id="closeReviewRankingPreview" class="review-replay-close" type="button" aria-label="Close candidate preview">×</button>
               </div>
-              <p id="reviewRankingPreviewState" class="review-board-state"></p>
               <div id="reviewRankingPreviewBoard" class="review-mini-board" aria-label="Candidate placement preview before chain resolution"></div>
             </section>
+          </section>
+          <section id="reviewBranchSection" class="review-branch-section">
+            <div class="review-section-heading">
+              <h3>Future potential and stability</h3>
+              <details class="review-help">
+                <summary aria-label="Explain future potential and stability">?</summary>
+                <p>Potential is the average maximum score Ama found. Stability is the variation across six fixed test continuations; lower variation is more consistent.</p>
+              </details>
+            </div>
+            <p id="reviewFutureSummary" class="review-section-summary"></p>
+            <div id="reviewFutureMetrics" class="review-future-metrics"></div>
+            <div id="reviewRanges" class="review-ranges"></div>
+            <details class="review-future-details">
+              <summary>Six tested futures</summary>
+              <div class="review-branch-legend" aria-hidden="true">
+                <span><i class="review-legend-user"></i>Your move</span>
+                <span><i class="review-legend-ama"></i>Ama's choice</span>
+              </div>
+              <div id="reviewBranchChart" class="review-branch-chart"></div>
+            </details>
           </section>
           <section id="reviewReplayPanel" class="review-replay-panel" hidden>
             <div class="review-section-heading">

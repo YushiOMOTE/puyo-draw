@@ -382,17 +382,18 @@ modify the live board, score, history, or caches.
 
 The existing last-move report is extended in this order:
 
-1. concise outcome and Current-placement comparison;
-2. a five-row Ranking table below the comparison, showing each candidate's rank,
-   text placement, and maximum single-future score, with one closable candidate
-   placement preview at a time;
-3. "How Ama reads these fields," containing two synchronized mini-boards and up
+1. Current-placement comparison, without textual placement or pre-resolution labels;
+2. a five-row Ranking table below the comparison, starting with a full-width
+   user-rank summary and showing each candidate's rank, text placement, and
+   maximum single-future score, with one closable candidate placement preview at
+   a time;
+3. "Future potential and stability," containing potential, variation, found
+   ranges, the six branch chart, mapped color-pair labels, mean, range,
+   standard deviation, and relative dispersion;
+4. "How Ama reads these fields," containing two synchronized mini-boards and up
    to three explanation cards;
-4. an expandable signal list with raw value, weight, contribution, definition,
+5. an expandable signal list with raw value, weight, contribution, definition,
    and a "Show on board" action;
-5. "Future potential and stability," containing the six branch chart, mapped
-   color-pair labels, mean, range, standard deviation, and relative dispersion;
-   and
 6. methodology and limitation notes.
 
 The ranking order remains the aggregate of all six future scores. Its displayed

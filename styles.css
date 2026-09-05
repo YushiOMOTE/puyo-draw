@@ -1060,10 +1060,7 @@ body[data-mode="drawing"] .help-btn {
   font-size: 23px;
 }
 
-.review-summary,
-.review-outcome,
-.review-branches,
-.review-placement-label {
+.review-summary {
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
@@ -1074,17 +1071,11 @@ body[data-mode="drawing"] .help-btn {
   font-weight: 800;
 }
 
-.review-outcome {
-  margin-top: 8px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .review-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
-  margin: 16px 0 12px;
+  margin: 10px 0 0;
 }
 
 .review-stat {
@@ -1128,6 +1119,28 @@ body[data-mode="drawing"] .help-btn {
   font-size: 10px;
 }
 
+.review-ranking-stat {
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 7px;
+}
+
+.review-stat-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.review-stat-inline .review-stat-label {
+  min-height: 0;
+  margin: 0;
+}
+
+.review-stat-inline strong {
+  flex: 0 0 auto;
+}
+
 .review-stat:first-child .review-help-body {
   right: auto;
   left: 0;
@@ -1143,50 +1156,6 @@ body[data-mode="drawing"] .help-btn {
   right: 0;
   left: auto;
 }
-
-.review-branches {
-  overflow: hidden;
-  border: 1px solid #dfe4ec;
-  border-radius: 10px;
-}
-
-.review-branches table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.review-branches th,
-.review-branches td {
-  padding: 5px 4px;
-  text-align: center;
-  border-left: 1px solid #dfe4ec;
-}
-
-.review-branches th:first-child,
-.review-branches td:first-child { border-left: 0; }
-
-.review-branches thead th {
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 800;
-  background: #f1f4f9;
-}
-
-.review-branches tbody th {
-  color: var(--muted);
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.review-branches td {
-  font-size: 14px;
-  font-weight: 900;
-  border-top: 1px solid #dfe4ec;
-}
-
-.review-branches .user { background: #eaf2ff; }
-.review-branches .ama { background: #f3ebff; }
 
 .review-ranges {
   display: grid;
@@ -1691,6 +1660,8 @@ body[data-mode="drawing"] .help-btn {
   font-size: 8px;
   font-weight: 800;
 }
+
+.review-board-state:empty { display: none; }
 
 .review-mini-board {
   display: grid;

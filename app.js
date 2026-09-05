@@ -80,16 +80,12 @@ const reviewOverlay = document.querySelector("#reviewOverlay");
 const closeReviewButton = document.querySelector("#closeReview");
 const reviewTitleEl = document.querySelector("#reviewTitle");
 const reviewSummaryEl = document.querySelector("#reviewSummary");
-const reviewOutcomeEl = document.querySelector("#reviewOutcome");
-const reviewStatsEl = document.querySelector("#reviewStats");
-const reviewBranchesEl = document.querySelector("#reviewBranches");
+const reviewRankingStatEl = document.querySelector("#reviewRankingStat");
 const reviewRangesEl = document.querySelector("#reviewRanges");
 const reviewBranchSectionEl = document.querySelector("#reviewBranchSection");
 const reviewBranchChartEl = document.querySelector("#reviewBranchChart");
 const reviewFutureSummaryEl = document.querySelector("#reviewFutureSummary");
 const reviewFutureMetricsEl = document.querySelector("#reviewFutureMetrics");
-const reviewUserPlacementEl = document.querySelector("#reviewUserPlacement");
-const reviewAmaPlacementEl = document.querySelector("#reviewAmaPlacement");
 const reviewUserBoardStateEl = document.querySelector("#reviewUserBoardState");
 const reviewAmaBoardStateEl = document.querySelector("#reviewAmaBoardState");
 const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
@@ -98,7 +94,6 @@ const reviewRankingSectionEl = document.querySelector("#reviewRankingSection");
 const reviewRankingBodyEl = document.querySelector("#reviewRankingBody");
 const reviewRankingPreviewEl = document.querySelector("#reviewRankingPreview");
 const reviewRankingPreviewSourceEl = document.querySelector("#reviewRankingPreviewSource");
-const reviewRankingPreviewStateEl = document.querySelector("#reviewRankingPreviewState");
 const reviewRankingPreviewBoardEl = document.querySelector("#reviewRankingPreviewBoard");
 const closeReviewRankingPreviewButton = document.querySelector("#closeReviewRankingPreview");
 const reviewEvaluationSectionEl = document.querySelector("#reviewEvaluationSection");
@@ -1381,9 +1376,9 @@ function renderEvaluationCoaching(
   });
 }
 
-function appendReviewStat(value, label, help) {
+function appendReviewStat(container, value, label, help, { inline = false } = {}) {
   const stat = document.createElement("article");
-  stat.className = "review-stat";
+  stat.className = `review-stat${inline ? " review-stat-inline" : ""}`;
   const strong = document.createElement("strong");
   strong.textContent = value;
   const labelGroup = document.createElement("span");
@@ -1391,8 +1386,8 @@ function appendReviewStat(value, label, help) {
   small.textContent = label;
   labelGroup.className = "review-stat-label";
   labelGroup.append(small, createReviewHelp(label, help));
-  stat.append(strong, labelGroup);
-  reviewStatsEl.append(stat);
+  stat.append(...(inline ? [labelGroup, strong] : [strong, labelGroup]));
+  container.append(stat);
 }
 
 function appendReviewRange(stats, label) {
@@ -1405,42 +1400,6 @@ function appendReviewRange(stats, label) {
     : "—";
   range.append(value);
   reviewRangesEl.append(range);
-}
-
-function renderReviewBranchSummary(branches) {
-  reviewBranchesEl.replaceChildren();
-  if (!branches) {
-    reviewBranchesEl.textContent = "No future score";
-    return;
-  }
-  const table = document.createElement("table");
-  const head = document.createElement("thead");
-  const body = document.createElement("tbody");
-  const headerRow = document.createElement("tr");
-  const valueRow = document.createElement("tr");
-  [["Favored move", "label"], ["You", "user"], ["Tied", "tied"], ["Ama", "ama"]]
-    .forEach(([label, kind]) => {
-      const cell = document.createElement("th");
-      cell.scope = "col";
-      cell.className = kind;
-      cell.textContent = label;
-      headerRow.append(cell);
-    });
-  const rowLabel = document.createElement("th");
-  rowLabel.scope = "row";
-  rowLabel.textContent = "Futures";
-  valueRow.append(rowLabel);
-  [[branches.user, "user"], [branches.tied, "tied"], [branches.ama, "ama"]]
-    .forEach(([count, kind]) => {
-      const cell = document.createElement("td");
-      cell.className = kind;
-      cell.textContent = count;
-      valueRow.append(cell);
-    });
-  head.append(headerRow);
-  body.append(valueRow);
-  table.append(head, body);
-  reviewBranchesEl.append(table);
 }
 
 function renderReviewBranchChart(comparisons) {
@@ -1592,7 +1551,6 @@ function closeReviewReplay() {
 function closeReviewRankingPreview() {
   reviewRankingPreviewEl.hidden = true;
   reviewRankingPreviewSourceEl.textContent = "";
-  reviewRankingPreviewStateEl.textContent = "";
   reviewRankingPreviewBoardEl.replaceChildren();
   reviewRankingBodyEl.querySelectorAll("button").forEach((button) => {
     button.setAttribute("aria-pressed", "false");
@@ -1615,7 +1573,6 @@ function showReviewRankingPreview(row, turn, button) {
     );
   });
   reviewRankingPreviewSourceEl.textContent = `RANK ${row.rank} · ${describePlacement(row.candidate)}`;
-  reviewRankingPreviewStateEl.textContent = "Before resolution";
   renderReviewMiniBoard(
     reviewRankingPreviewBoardEl,
     preview.board,
@@ -1786,41 +1743,20 @@ function displayLastMoveReview(
   reviewSummaryEl.textContent = `${summaries[evaluation.verdict]}${
     closeAggregate ? " The aggregate scores are within 10%." : ""
   }`;
-  reviewOutcomeEl.textContent = `Actual result: ${
-    turn.result.chains ? `${turn.result.chains}-chain` : "no chain"
-  }, ${turn.result.score.toLocaleString()} points${
-    turn.result.gameOver ? ", game over" : ""
-  }.`;
-  reviewStatsEl.replaceChildren();
+  reviewSummaryEl.hidden = !reviewSummaryEl.textContent;
+  reviewRankingStatEl.replaceChildren();
   appendReviewStat(
+    reviewRankingStatEl,
     evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
     "YOUR RANK",
     "Your placement's rank among Ama's legal Current placements. Rank 1 is Ama's top choice.",
+    { inline: true },
   );
-  appendReviewStat(
-    evaluation.aggregateRetention === null
-      ? "—"
-      : `${Math.round(evaluation.aggregateRetention * 100)}%`,
-    "POTENTIAL RETAINED",
-    "Your six-future total divided by Ama's six-future total. It is not a probability or an accuracy score.",
-  );
-  appendReviewStat(
-    evaluation.averageGap === null
-      ? "—"
-      : evaluation.averageGap.toLocaleString(),
-    "AVG GAP",
-    "Ama's average six-future score minus your average. Smaller means the two placements were closer.",
-  );
-  renderReviewBranchSummary(evaluation.branches);
   reviewRangesEl.replaceChildren();
   appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
   appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");
   renderFutureCoaching(evaluation);
   renderReviewBranchChart(evaluation.branchComparisons);
-  reviewUserPlacementEl.textContent = describePlacement(turn.placement);
-  reviewAmaPlacementEl.textContent = evaluation.best
-    ? describePlacement(evaluation.best)
-    : "No surviving placement";
   const userBestBranch = selectBestAmaBranch(evaluation.user);
   const amaBestBranch = selectBestAmaBranch(evaluation.best);
   reviewUserReplayButton.disabled = !userBestBranch || userBestBranch.score <= 0;
@@ -1849,15 +1785,8 @@ function displayLastMoveReview(
     : null;
   const userPlacementCells = userPreview?.cells || turn.placement.cells;
   const amaPlacementCells = amaPreview?.cells || [];
-  const userImmediateChains = diagnostics?.user?.signals.immediateClear.rawValue ??
-    turn.result.chains;
-  const amaImmediateChains = diagnostics?.ama?.signals.immediateClear.rawValue ?? 0;
-  reviewUserBoardStateEl.textContent = `Before resolution${
-    userImmediateChains ? ` · fires ${userImmediateChains}-chain` : ""
-  }`;
-  reviewAmaBoardStateEl.textContent = `Before resolution${
-    amaImmediateChains ? ` · fires ${amaImmediateChains}-chain` : ""
-  }`;
+  reviewUserBoardStateEl.textContent = "";
+  reviewAmaBoardStateEl.textContent = "";
   reviewUserBoardEl.setAttribute(
     "aria-label",
     "Your placement preview before chain resolution",
@@ -1890,16 +1819,13 @@ function displayLastMoveReviewError() {
   reviewReplayContext = null;
   reviewTitleEl.textContent = "Review unavailable";
   reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
-  reviewOutcomeEl.textContent = "";
-  reviewStatsEl.replaceChildren();
-  reviewBranchesEl.textContent = "";
+  reviewSummaryEl.hidden = false;
+  reviewRankingStatEl.replaceChildren();
   reviewRangesEl.replaceChildren();
   reviewFutureSummaryEl.textContent = "";
   reviewFutureMetricsEl.replaceChildren();
   renderReviewBranchChart(null);
   renderEvaluationCoaching(null, null);
-  reviewUserPlacementEl.textContent = "";
-  reviewAmaPlacementEl.textContent = "";
   reviewUserBoardStateEl.textContent = "";
   reviewAmaBoardStateEl.textContent = "";
   reviewUserBoardEl.replaceChildren();
