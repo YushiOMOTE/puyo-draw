@@ -404,6 +404,22 @@
               </details>
             </div>
             <div id="reviewRankingStat" class="review-stats review-ranking-stat"></div>
+            <figure id="reviewRankingChart" class="review-ranking-chart" hidden>
+              <figcaption>MAX SCORE BY RANK</figcaption>
+              <div class="review-ranking-plot">
+                <div class="review-ranking-y-axis" aria-hidden="true">
+                  <span class="review-ranking-y-title">MAX SCORE</span>
+                  <span id="reviewRankingMaxScore"></span>
+                  <span id="reviewRankingMidScore"></span>
+                  <span>0</span>
+                </div>
+                <div id="reviewRankingBars" class="review-ranking-bars" role="img"></div>
+              </div>
+              <div class="review-ranking-axis" aria-hidden="true">
+                <span>1</span>
+                <span id="reviewRankingLastRank"></span>
+              </div>
+            </figure>
             <div class="review-ranking-table-wrap">
               <table class="review-ranking-table">
                 <thead>

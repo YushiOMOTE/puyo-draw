@@ -1172,6 +1172,124 @@ body[data-mode="drawing"] .help-btn {
   transform: none;
 }
 
+.review-ranking-chart {
+  margin: 9px 0 0;
+  padding: 9px 10px 7px;
+  background: #f7f8fb;
+  border: 1px solid #dfe4ec;
+  border-radius: 12px;
+}
+
+.review-ranking-chart[hidden] { display: none; }
+
+.review-ranking-chart figcaption {
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.review-ranking-plot {
+  display: grid;
+  grid-template-columns: 43px minmax(0, 1fr);
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 16px;
+}
+
+.review-ranking-y-axis {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-left: 13px;
+  color: var(--muted);
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  text-align: right;
+}
+
+.review-ranking-y-axis > span:not(.review-ranking-y-title) {
+  position: relative;
+}
+
+.review-ranking-y-axis > span:not(.review-ranking-y-title)::after {
+  position: absolute;
+  top: 50%;
+  right: -5px;
+  width: 3px;
+  border-top: 1px solid #cfd6e1;
+  content: "";
+}
+
+.review-ranking-y-title {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+}
+
+.review-ranking-bars {
+  display: grid;
+  grid-template-columns: repeat(var(--ranking-count), minmax(2px, 1fr));
+  align-items: end;
+  gap: 2px;
+  height: 96px;
+  padding: 0 1px;
+  border-bottom: 1px solid #dfe4ec;
+  background: linear-gradient(
+    to bottom,
+    #dfe4ec 0,
+    #dfe4ec 1px,
+    transparent 1px,
+    transparent 49.5%,
+    #dfe4ec 49.5%,
+    #dfe4ec 50.5%,
+    transparent 50.5%,
+    transparent calc(100% - 1px),
+    #dfe4ec calc(100% - 1px)
+  );
+}
+
+.review-ranking-bar {
+  position: relative;
+  min-width: 0;
+  min-height: 2px;
+  height: var(--bar-height);
+  background: #a674ed;
+  border-radius: 3px 3px 0 0;
+}
+
+.review-ranking-bar.user { background: #4e8df7; }
+
+.review-ranking-bar.user::before {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  color: #315b9c;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  content: "YOU";
+  transform: translateX(-50%);
+}
+
+.review-ranking-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 3px 0 0 48px;
+  color: var(--muted);
+  font-size: 8px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
 .review-ranges {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

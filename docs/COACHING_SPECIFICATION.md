@@ -384,9 +384,13 @@ The existing last-move report is extended in this order:
 
 1. Current-placement comparison, without textual placement or pre-resolution labels;
 2. a five-row Ranking table below the comparison, starting with adjacent
-   user-rank and user-maximum-score summaries and showing each candidate's rank,
-   text placement, and maximum single-future score, with one closable candidate
-   placement preview at a time;
+   user-rank and user-maximum-score summaries followed by a maximum-score bar
+   96px-high chart for every legal placement from rank 1 at left to the lowest
+   rank at right. MAX SCORE has maximum, midpoint, and zero vertical-axis labels.
+   The user's rank bar is blue with a `YOU` marker above it, all other bars are
+   purple, and the chart title remains separated from that marker at rank 1.
+   The table shows each candidate's rank, text placement, and maximum
+   single-future score, with one closable candidate placement preview at a time;
 3. "Future potential and stability," containing potential, variation, found
    ranges, the six branch chart, mapped color-pair labels, mean, range,
    standard deviation, and relative dispersion;

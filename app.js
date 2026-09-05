@@ -81,6 +81,11 @@ const closeReviewButton = document.querySelector("#closeReview");
 const reviewTitleEl = document.querySelector("#reviewTitle");
 const reviewSummaryEl = document.querySelector("#reviewSummary");
 const reviewRankingStatEl = document.querySelector("#reviewRankingStat");
+const reviewRankingChartEl = document.querySelector("#reviewRankingChart");
+const reviewRankingBarsEl = document.querySelector("#reviewRankingBars");
+const reviewRankingLastRankEl = document.querySelector("#reviewRankingLastRank");
+const reviewRankingMaxScoreEl = document.querySelector("#reviewRankingMaxScore");
+const reviewRankingMidScoreEl = document.querySelector("#reviewRankingMidScore");
 const reviewRangesEl = document.querySelector("#reviewRanges");
 const reviewBranchSectionEl = document.querySelector("#reviewBranchSection");
 const reviewBranchChartEl = document.querySelector("#reviewBranchChart");
@@ -1618,6 +1623,43 @@ function renderReviewRanking(candidates, turn) {
   }
 }
 
+function renderReviewRankingChart(candidates, userRank) {
+  reviewRankingBarsEl.replaceChildren();
+  reviewRankingChartEl.hidden = candidates.length === 0;
+  reviewRankingLastRankEl.textContent = candidates.length
+    ? String(candidates.length)
+    : "";
+  if (!candidates.length) {
+    reviewRankingMaxScoreEl.textContent = "";
+    reviewRankingMidScoreEl.textContent = "";
+    reviewRankingBarsEl.removeAttribute("aria-label");
+    return;
+  }
+
+  const scores = candidates.map((candidate) =>
+    Math.max(...candidate.branchScores, 0));
+  const highestScore = Math.max(...scores, 1);
+  reviewRankingMaxScoreEl.textContent = highestScore.toLocaleString();
+  reviewRankingMidScoreEl.textContent = Math.round(highestScore / 2).toLocaleString();
+  reviewRankingBarsEl.style.setProperty("--ranking-count", candidates.length);
+  reviewRankingBarsEl.setAttribute(
+    "aria-label",
+    `Maximum score by rank from 1 to ${candidates.length}. ` +
+      `Your move is rank ${userRank ?? "unavailable"}. ` +
+      scores.map((score, index) => `Rank ${index + 1}: ${score}.`).join(" "),
+  );
+  scores.forEach((score, index) => {
+    const bar = document.createElement("span");
+    const rank = index + 1;
+    bar.className = "review-ranking-bar";
+    if (rank === userRank) bar.classList.add("user");
+    bar.style.setProperty("--bar-height", `${Math.max((score / highestScore) * 100, 2)}%`);
+    bar.title = `Rank ${rank}: ${score.toLocaleString()} max score${rank === userRank ? " (your move)" : ""}`;
+    bar.setAttribute("aria-hidden", "true");
+    reviewRankingBarsEl.append(bar);
+  });
+}
+
 function showReviewReplayResult(source, selection, replay) {
   reviewReplayState = {
     source,
@@ -1759,6 +1801,7 @@ function displayLastMoveReview(
     "The highest score your placement found in any one of Ama's six tested futures. It is evidence, not the value used to rank moves.",
     { inline: true },
   );
+  renderReviewRankingChart(allCandidates, evaluation.rank);
   reviewRangesEl.replaceChildren();
   appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
   appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");
@@ -1828,6 +1871,7 @@ function displayLastMoveReviewError() {
   reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
   reviewSummaryEl.hidden = false;
   reviewRankingStatEl.replaceChildren();
+  renderReviewRankingChart([], null);
   reviewRangesEl.replaceChildren();
   reviewFutureSummaryEl.textContent = "";
   reviewFutureMetricsEl.replaceChildren();
