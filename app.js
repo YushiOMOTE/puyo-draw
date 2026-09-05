@@ -545,7 +545,12 @@ function updatePaletteButton() {
 }
 
 function cyclePalette() {
-  paletteIndex = (paletteIndex + 1) % (fourColorPalettes.length + 1);
+  selectPalette((paletteIndex + 1) % (fourColorPalettes.length + 1));
+}
+
+function selectPalette(index) {
+  if (appMode !== "drawing" || isSimulating || isSuggesting) return;
+  paletteIndex = index;
   clearSuggestions();
   updatePaletteButton();
   render();
@@ -2550,9 +2555,75 @@ reviewOverlay.addEventListener("click", (event) => {
   if (event.target === reviewOverlay) closeLastMoveReview();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape") return;
-  if (!reviewOverlay.hidden) closeLastMoveReview();
-  else if (!helpOverlay.hidden) closeHelp();
+  if (event.key === "Escape") {
+    if (!reviewOverlay.hidden) closeLastMoveReview();
+    else if (!helpOverlay.hidden) closeHelp();
+    return;
+  }
+
+  if (
+    event.repeat ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.altKey ||
+    !reviewOverlay.hidden ||
+    !helpOverlay.hidden ||
+    event.target.closest?.("input, select, textarea, [contenteditable='true']")
+  ) return;
+
+  const activate = (selector) => {
+    const button = document.querySelector(selector);
+    if (!button || button.disabled || button.hidden || button.closest("[hidden]")) {
+      return false;
+    }
+    event.preventDefault();
+    button.click();
+    return true;
+  };
+  const key = event.key.toLowerCase();
+
+  if (appMode === "drawing") {
+    if (/^[1-6]$/.test(key)) {
+      event.preventDefault();
+      selectPalette(Number(key) - 1);
+      return;
+    }
+    const drawingShortcuts = {
+      u: "#undo",
+      r: "#redo",
+      " ": "#simulate",
+      s: "#suggest",
+      o: "#toggleGarbage",
+      delete: "#reset",
+    };
+    activate(drawingShortcuts[key]);
+    return;
+  }
+
+  if (tokopuyoStepResolution) {
+    if (key === "arrowleft") activate("#stepChainBack");
+    else if (key === "arrowright") activate("#stepChainForward");
+    else if (key === " ") {
+      activate(tokopuyoStepResolution.playing ? "#stopChainSteps" : "#playChainSteps");
+    }
+    return;
+  }
+
+  const tokopuyoShortcuts = {
+    u: "#undo",
+    r: "#redo",
+    s: "#suggest",
+    a: "#attackSuggest",
+    i: "#reviewLastMove",
+    p: "#toggleTokopuyoStepMode",
+    delete: "#reset",
+    arrowright: "#movePairRight",
+    arrowleft: "#movePairLeft",
+    arrowdown: "#dropPair",
+    z: "#rotatePairLeft",
+    x: "#rotatePairRight",
+  };
+  activate(tokopuyoShortcuts[key]);
 });
 window.addEventListener("resize", () => {
   if (appMode === "tokopuyo") renderActivePair();

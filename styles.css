@@ -2131,6 +2131,11 @@ body[data-mode="drawing"] .help-btn {
   cursor: default;
 }
 
+.desktop-shortcut {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .help-control-source.toolbar,
 .help-control-source.left-sidebar {
   display: block;
@@ -2236,6 +2241,8 @@ body[data-mode="drawing"] .help-btn {
 }
 
 @media (max-width: 599px) {
+  .desktop-shortcut { display: none; }
+
   .app-shell {
     padding: max(8px, env(safe-area-inset-top))
       max(8px, env(safe-area-inset-right))

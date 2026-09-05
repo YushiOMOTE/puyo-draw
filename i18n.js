@@ -52,6 +52,7 @@ const translations = {
       tokopuyoSidebarTitle: "Sidebar controls",
       tokopuyoTsumoTitle: "Tsumo controls",
       tokopuyoStepsTitle: "Chain step controls",
+      shortcuts: { undo: " (Shortcut: U)", redo: " (Shortcut: R)", simulate: " (Shortcut: Space)", suggest: " (Shortcut: S)", palette: " (Shortcuts: 1–6)", garbage: " (Shortcut: O)", reset: " (Shortcut: Delete)", attack: " (Shortcut: A)", review: " (Shortcut: I)", stepMode: " (Shortcut: P)", left: " (Shortcut: Left Arrow)", right: " (Shortcut: Right Arrow)", drop: " (Shortcut: Down Arrow)", rotateLeft: " (Shortcut: Z)", rotateRight: " (Shortcut: X)", previous: " (Shortcut: Left Arrow)", next: " (Shortcut: Right Arrow)", play: " (Shortcut: Space)", stop: " (Shortcut: Space)" },
       controlHelp: {
         drawing: { reset: "Clear the board and reset the score.", mode: "Switch to Tokopuyo practice mode.", help: "Open this help.", chain: "Show the current score and chain count.", undo: "Undo the latest board change.", redo: "Restore an undone board change.", simulate: "Run the current board's chain reaction.", suggest: "Show dotted puyos for a chain extension.", palette: "Cycle the available four- and five-color palettes.", garbage: "Add garbage puyos to the flick menu." },
         tokopuyo: { reset: "Start a new random pattern.", mode: "Return to Drawing mode.", help: "Open this help.", undo: "Undo one complete placed pair.", redo: "Restore one undone placed pair.", suggest: "Suggest a resilient long-chain construction move.", attack: "Find the highest-scoring safe attack in the visible pairs.", review: "Compare the last placed pair with Pressureless Ama's analysis.", stepMode: "Enable or disable chain step mode." },
@@ -87,6 +88,7 @@ const translations = {
       title: "ぷよ連鎖シミュレーター", description: "タッチ操作に対応したぷよぷよ連鎖シミュレーター", controls: "操作", board: "ぷよぷよ盤面", language: "言語", english: "English", japanese: "日本語", chains: "連鎖", points: "点", next: "NEXT", nextNext: "NEXT NEXT",
       reset: "リセット", openTokopuyo: "とこぷよモードを開く", returnDrawing: "描画モードに戻る", help: "使い方", closeHelp: "ヘルプを閉じる", undo: "元に戻す", redo: "やり直す", simulate: "連鎖をシミュレート", suggest: "連鎖の伸ばし方を提案", suggestTokopuyo: "長連鎖の構築手を提案", attackSuggest: "最大攻撃を提案", reviewLastMove: "直前の手をレビュー", stepModeOn: "とこぷよ連鎖ステップモードを有効化", stepModeOff: "とこぷよ連鎖ステップモードを無効化", palette: "4色パレットを変更", paletteFive: "5色パレット", garbage: "おじゃまぷよモード", pairControls: "とこぷよ操作", movePair: "組ぷよを移動", rotateDrop: "回転または落下", moveLeft: "組ぷよを左へ移動", moveRight: "組ぷよを右へ移動", rotateLeft: "組ぷよを左回転", rotateRight: "組ぷよを右回転", drop: "組ぷよを落とす", stepControls: "連鎖ステップ操作", previousStep: "前の連鎖ステップ", nextStep: "次の連鎖ステップ", playSteps: "連鎖ステップを自動再生", stopSteps: "連鎖ステップの自動再生を停止", calculating: "提案を計算中", flickMenu: "フリックして選択",
       drawingHelpIntro: "マスを長押しして、置きたい方向へフリックします。", drawingGestureHelp: "色付きの丸へフリックするとその色を置き、灰色の丸へフリックするとおじゃまぷよを置きます。フリックせずに離すとマスを削除します。", drawingControlsTitle: "描画モードのボタン", tokopuyoHelpIntro: "とこぷよの操作は、以下のボタンで行います。", tokopuyoSidebarTitle: "サイドバーのボタン", tokopuyoTsumoTitle: "ツモ操作のボタン", tokopuyoStepsTitle: "連鎖ステップのボタン",
+      shortcuts: { undo: "（ショートカット: U）", redo: "（ショートカット: R）", simulate: "（ショートカット: Space）", suggest: "（ショートカット: S）", palette: "（ショートカット: 1〜6）", garbage: "（ショートカット: O）", reset: "（ショートカット: Delete）", attack: "（ショートカット: A）", review: "（ショートカット: I）", stepMode: "（ショートカット: P）", left: "（ショートカット: ←）", right: "（ショートカット: →）", drop: "（ショートカット: ↓）", rotateLeft: "（ショートカット: Z）", rotateRight: "（ショートカット: X）", previous: "（ショートカット: ←）", next: "（ショートカット: →）", play: "（ショートカット: Space）", stop: "（ショートカット: Space）" },
       controlHelp: {
         drawing: { reset: "盤面を空にして、得点をリセットします。", mode: "とこぷよの練習モードに切り替えます。", help: "この操作説明を開きます。", chain: "現在の得点と連鎖数を表示します。", undo: "直前の盤面変更を元に戻します。", redo: "元に戻した盤面変更をやり直します。", simulate: "現在の盤面で連鎖を実行します。", suggest: "連鎖を伸ばすための点線ぷよを表示します。", palette: "使用できる4色・5色パレットを切り替えます。", garbage: "フリックメニューにおじゃまぷよを追加します。" },
         tokopuyo: { reset: "新しいランダムパターンで最初から始めます。", mode: "描画モードに戻ります。", help: "この操作説明を開きます。", undo: "配置済みの組ぷよ1手分を元に戻します。", redo: "元に戻した組ぷよ1手分をやり直します。", suggest: "長連鎖を構築するための手を提案します。", attack: "見えているツモ内で最大得点の安全な攻撃を探します。", review: "直前の配置をPressureless Amaの分析と比較します。", stepMode: "連鎖ステップモードをオン・オフします。" },
@@ -189,6 +191,9 @@ export function localizeDocument() {
   document.querySelector(".next-next small").textContent = t("app.nextNext");
   document.querySelectorAll("[data-help-text]").forEach((element) => {
     element.textContent = t(`app.controlHelp.${element.dataset.helpText}`);
+  });
+  document.querySelectorAll("[data-help-shortcut]").forEach((element) => {
+    element.textContent = t(`app.shortcuts.${element.dataset.helpShortcut}`);
   });
   const reviewText = {
     "#reviewTitle": "review.title",

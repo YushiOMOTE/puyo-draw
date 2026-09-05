@@ -69,6 +69,14 @@ The Drawing/Tokopuyo mode button displays a small shortcut-style arrow badge at 
 
 In Drawing mode, the right-side rail's action controls, below the chain-count badge, are ordered from top to bottom as Undo, Redo, Simulate, Suggestion, Palette, and Garbage mode. A divider appears between Suggestion and Palette.
 
+## Keyboard Shortcuts
+
+- Keyboard shortcuts are active only when no Help or review dialog is open, and never while a text or select control has focus. They use the same availability rules as their corresponding buttons.
+- Drawing mode: Undo `U`, Redo `R`, Simulate `Space`, Suggestion `S`, select one of the six palette states directly with `1`–`6` (the five four-color palettes followed by the five-color palette), toggle Garbage mode `O`, and Reset `Delete`.
+- Tokopuyo mode: Undo `U`, Redo `R`, long-chain Suggestion `S`, emergency-attack Suggestion `A`, Review Last Move `I`, toggle step mode `P`, Reset `Delete`, move right `Right Arrow`, move left `Left Arrow`, drop `Down Arrow`, rotate counterclockwise `Z`, and rotate clockwise `X`.
+- During a Tokopuyo step resolution: previous round `Left Arrow`, next round `Right Arrow`, and Play/Stop `Space` (toggles based on playback state).
+- The Help control descriptions append these assignments on desktop widths only; mobile layouts hide the shortcut text.
+
 ## Tokopuyo Mode
 
 - The first entry starts immediately with a uniformly selected seed from 0 through 65,535. Reset clears Tokopuyo state and starts another randomly selected pattern.
