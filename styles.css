@@ -1231,7 +1231,8 @@ body[data-mode="drawing"] .help-btn {
   background: #edf1f7;
   border: 2px solid #d4dce8;
   border-radius: 50%;
-  box-shadow: inset -3px -3px #00000012, inset 3px 3px #fff;
+  box-shadow: inset -4px -5px 0 #0000001c, inset 3px 3px 0 #ffffff38,
+    0 2px 3px #10182755;
   touch-action: none;
 }
 
