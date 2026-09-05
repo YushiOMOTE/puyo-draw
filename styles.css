@@ -459,7 +459,12 @@ body[data-mode="tokopuyo"] .board-card {
 
 .tokopuyo-step-controls {
   justify-content: center;
-  gap: 8px;
+  gap: clamp(4px, 1.5vw, 8px);
+}
+
+.tokopuyo-step-controls .pair-control-btn {
+  width: clamp(40px, 12vw, 56px);
+  height: clamp(40px, 12vw, 56px);
 }
 
 .tokopuyo-preview {

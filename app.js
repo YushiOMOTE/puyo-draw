@@ -79,6 +79,8 @@ const tokopuyoControls = document.querySelector("#tokopuyoControls");
 const tokopuyoStepControls = document.querySelector("#tokopuyoStepControls");
 const toggleTokopuyoStepModeButton = document.querySelector("#toggleTokopuyoStepMode");
 const stepChainBackButton = document.querySelector("#stepChainBack");
+const stepChainFirstButton = document.querySelector("#stepChainFirst");
+const stepChainLastButton = document.querySelector("#stepChainLast");
 const stepChainForwardButton = document.querySelector("#stepChainForward");
 const playChainStepsButton = document.querySelector("#playChainSteps");
 const stopChainStepsButton = document.querySelector("#stopChainSteps");
@@ -408,6 +410,12 @@ function render() {
   const stepResolution = tokopuyoStepResolution;
   stepChainBackButton.disabled =
     !stepResolution || stepResolution.advancing || stepResolution.stepIndex === 0;
+  stepChainFirstButton.disabled =
+    !stepResolution || stepResolution.advancing || stepResolution.stepIndex === 0;
+  stepChainLastButton.disabled =
+    !stepResolution ||
+    stepResolution.advancing ||
+    stepResolution.stepIndex === stepResolution.result.rounds.length - 1;
   stepChainForwardButton.disabled =
     !stepResolution ||
     stepResolution.advancing ||
@@ -2136,6 +2144,30 @@ function previousTokopuyoStep() {
   renderTokopuyoStepResolution();
 }
 
+function jumpTokopuyoStep(stepIndex) {
+  const resolution = tokopuyoStepResolution;
+  if (
+    !resolution ||
+    resolution.advancing ||
+    stepIndex < 0 ||
+    stepIndex >= resolution.result.rounds.length ||
+    resolution.stepIndex === stepIndex
+  ) return;
+  resolution.playing = false;
+  resolution.stepIndex = stepIndex;
+  renderTokopuyoStepResolution();
+}
+
+function firstTokopuyoStep() {
+  jumpTokopuyoStep(0);
+}
+
+function lastTokopuyoStep() {
+  const resolution = tokopuyoStepResolution;
+  if (!resolution) return;
+  jumpTokopuyoStep(resolution.result.rounds.length - 1);
+}
+
 async function playTokopuyoSteps() {
   const resolution = tokopuyoStepResolution;
   if (
@@ -2485,6 +2517,8 @@ toggleTokopuyoStepModeButton.addEventListener("click", () => {
   render();
 });
 stepChainBackButton.addEventListener("click", previousTokopuyoStep);
+stepChainFirstButton.addEventListener("click", firstTokopuyoStep);
+stepChainLastButton.addEventListener("click", lastTokopuyoStep);
 stepChainForwardButton.addEventListener("click", () => {
   void advanceTokopuyoStep();
 });
