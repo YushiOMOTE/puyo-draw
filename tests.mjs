@@ -41,6 +41,8 @@ import {
 } from "./tokopuyo/gesture.js";
 import {
   ORIENTATION,
+  SPAWN_COL,
+  SPAWN_ROW,
   createActivePair,
   dropTsumo,
   enumerateTsumoPlacements,
@@ -513,6 +515,25 @@ assert.equal(blockedOnce.blockedRotation, 1);
 const quickTurned = rotatePair(wedgedBoard, blockedOnce, 1);
 assert.equal(quickTurned.orientation, ORIENTATION.DOWN);
 assert.equal(quickTurned.axis.row, 1);
+
+const spawnRotationBoard = emptyBoard();
+spawnRotationBoard[SPAWN_ROW][SPAWN_COL - 1] = "yellow";
+spawnRotationBoard[SPAWN_ROW][SPAWN_COL + 1] = "green";
+const spawnRotationPair = createActivePair({ axis: "red", child: "blue" });
+const blockedAtSpawn = rotatePair(spawnRotationBoard, spawnRotationPair, 1);
+assert.equal(blockedAtSpawn.orientation, ORIENTATION.UP);
+assert.equal(blockedAtSpawn.blockedRotation, 1);
+const blueBelowAxis = rotatePair(spawnRotationBoard, blockedAtSpawn, 1);
+assert.equal(blueBelowAxis.orientation, ORIENTATION.DOWN);
+assert.equal(blueBelowAxis.axis.row, SPAWN_ROW);
+assert.equal(blueBelowAxis.axis.col, SPAWN_COL);
+assert.deepEqual(
+  pairCells(blueBelowAxis).map(({ row, col, role }) => ({ row, col, role })),
+  [
+    { row: SPAWN_ROW, col: SPAWN_COL, role: "axis" },
+    { row: SPAWN_ROW + 1, col: SPAWN_COL, role: "child" },
+  ],
+);
 
 const splitBoard = emptyBoard();
 splitBoard[ROWS - 1][2] = "green";

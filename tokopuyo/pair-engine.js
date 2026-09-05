@@ -239,12 +239,6 @@ export function rotatePair(board, pair, direction) {
   const rotated = { ...pair, orientation, blockedRotation: null };
   if (isPairValid(board, rotated)) return rotated;
 
-  const isVerticalTarget =
-    orientation === ORIENTATION.UP || orientation === ORIENTATION.DOWN;
-  if (pair.axis.row <= SPAWN_ROW && isVerticalTarget) {
-    return { ...pair, blockedRotation: null };
-  }
-
   const [targetRow, targetCol] = OFFSETS[orientation];
   const kicked = {
     ...rotated,
@@ -257,11 +251,13 @@ export function rotatePair(board, pair, direction) {
 
   if (pair.blockedRotation === direction) {
     const [currentRow, currentCol] = OFFSETS[pair.orientation];
+    const quickTurnAtSpawn =
+      pair.axis.row <= SPAWN_ROW && currentRow !== 0;
     const quickTurn = {
       ...pair,
       axis: {
-        row: pair.axis.row + currentRow,
-        col: pair.axis.col + currentCol,
+        row: pair.axis.row + (quickTurnAtSpawn ? 0 : currentRow),
+        col: pair.axis.col + (quickTurnAtSpawn ? 0 : currentCol),
       },
       orientation: (pair.orientation + 2) % 4,
       blockedRotation: null,
