@@ -5,7 +5,7 @@
 - Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
 - The left sidebar is present in both modes and is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, and Help. Help is pinned to the bottom.
-- Switching modes preserves each mode's board, history, score, and mode-specific state. Switching modes does not create a history entry.
+- Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
 ## Board Model
@@ -14,6 +14,7 @@
 - The bottom twelve rows are the standard visible field.
 - The top stored row is the hidden-area row and uses a distinct background color. Tokopuyo additionally tracks Ama's special fourteenth row as a six-bit occupancy mask outside the normal board; Drawing mode does not use it.
 - The hidden-area row is outside chain resolution while occupied: its puyos neither form or join clearing groups nor clear as adjacent garbage. Gravity still applies to the full column, so a puyo that falls into the visible twelve rows participates in later group and chain checks normally.
+- Tokopuyo's colorless special fourteenth-row occupancy is never imported into Drawing mode.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
 - Field sizing includes the surrounding frame and uses all available space without allowing cells to overflow the frame.

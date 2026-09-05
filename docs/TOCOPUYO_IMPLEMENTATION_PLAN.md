@@ -45,7 +45,7 @@ Deliverable: deterministic state transitions with no DOM or animation dependency
 2. Make hand commit atomic: capture the pre-hand snapshot, lock the pair, resolve chains, advance the hand, and store the stable result for Redo.
 3. Restore the active pair at spawn orientation when Undo returns to a previous hand.
 4. Implement Reset according to the finalized seed policy.
-5. Keep Drawing and Tokopuyo session state separate across mode switches.
+5. Keep the Tokopuyo session independent while importing its settled thirteen-row board into Drawing mode as one normal Drawing Undo-able change; do not transfer Drawing edits back to Tokopuyo.
 
 Deliverable: a headless Tokopuyo run that can advance, undo, redo, reset, switch away, and resume reproducibly.
 

@@ -68,7 +68,7 @@ The application has two top-level, mutually exclusive modes:
 
 The Tokopuyo mode button is placed at the bottom of the drawing-mode sidebar, directly above the Help button. Selecting it switches to Tokopuyo mode. Tokopuyo mode provides a corresponding Drawing mode button in the same lower sidebar area.
 
-Mode state is independent. Switching modes preserves the drawing board, drawing history, palette, garbage setting, suggestions, and score for later restoration. It also preserves the active Tokopuyo session unless the user explicitly resets or starts a new pattern. A mode switch is not an Undo/Redo history entry.
+Switching from Tokopuyo mode to Drawing mode imports the settled thirteen-row Tokopuyo field as one normal Drawing-mode board change. If the imported board differs from the current Drawing board, the previous Drawing board is saved in Drawing Undo history and Drawing Redo is cleared; if there is no board difference, Drawing history is unchanged. In both cases, the Drawing chain count and cumulative score reset to zero. The active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session and does not import Drawing edits. A mode switch is not a Tokopuyo history entry.
 
 Direct cell editing, color selection, garbage mode, manual simulation, and Clear are unavailable in Tokopuyo mode. Separate long-chain construction and emergency-attack Suggestion actions are available as described below.
 
@@ -250,7 +250,7 @@ The active pair cannot be committed if there is no legal landing position for bo
 ## Confirmed product decisions
 
 - The first switch to Tokopuyo starts a random pattern immediately without an intermediate Start screen.
-- Returning to Drawing mode preserves the Tokopuyo session; switching back resumes it.
+- Returning to Drawing mode imports the settled Tokopuyo field as a Drawing Undo-able board change only when the imported board differs. Switching to Tokopuyo later resumes its existing session; Drawing edits are not transferred back.
 - Reset starts a new random pattern rather than replaying the current seed.
 - The pattern number is always shown in compact form near Next and Next Next.
 - Tokopuyo placement reachability follows Ama, including floor kicks and quick turns. Quarter-turn controls retain their wall-kick behavior; the direct 180-degree flick does not invent a placement outside Ama's legal set.

@@ -2265,9 +2265,23 @@ function switchAppMode() {
     if (!tokopuyoSession) tokopuyoSession = createSession(randomSeed());
     render();
   } else {
-    appMode = "drawing";
-    render();
+    importTokopuyoBoardToDrawing();
   }
+}
+
+function importTokopuyoBoardToDrawing() {
+  cancelTokopuyoStepResolution();
+  const importedBoard = clone(tokopuyoSession?.board || emptyBoard());
+  if (!boardsEqual(board, importedBoard)) {
+    history.push(snapshot());
+    future = [];
+  }
+  board = importedBoard;
+  chainCount = 0;
+  cumulativeScore = 0;
+  clearSuggestions();
+  appMode = "drawing";
+  render();
 }
 
 function openFlick(row, col, event) {
