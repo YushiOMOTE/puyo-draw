@@ -2071,6 +2071,27 @@ body[data-mode="drawing"] .help-btn {
   font-size: 22px;
 }
 
+.language-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.language-picker select {
+  min-height: 36px;
+  padding: 0 10px;
+  color: var(--ink);
+  font: inherit;
+  background: #f1f4f9;
+  border: 1px solid #d5dce8;
+  border-radius: 9px;
+}
+
 .help-card p {
   margin: 0;
   color: var(--muted);

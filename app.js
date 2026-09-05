@@ -41,6 +41,14 @@ import {
   redoSession,
   undoSession,
 } from "./tokopuyo/session.js";
+import {
+  formatNumber,
+  getLocale,
+  localizeDocument,
+  localizedColors,
+  setLocale,
+  t,
+} from "./i18n.js";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
@@ -118,6 +126,7 @@ const closeReviewReplayButton = document.querySelector("#closeReviewReplay");
 const resetReviewReplayButton = document.querySelector("#resetReviewReplay");
 const nextReviewReplayButton = document.querySelector("#nextReviewReplay");
 const playReviewReplayButton = document.querySelector("#playReviewReplay");
+const languageSelect = document.querySelector("#languageSelect");
 
 let board = emptyBoard();
 let selectedTool = "red";
@@ -166,128 +175,6 @@ const fourColorPalettes = [
 ].map((excludedColor) =>
   colorFlickTools.filter((color) => color !== excludedColor),
 );
-const locale = navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
-const messages = {
-  noChain: {
-    en: "No group of four or more can be cleared",
-    ja: "4個以上つながったぷよがありません",
-  },
-  undo: { en: "Undo applied", ja: "Undoしました" },
-  redo: { en: "Redo applied", ja: "Redoしました" },
-  cleared: { en: "Board cleared", ja: "盤面をクリアしました" },
-  reset: { en: "Board reset", ja: "盤面をリセットしました" },
-  chain: {
-    en: (count, puyos, score, cumulative) =>
-      `Chain ${count}: +${score.toLocaleString()} points (${cumulative.toLocaleString()} total), ${puyos} puyos clearing`,
-    ja: (count, puyos, score, cumulative) =>
-      `${count}連鎖目：${puyos}個消去、+${score.toLocaleString()}点（累積${cumulative.toLocaleString()}点）`,
-  },
-  complete: {
-    en: (count, puyos) =>
-      `${count} chain${count === 1 ? "" : "s"}! ${puyos} puyos cleared`,
-    ja: (count, puyos) => `${count}連鎖！ ${puyos}個のぷよが消えました`,
-  },
-  score: {
-    en: (chains, score) => `${chains} chain${chains === 1 ? "" : "s"}: ${score.toLocaleString()} points`,
-    ja: (chains, score) => `${chains}連鎖：累積${score.toLocaleString()}点`,
-  },
-  scoreSummary: {
-    en: (score, chains) =>
-      `${score.toLocaleString()} points / ${chains} chain${chains === 1 ? "" : "s"}`,
-    ja: (score, chains) => `${score.toLocaleString()}点 / ${chains}連鎖`,
-  },
-  garbageMode: {
-    en: (enabled) => `Garbage mode ${enabled ? "on" : "off"}`,
-    ja: (enabled) => `お邪魔ありを${enabled ? "オン" : "オフ"}にしました`,
-  },
-  palette: {
-    en: (index) =>
-      index === fourColorPalettes.length
-        ? "Five-color palette"
-        : `Four-color palette ${index + 1} of 5`,
-    ja: (index) =>
-      index === fourColorPalettes.length
-        ? "5色パレット"
-        : `4色パレット ${index + 1}/5`,
-  },
-  suggestionSearching: {
-    en: "Finding chain extensions…",
-    ja: "連鎖の伸ばし方を探索中…",
-  },
-  suggestionNone: {
-    en: "No chain extension found",
-    ja: "連鎖を伸ばす候補が見つかりませんでした",
-  },
-  suggestion: {
-    en: (index, total, chains, additions, chainGain) =>
-      `Suggestion ${index}/${total}: potential ${chains} chain${chains === 1 ? "" : "s"} (+${chainGain}) with ${additions} added puyo${additions === 1 ? "" : "s"}`,
-    ja: (index, total, chains, additions, chainGain) =>
-      `提案 ${index}/${total}：${additions}個追加で${chains}連鎖候補（+${chainGain}連鎖）`,
-  },
-  suggestionError: {
-    en: "Could not calculate suggestions",
-    ja: "提案を計算できませんでした",
-  },
-  pressurelessAmaSuggestion: {
-    en: (index, total, score, branches, elapsed) =>
-      `Pressureless Ama ${index}/${total}: ${score.toLocaleString()}-point average of the maximum chains found across ${branches} sampled futures (${elapsed.toLocaleString()} ms)`,
-    ja: (index, total, score, branches, elapsed) =>
-      `Pressureless Ama ${index}/${total}：${branches}未来列で見つけた最大連鎖スコアの平均 ${score.toLocaleString()}点（${elapsed.toLocaleString()}ms）`,
-  },
-  suggestionAlreadyFiring: {
-    en: "Suggestions are unavailable because the board can already fire",
-    ja: "すでに発火可能な盤面のため、提案を計算できません",
-  },
-  suggestionFloating: {
-    en: "Land all puyos before calculating suggestions",
-    ja: "すべてのぷよを着地させてから提案を計算してください",
-  },
-  tokopuyoReset: {
-    en: (number) => `Started new pattern No.${number}`,
-    ja: (number) => `新しいパターン No.${number} を開始しました`,
-  },
-  tokopuyoGameOver: {
-    en: "Game over — reset or undo to continue",
-    ja: "ゲームオーバー：リセットまたはUndoで続けられます",
-  },
-  tokopuyoSuggestionSearching: {
-    en: "Searching for a resilient long-chain build…",
-    ja: "長連鎖へ育つ積み方を探索中…",
-  },
-  tokopuyoSuggestionNone: {
-    en: "No safe construction move was found",
-    ja: "安全な構築手が見つかりませんでした",
-  },
-  tokopuyoSuggestion: {
-    en: (index, total, potential, efficiency, ignition, emergency) =>
-      `${emergency ? "Emergency clear · " : ""}Plan ${index}/${total}: ${potential ? `${potential}-chain main potential` : "building a main-chain base"} · ${efficiency}% resource connection · ${ignition}`,
-    ja: (index, total, potential, efficiency, ignition, emergency) =>
-      `${emergency ? "緊急消去 · " : ""}構築案 ${index}/${total}：${potential ? `本線候補${potential}連鎖` : "本線土台を構築中"} · 連結効率${efficiency}% · ${ignition}`,
-  },
-  tokopuyoAttackSearching: {
-    en: "Finding the strongest visible attacks…",
-    ja: "見えているツモから最大攻撃を探索中…",
-  },
-  tokopuyoAttackNone: {
-    en: "No safe attack was found within the visible pairs",
-    ja: "見えているツモ内に安全な発火手順がありません",
-  },
-  tokopuyoAttack: {
-    en: (index, total, score, chains, timing) =>
-      `Attack ${index}/${total}: ${score.toLocaleString()} points · ${chains} chain${chains === 1 ? "" : "s"} · fires on ${timing}`,
-    ja: (index, total, score, chains, timing) =>
-      `攻撃候補 ${index}/${total}：${score.toLocaleString()}点・${chains}連鎖・${timing}で発火`,
-  },
-};
-
-const localizedColors = {
-  red: { en: "red", ja: "赤" },
-  green: { en: "green", ja: "緑" },
-  blue: { en: "blue", ja: "青" },
-  yellow: { en: "yellow", ja: "黄" },
-  purple: { en: "purple", ja: "紫" },
-};
-
 function getFlickTools() {
   return [
     ...(paletteIndex === fourColorPalettes.length
@@ -393,25 +280,19 @@ function updateModeUi() {
   drawingHelp.hidden = isTokopuyo;
   tokopuyoHelp.hidden = !isTokopuyo;
 
-  toggleAppModeButton.ariaLabel = isTokopuyo
-    ? "Return to Drawing mode"
-    : "Open Tokopuyo mode";
+  toggleAppModeButton.ariaLabel = t(isTokopuyo ? "app.returnDrawing" : "app.openTokopuyo");
   toggleAppModeButton.title = toggleAppModeButton.ariaLabel;
   toggleAppModeButton.innerHTML = isTokopuyo
     ? '<svg class="drawing-mode-icon" viewBox="0 0 28 32" aria-hidden="true"><path d="M12.1 14.3 23.1.4c.8-1 2.1-1.1 3-.2 1 .9 1.2 2.3.4 3.4l-9.1 14.3-5.3-3.6Z"/><path d="m11.4 15.1 5.3 3.5-1.6 2.5c-1 1.7-2.5 2.1-4 .9l-1.4-1.1c-1.6-1.3-1.7-2.3-.1-4.3l1.8-1.5Z"/><path fill-rule="evenodd" d="M8.1 21.1c-2.7-.2-4.7 1.8-5.5 5.3-.6 2.9-1.5 4.7-1.5 4.7 3.5 1.4 7.3-.1 9.8-2.6 2.4-2.4 1.4-5 1.4-5L9 21.2l-.9-.1Zm.9 1.1c-2 0-3.2 1.5-3.7 3.1-.2.9.5 1.4 1.2.8l1-.7c.6-.5 1.3.1.9.8l-.6.9c-.3.7.4 1.1 1 .5l.6-.6c.7-.6 1.4.1 1 1l-.6.8c-.5.8.4 1.3 1.1.7 1.5-1.2 2-3.6 1.1-5.5l-3-1.8Z"/></svg>'
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
   const suggestButton = document.querySelector("#suggest");
-  suggestButton.ariaLabel = isTokopuyo
-    ? "Suggest a resilient long-chain construction move"
-    : "Suggest chain extensions";
+  suggestButton.ariaLabel = t(isTokopuyo ? "app.suggestTokopuyo" : "app.suggest");
   suggestButton.title = suggestButton.ariaLabel;
-  resetButton.ariaLabel = isTokopuyo ? "Start a new Tokopuyo pattern" : "Reset";
+  resetButton.ariaLabel = t(isTokopuyo ? "message.tokopuyoReset" : "app.reset", tokopuyoSession?.pattern.number);
   resetButton.title = resetButton.ariaLabel;
   toggleTokopuyoStepModeButton.classList.toggle("active", tokopuyoStepMode);
   toggleTokopuyoStepModeButton.ariaPressed = String(tokopuyoStepMode);
-  toggleTokopuyoStepModeButton.ariaLabel = tokopuyoStepMode
-    ? "Disable Tokopuyo chain step mode"
-    : "Enable Tokopuyo chain step mode";
+  toggleTokopuyoStepModeButton.ariaLabel = t(tokopuyoStepMode ? "app.stepModeOff" : "app.stepModeOn");
   toggleTokopuyoStepModeButton.title = toggleTokopuyoStepModeButton.ariaLabel;
 
   if (isTokopuyo && tokopuyoSession) {
@@ -439,11 +320,7 @@ function render() {
       cell.type = "button";
       cell.role = "gridcell";
       cell.disabled = isSimulating || isSuggesting;
-      cell.ariaLabel = `${r < HIDDEN_ROWS ? "Hidden area " : ""}${ROWS - r} row ${
-        c + 1
-      } column ${color || "empty"}${
-        r === HIDDEN_ROWS && c === 2 ? " choke point" : ""
-      }`;
+      cell.ariaLabel = t("message.cell", r < HIDDEN_ROWS, ROWS - r, c + 1, t(`color.${color || "empty"}`), r === HIDDEN_ROWS && c === 2);
       if (appMode !== "tokopuyo") {
         cell.addEventListener("pointerdown", (event) => openFlick(r, c, event));
       }
@@ -478,7 +355,7 @@ function render() {
         marker.ariaHidden = "true";
         cell.append(marker);
         if (suggestion.isIgnitionTarget) {
-          cell.ariaLabel += ` current main-chain ${suggestion.color} ignition target`;
+          cell.ariaLabel += ` ${t("message.activePuyo", t("color.axis"), t(`color.${suggestion.color}`))}`;
         }
       }
 
@@ -557,7 +434,7 @@ function render() {
   );
   chainEl.textContent = String(displayedChain);
   tokopuyoChainNumberEl.textContent = String(displayedChain);
-  tokopuyoChainScoreEl.textContent = displayedScore.toLocaleString();
+  tokopuyoChainScoreEl.textContent = formatNumber(displayedScore);
   updateModeUi();
   renderActivePair();
 }
@@ -646,10 +523,7 @@ function setGarbageMode(enabled) {
   clearSuggestions();
 
   showToast(
-    localizedMessage(
-      messages.garbageMode,
-      enabled,
-    ),
+    t("message.garbageMode", enabled),
   );
   render();
 }
@@ -659,11 +533,11 @@ function updatePaletteButton() {
   const isFiveColor = paletteIndex === fourColorPalettes.length;
   const palette = isFiveColor ? colorFlickTools : fourColorPalettes[paletteIndex];
   button.ariaLabel = isFiveColor
-    ? "Five-color palette"
-    : "Change four-color palette";
+    ? t("app.paletteFive")
+    : t("app.palette");
   button.title = isFiveColor
-    ? "Five-color palette"
-    : "Change four-color palette";
+    ? t("app.paletteFive")
+    : t("app.palette");
   button.setAttribute("data-five-color", String(isFiveColor));
   button.innerHTML = `<span class="palette-icon" aria-hidden="true">${palette
     .map((color) => `<i class="${color}"></i>`)
@@ -675,7 +549,7 @@ function cyclePalette() {
   clearSuggestions();
   updatePaletteButton();
   render();
-  showToast(localizedMessage(messages.palette, paletteIndex));
+  showToast(t("message.palette", paletteIndex, fourColorPalettes.length));
 }
 
 function undo() {
@@ -687,7 +561,7 @@ function undo() {
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
     render();
-    showToast(messages.undo[locale]);
+    showToast(t("message.undo"));
     return;
   }
   if (!history.length || isSimulating) return;
@@ -696,7 +570,7 @@ function undo() {
   restoreSnapshot(history.pop());
   clearSuggestions();
   render();
-  showToast(messages.undo[locale]);
+  showToast(t("message.undo"));
 }
 
 function redo() {
@@ -708,7 +582,7 @@ function redo() {
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
     render();
-    showToast(messages.redo[locale]);
+    showToast(t("message.redo"));
     return;
   }
   if (!future.length || isSimulating) return;
@@ -717,7 +591,7 @@ function redo() {
   restoreSnapshot(future.pop());
   clearSuggestions();
   render();
-  showToast(messages.redo[locale]);
+  showToast(t("message.redo"));
 }
 
 function setStatus(message) {
@@ -738,11 +612,6 @@ function showToast(message, duration = 1800) {
   }, duration);
 }
 
-function localizedMessage(message, ...args) {
-  const value = message[locale];
-  return typeof value === "function" ? value(...args) : value;
-}
-
 async function runSimulation() {
   if (isSimulating) return;
 
@@ -759,7 +628,7 @@ async function runSimulation() {
       future = [];
       render();
     }
-    showToast(messages.noChain[locale]);
+    showToast(t("message.noChain"));
     return;
   }
 
@@ -869,7 +738,7 @@ function displayTokopuyoSuggestion(candidate, index, total) {
   );
   render();
   if (candidate.solver === "pressureless-ama") {
-    statusEl.textContent = messages.pressurelessAmaSuggestion[locale](
+    statusEl.textContent = t("message.pressurelessAmaSuggestion",
       index + 1,
       total,
       candidate.averageScore,
@@ -879,17 +748,25 @@ function displayTokopuyoSuggestion(candidate, index, total) {
     return;
   }
   const mainColor = candidate.mainTrigger
-    ? localizedColors[candidate.mainTrigger.color]?.[locale] ||
-      candidate.mainTrigger.color
+    ? localizedColors()[candidate.mainTrigger.color] || candidate.mainTrigger.color
     : null;
   const targetCount = candidate.mainTrigger?.targetCells?.length || 0;
-  const ignition = locale === "ja"
+  const ignition = getLocale() === "ja"
     ? candidate.mainTrigger
       ? `現在${candidate.mainTrigger.chains}連鎖：${mainColor}${targetCount}個組が発火対象（${candidate.mainTrigger.state === "ready" ? "このツモで発火可能" : `${mainColor}1ぷよで発火`}） · 未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
       : `未知ツモ受け ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
     : candidate.mainTrigger
       ? `Current ${candidate.mainTrigger.chains}-chain: ${targetCount} connected ${mainColor} puyos are the ignition target (${candidate.mainTrigger.state === "ready" ? "current pair can fire" : `fires with one ${mainColor} puyo`}) · Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`
       : `Unknown-pair coverage ${candidate.acceptance.safeHands}/${candidate.acceptance.evaluatedHands}`;
+  statusEl.textContent = t(
+    "message.tokopuyoSuggestion",
+    index + 1,
+    total,
+    candidate.mainTrigger?.chains || 0,
+    candidate.connectionEfficiency,
+    ignition,
+    candidate.emergency,
+  );
 }
 
 function displayTokopuyoAttackSuggestion(candidate, index, total) {
@@ -905,11 +782,18 @@ function displayTokopuyoAttackSuggestion(candidate, index, total) {
     });
   });
   render();
+  statusEl.textContent = t(
+    "message.tokopuyoAttack",
+    index + 1,
+    total,
+    candidate.score,
+    candidate.chains,
+    candidate.timing,
+  );
 }
 
 function describePlacement({ col, orientation }) {
-  const directions = ["up", "right", "down", "left"];
-  return `Column ${col + 1}, child ${directions[orientation]}`;
+  return t("review.placement", col + 1, t("review.directions")[orientation]);
 }
 
 function renderReviewMiniBoard(
@@ -956,36 +840,27 @@ function renderReviewMiniBoard(
   }
 }
 
-const AMA_SIGNAL_PRESENTATION = {
-  potentialChain: ["Probe chain", "Chain steps found by Ama's best trigger probe."],
-  triggerHeight: ["Trigger height", "Height of the selected hypothetical trigger column."],
-  requiredPuyos: ["Puyos to trigger", "Same-color puyos added by the selected probe; fewer is rewarded."],
-  extensionSpace: ["Extension space", "Horizontal room Ama detects around the selected trigger."],
-  quietLink2: ["Probe residue pairs", "Two-connection markers left after the hypothetical trigger."],
-  quietLink3: ["Probe residue triples", "Three-connection markers left after the hypothetical trigger."],
-  formMatch: ["Form match", "Best relative-color match among Ama's GTR, FRON, and SGTR templates."],
-  shapeDeviation: ["Shape deviation", "Distance from Ama's preferred relative column-height profile; lower is rewarded."],
-  wells: ["Well depth", "Total depth of columns below their neighbors; lower is rewarded."],
-  bumps: ["Bump height", "Total height of interior columns above both neighbors; lower is rewarded."],
-  boardLink2: ["Board pairs", "Cells classified by Ama as two-connection markers."],
-  boardLink3: ["Board triples", "Cells classified by Ama as three-connection markers."],
-  row14Blockage: ["Row 14 blockage", "Special-row occupancy that reduces reachable horizontal space."],
-  sideBias: ["Side bias", "Left/right height relative to the center; its current weight is zero."],
-  garbageCount: ["Garbage", "Garbage puyos on the evaluated field."],
-  pairSplit: ["Pair split", "Whether a horizontal Current pair separated across unequal heights."],
-  immediateClear: ["Immediate clear", "Chain steps fired by Current; Ama applies an action cost."],
-};
+const AMA_SIGNAL_IDS = [
+  "potentialChain", "triggerHeight", "requiredPuyos", "extensionSpace",
+  "quietLink2", "quietLink3", "formMatch", "shapeDeviation", "wells", "bumps",
+  "boardLink2", "boardLink3", "row14Blockage", "sideBias", "garbageCount",
+  "pairSplit", "immediateClear",
+];
+
+function amaSignalPresentation() {
+  return Object.fromEntries(AMA_SIGNAL_IDS.map((id) => [id, t(`review.signal.${id}`)]));
+}
 
 function formatSigned(value) {
-  return `${value > 0 ? "+" : ""}${value.toLocaleString()}`;
+  return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
 }
 
 function formatSignalCalculation(signal) {
-  return `${signal.rawValue.toLocaleString()} × ${signal.weight.toLocaleString()} = ${formatSigned(signal.contribution)}`;
+  return `${formatNumber(signal.rawValue)} × ${formatNumber(signal.weight)} = ${formatSigned(signal.contribution)}`;
 }
 
 function capitalizeColor(color) {
-  return color ? color[0].toUpperCase() + color.slice(1) : "Unknown";
+  return color ? t(`color.${color}`) : "—";
 }
 
 function maskBoardCells(mask) {
@@ -1047,15 +922,15 @@ function renderDiagnosticEvidence(
     [],
     diagnosticEvidenceCells(amaDiagnostic, signalId),
   );
-  reviewUserBoardStateEl.textContent = "Resolved field · evidence";
-  reviewAmaBoardStateEl.textContent = "Resolved field · evidence";
+  reviewUserBoardStateEl.textContent = t("review.resolvedEvidence");
+  reviewAmaBoardStateEl.textContent = t("review.resolvedEvidence");
   reviewUserBoardEl.setAttribute(
     "aria-label",
-    "Your resolved field with Ama evaluation evidence",
+    `${t("review.yourMove")}・${t("review.resolvedEvidence")}`,
   );
   reviewAmaBoardEl.setAttribute(
     "aria-label",
-    "Ama's resolved field with evaluation evidence",
+    `${t("review.amaChoice")}・${t("review.resolvedEvidence")}`,
   );
 }
 
@@ -1099,7 +974,7 @@ function createReviewHelp(label, text, action = null) {
   const paragraph = document.createElement("p");
   details.className = "review-help";
   summary.textContent = "?";
-  summary.setAttribute("aria-label", `Explain ${label}`);
+  summary.setAttribute("aria-label", `${t("app.help")}：${label}`);
   body.className = "review-help-body";
   paragraph.textContent = text;
   body.append(paragraph);
@@ -1128,7 +1003,7 @@ function appendComparisonMetric({
   const minimum = Math.min(...numericValues);
   const maximum = Math.max(...numericValues);
   const useRelativeScale = minimum < 0;
-  [["You", "user", userValue], ["Ama", "ama", amaValue]].forEach(
+  [[t("review.you"), "user", userValue], [t("review.ama"), "ama", amaValue]].forEach(
     ([name, kind, value]) => {
       const row = document.createElement("div");
       const nameEl = document.createElement("small");
@@ -1165,7 +1040,7 @@ function appendComparisonMetric({
 function renderFutureCoaching(evaluation) {
   reviewFutureMetricsEl.replaceChildren();
   if (!evaluation.userStats || !evaluation.bestStats) {
-    reviewFutureSummaryEl.textContent = "Future potential is unavailable for the excluded move.";
+    reviewFutureSummaryEl.textContent = t("review.potentialUnavailable");
     return;
   }
   const comparison = compareAmaFutureProfiles(
@@ -1173,30 +1048,30 @@ function renderFutureCoaching(evaluation) {
     evaluation.bestStats,
   );
   const potentialText = comparison.potentialLeader === "tied"
-    ? "Potential tied"
+    ? t("review.potentialTied")
     : comparison.potentialLeader === "user"
-      ? "You: higher potential"
-      : "Ama: higher potential";
+      ? t("review.potentialYou")
+      : t("review.potentialAma");
   const stabilityText = comparison.stabilityLeader === "similar"
-    ? "similar consistency"
+    ? t("review.stabilitySimilar")
     : comparison.stabilityLeader === "user"
-      ? "you: steadier"
+      ? t("review.stabilityYou")
       : comparison.stabilityLeader === "ama"
-        ? "Ama: steadier"
-        : "consistency unavailable";
+        ? t("review.stabilityAma")
+        : t("review.stabilityUnavailable");
   reviewFutureSummaryEl.textContent = `${potentialText} · ${stabilityText}`;
   appendComparisonMetric({
     container: reviewFutureMetricsEl,
-    label: "Potential",
-    help: "Average maximum chain score found across Ama's six fixed test continuations. Higher is better.",
+    label: t("review.potential"),
+    help: t("review.signal.potentialChain")[1],
     userValue: evaluation.userStats.mean,
     amaValue: evaluation.bestStats.mean,
-    format: (value) => value.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+    format: (value) => new Intl.NumberFormat(getLocale() === "ja" ? "ja-JP" : "en-US", { maximumFractionDigits: 1 }).format(value),
   });
   appendComparisonMetric({
     container: reviewFutureMetricsEl,
-    label: "Variation",
-    help: "Relative dispersion across the six test continuations. Lower means the result depended less on the tested pairing pattern.",
+    label: t("review.variation"),
+    help: t("review.future"),
     userValue: evaluation.userStats.relativeDispersion,
     amaValue: evaluation.bestStats.relativeDispersion,
     format: (value) => `${(value * 100).toFixed(0)}%`,
@@ -1211,11 +1086,11 @@ function createDiagnosticInsight(userDiagnostic, amaDiagnostic) {
   const amaProbe = amaDiagnostic.selectedProbe;
   if (userProbe || amaProbe) {
     const describe = (probe) => probe
-      ? `${probe.chainCount}-chain with ${probe.requiredPuyos} added ${probe.color} puyo${probe.requiredPuyos === 1 ? "" : "s"} in column ${probe.column + 1}`
-      : "no multi-chain trigger within three added puyos";
+      ? t("review.probe", probe.chainCount, probe.requiredPuyos, t(`color.${probe.color}`), probe.column + 1)
+      : t("review.probeNone");
     insights.push({
-      title: "Best trigger probe",
-      body: `You: ${describe(userProbe)}. Ama: ${describe(amaProbe)}.`,
+      title: t("review.probeTitle"),
+      body: t("review.probeComparison", describe(userProbe), describe(amaProbe)),
     });
   }
   return insights;
@@ -1227,7 +1102,7 @@ function renderContributionChart(
 ) {
   reviewContributionChartEl.replaceChildren();
   if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
-  const differences = Object.entries(AMA_SIGNAL_PRESENTATION)
+  const differences = Object.entries(amaSignalPresentation())
     .map(([id, [label, meaning]]) => ({
       id,
       label,
@@ -1245,8 +1120,9 @@ function renderContributionChart(
   const title = document.createElement("strong");
   const legend = document.createElement("span");
   heading.className = "review-contribution-heading";
-  title.textContent = "Largest evaluation gaps";
-  legend.innerHTML = '<i class="review-legend-user"></i>You <i class="review-legend-ama"></i>Ama';
+  title.textContent = t("review.largestGaps");
+  legend.replaceChildren();
+  legend.append(Object.assign(document.createElement("i"), { className: "review-legend-user" }), document.createTextNode(t("review.you")), Object.assign(document.createElement("i"), { className: "review-legend-ama" }), document.createTextNode(t("review.ama")));
   heading.append(title, legend);
   reviewContributionChartEl.append(heading);
   const scale = Math.max(...differences.map(({ edge }) => Math.abs(edge)));
@@ -1265,7 +1141,7 @@ function renderContributionChart(
       action = document.createElement("button");
       action.type = "button";
       action.className = "review-show-evidence";
-      action.textContent = "Show on boards";
+      action.textContent = t("review.evidence");
       action.addEventListener("click", () => renderDiagnosticEvidence(
         userDiagnostic,
         amaDiagnostic,
@@ -1277,14 +1153,14 @@ function renderContributionChart(
     name.textContent = label;
     labelGroup.append(name, createReviewHelp(
       label,
-      `${meaning} You: ${formatSignalCalculation(user)}. Ama: ${formatSignalCalculation(ama)}.`,
+      t("review.probeComparison", `${meaning} ${formatSignalCalculation(user)}`, formatSignalCalculation(ama)),
       action,
     ));
     track.className = "review-contribution-track";
     fill.className = `review-contribution-fill ${edge > 0 ? "user" : "ama"}`;
     fill.style.setProperty("--edge-width", `${Math.abs(edge) / scale * 50}%`);
     value.className = "review-contribution-value";
-    value.textContent = Math.abs(edge).toLocaleString();
+    value.textContent = formatNumber(Math.abs(edge));
     track.append(fill);
     row.append(labelGroup, track, value);
     reviewContributionChartEl.append(row);
@@ -1307,18 +1183,18 @@ function renderEvaluationCoaching(
   if (userDiagnostic.survives && amaDiagnostic.survives) {
     appendComparisonMetric({
       container: reviewEvaluationSummaryEl,
-      label: "Immediate priority",
-      help: "The weighted board score Ama uses to retain fields in beam search. Higher is favored at this stage, but this is not the final move score.",
+      label: t("review.immediatePriority"),
+      help: t("review.evaluation"),
       userValue: userPriority,
       amaValue: amaPriority,
-      format: (value) => value.toLocaleString(),
+      format: formatNumber,
     });
     renderContributionChart(
       userDiagnostic,
       amaDiagnostic,
     );
   } else {
-    reviewEvaluationSummaryEl.textContent = "One field was excluded.";
+    reviewEvaluationSummaryEl.textContent = t("review.excluded");
   }
   createDiagnosticInsight(userDiagnostic, amaDiagnostic).forEach(({ title, body }) => {
     const card = document.createElement("article");
@@ -1332,13 +1208,13 @@ function renderEvaluationCoaching(
   if (!userDiagnostic.survives || !amaDiagnostic.survives) return;
   const header = document.createElement("div");
   header.className = "review-signal-row review-signal-header";
-  ["Feature", "You", "Ama"].forEach((text) => {
+  [t("review.feature"), t("review.you"), t("review.ama")].forEach((text) => {
     const cell = document.createElement("span");
     cell.textContent = text;
     header.append(cell);
   });
   reviewSignalTableEl.append(header);
-  Object.entries(AMA_SIGNAL_PRESENTATION).forEach(([id, [label, meaning]]) => {
+  Object.entries(amaSignalPresentation()).forEach(([id, [label, meaning]]) => {
     const user = userDiagnostic.signals[id];
     const ama = amaDiagnostic.signals[id];
     const row = document.createElement("div");
@@ -1354,7 +1230,7 @@ function renderEvaluationCoaching(
       show = document.createElement("button");
       show.type = "button";
       show.className = "review-show-evidence";
-      show.textContent = "Show on boards";
+      show.textContent = t("review.evidence");
       show.addEventListener("click", () =>
         renderDiagnosticEvidence(
           userDiagnostic,
@@ -1364,7 +1240,7 @@ function renderEvaluationCoaching(
     }
     description.append(name, createReviewHelp(
       label,
-      `${meaning} You: ${formatSignalCalculation(user)}. Ama: ${formatSignalCalculation(ama)}.`,
+      t("review.probeComparison", `${meaning} ${formatSignalCalculation(user)}`, formatSignalCalculation(ama)),
       show,
     ));
     const userValue = document.createElement("span");
@@ -1401,7 +1277,7 @@ function appendReviewRange(stats, label) {
   range.textContent = label;
   const value = document.createElement("strong");
   value.textContent = stats
-    ? `${stats.minimum.toLocaleString()}–${stats.maximum.toLocaleString()}`
+    ? `${formatNumber(stats.minimum)}–${formatNumber(stats.maximum)}`
     : "—";
   range.append(value);
   reviewRangesEl.append(range);
@@ -1421,7 +1297,7 @@ function renderReviewBranchChart(comparisons) {
     const label = createFuturePairingIcon(branch);
     const bars = document.createElement("div");
     bars.className = "review-branch-bars";
-    [["You", "user", userScore], ["Ama", "ama", amaScore]].forEach(
+    [[t("review.you"), "user", userScore], [t("review.ama"), "ama", amaScore]].forEach(
       ([name, kind, score]) => {
         const line = document.createElement("div");
         line.className = "review-branch-line";
@@ -1435,7 +1311,7 @@ function renderReviewBranchChart(comparisons) {
         track.append(fill);
         const value = document.createElement("span");
         value.className = "review-branch-value";
-        value.textContent = score.toLocaleString();
+        value.textContent = formatNumber(score);
         line.append(nameEl, track, value);
         bars.append(line);
       },
@@ -1450,12 +1326,12 @@ const REPLAY_HAND_DELAY_MS = 650;
 function renderReviewReplayPair(pair) {
   reviewReplayPairEl.replaceChildren();
   if (!pair) {
-    reviewReplayPairEl.setAttribute("aria-label", "Replay complete");
+    reviewReplayPairEl.setAttribute("aria-label", t("review.replayComplete"));
     return;
   }
   reviewReplayPairEl.setAttribute(
     "aria-label",
-    `${capitalizeColor(pair.axis)} and ${capitalizeColor(pair.child)} replay pair`,
+    t("review.replayPair", capitalizeColor(pair.axis), capitalizeColor(pair.child)),
   );
   [pair.child, pair.axis].forEach((color) => {
     const puyo = document.createElement("i");
@@ -1478,12 +1354,12 @@ function renderReviewReplay() {
   }
   const complete = state.handIndex >= state.replay.hands.length;
   reviewReplayStatusEl.textContent = complete
-    ? `${state.replay.chainCount}-chain · ${state.replay.score.toLocaleString()} points`
-    : `Hand ${state.handIndex + 1} of ${state.replay.hands.length}`;
+    ? t("review.replayResult", state.replay.chainCount, state.replay.score)
+    : t("review.replayHand", state.handIndex + 1, state.replay.hands.length);
   resetReviewReplayButton.disabled = state.busy || state.handIndex === 0;
   nextReviewReplayButton.disabled = state.busy || state.playing || complete;
   playReviewReplayButton.disabled = state.busy && !state.playing;
-  playReviewReplayButton.textContent = state.playing ? "❚❚ Pause" : "▶ Play";
+  playReviewReplayButton.textContent = state.playing ? t("review.pause") : t("review.play");
 }
 
 function resetReviewReplay() {
@@ -1512,7 +1388,7 @@ async function advanceReviewReplay() {
     hand.lockedRow14,
     hand.cells,
   );
-  reviewReplayStatusEl.textContent = `Hand ${state.handIndex + 1} · placed`;
+  reviewReplayStatusEl.textContent = t("review.replayPlaced", state.handIndex + 1);
   const completed = await animateChainRounds({
     lockedBoard: hand.lockedBoard,
     rounds: hand.result.rounds,
@@ -1526,7 +1402,7 @@ async function advanceReviewReplay() {
         [],
         clearingCells,
       );
-      reviewReplayStatusEl.textContent = `Hand ${state.handIndex + 1} · ${chain}-chain`;
+      reviewReplayStatusEl.textContent = t("review.replayChain", state.handIndex + 1, chain);
     },
   });
   if (!completed || revision !== reviewReplayRevision || reviewReplayState !== state) return;
@@ -1577,7 +1453,7 @@ function showReviewRankingPreview(row, turn, button) {
       candidateButton === button ? "true" : "false",
     );
   });
-  reviewRankingPreviewSourceEl.textContent = `RANK ${row.rank} · ${describePlacement(row.candidate)}`;
+  reviewRankingPreviewSourceEl.textContent = `${t("review.rank").toUpperCase()} ${row.rank} · ${describePlacement(row.candidate)}`;
   renderReviewMiniBoard(
     reviewRankingPreviewBoardEl,
     preview.board,
@@ -1605,11 +1481,11 @@ function renderReviewRanking(candidates, turn) {
     label.textContent = describePlacement(row.candidate);
     const previewButton = document.createElement("button");
     previewButton.type = "button";
-    previewButton.textContent = "Preview";
+    previewButton.textContent = t("review.preview");
     previewButton.setAttribute("aria-pressed", "false");
     previewButton.setAttribute(
       "aria-label",
-      `Preview rank ${row.rank}: ${label.textContent}`,
+      `${t("review.preview")} ${t("review.rank")} ${row.rank}: ${label.textContent}`,
     );
     previewButton.addEventListener("click", () => {
       showReviewRankingPreview(row, turn, previewButton);
@@ -1617,7 +1493,7 @@ function renderReviewRanking(candidates, turn) {
     moveContent.append(label, previewButton);
     move.append(moveContent);
     const maximumScore = document.createElement("td");
-    maximumScore.textContent = row.maximumScore.toLocaleString();
+    maximumScore.textContent = formatNumber(row.maximumScore);
     tableRow.append(rank, move, maximumScore);
     reviewRankingBodyEl.append(tableRow);
   }
@@ -1639,14 +1515,14 @@ function renderReviewRankingChart(candidates, userRank) {
   const scores = candidates.map((candidate) =>
     Math.max(...candidate.branchScores, 0));
   const highestScore = Math.max(...scores, 1);
-  reviewRankingMaxScoreEl.textContent = highestScore.toLocaleString();
-  reviewRankingMidScoreEl.textContent = Math.round(highestScore / 2).toLocaleString();
+  reviewRankingMaxScoreEl.textContent = formatNumber(highestScore);
+  reviewRankingMidScoreEl.textContent = formatNumber(Math.round(highestScore / 2));
   reviewRankingBarsEl.style.setProperty("--ranking-count", candidates.length);
   reviewRankingBarsEl.setAttribute(
     "aria-label",
-    `Maximum score by rank from 1 to ${candidates.length}. ` +
-      `Your move is rank ${userRank ?? "unavailable"}. ` +
-      scores.map((score, index) => `Rank ${index + 1}: ${score}.`).join(" "),
+    `${t("review.maxScore")} (${t("review.rank")} 1–${candidates.length}). ` +
+      `${t("review.yourMove")}：${userRank ?? "—"}. ` +
+      scores.map((score, index) => `${t("review.rank")} ${index + 1}: ${score}.`).join(" "),
   );
   scores.forEach((score, index) => {
     const bar = document.createElement("span");
@@ -1654,7 +1530,7 @@ function renderReviewRankingChart(candidates, userRank) {
     bar.className = "review-ranking-bar";
     if (rank === userRank) bar.classList.add("user");
     bar.style.setProperty("--bar-height", `${Math.max((score / highestScore) * 100, 2)}%`);
-    bar.title = `Rank ${rank}: ${score.toLocaleString()} max score${rank === userRank ? " (your move)" : ""}`;
+    bar.title = `${t("review.rank")} ${rank}: ${formatNumber(score)} ${t("review.maxScore")}${rank === userRank ? ` (${t("review.yourMove")})` : ""}`;
     bar.setAttribute("aria-hidden", "true");
     reviewRankingBarsEl.append(bar);
   });
@@ -1673,15 +1549,15 @@ function showReviewReplayResult(source, selection, replay) {
     busy: false,
     playing: false,
   };
-  reviewReplaySourceEl.textContent = source === "user" ? "YOUR MOVE" : "AMA'S CHOICE";
+  reviewReplaySourceEl.textContent = source === "user" ? t("review.yourSource") : t("review.amaSource");
   reviewReplayMetaEl.replaceChildren();
   reviewReplayMetaEl.append(createFuturePairingIcon(selection.branch));
   const score = document.createElement("strong");
-  score.textContent = `${selection.score.toLocaleString()} points`;
+  score.textContent = t("review.replayResult", 0, selection.score).replace(/^0(?:-chain|連鎖)[・ ·]*/, "");
   const tie = document.createElement("span");
   tie.textContent = selection.tiedBranches.length > 1
-    ? `Best in ${selection.tiedBranches.length} of 6 futures`
-    : "Best of 6 futures";
+    ? t("review.bestIn", selection.tiedBranches.length)
+    : t("review.bestOf");
   reviewReplayMetaEl.append(score, tie);
   reviewReplayPanelEl.hidden = false;
   renderReviewReplay();
@@ -1698,11 +1574,11 @@ async function launchReviewReplay(source) {
   if (!context || !candidate || !selection || selection.score <= 0) return;
   const revision = ++reviewReplayRevision;
   reviewReplayPanelEl.hidden = false;
-  reviewReplaySourceEl.textContent = source === "user" ? "YOUR MOVE" : "AMA'S CHOICE";
-  reviewReplayMetaEl.textContent = "Tracing Ama's best future…";
+  reviewReplaySourceEl.textContent = source === "user" ? t("review.yourSource") : t("review.amaSource");
+  reviewReplayMetaEl.textContent = t("review.tracing");
   reviewReplayPairEl.replaceChildren();
   reviewReplayBoardEl.replaceChildren();
-  reviewReplayStatusEl.textContent = "Please wait";
+  reviewReplayStatusEl.textContent = t("review.wait");
   resetReviewReplayButton.disabled = true;
   nextReviewReplayButton.disabled = true;
   playReviewReplayButton.disabled = true;
@@ -1738,8 +1614,8 @@ async function launchReviewReplay(source) {
   } catch (error) {
     if (revision !== reviewReplayRevision) return;
     console.error("Ama replay failed", error);
-    reviewReplayMetaEl.textContent = "Replay unavailable";
-    reviewReplayStatusEl.textContent = "Ama's traced path did not pass validation.";
+    reviewReplayMetaEl.textContent = t("review.replayUnavailable");
+    reviewReplayStatusEl.textContent = t("review.replayInvalid");
   } finally {
     isSuggesting = false;
     render();
@@ -1759,14 +1635,6 @@ function displayLastMoveReview(
   diagnostics = null,
   allCandidates = [],
 ) {
-  const summaries = {
-    "top-choice": "Ama's first choice matches your move.",
-    "tied-choice": "Your move tied Ama's first choice.",
-    "different-choice": "Ama preferred a different placement.",
-    "game-over": "Ama excluded your move because it ended at the choke point.",
-    "no-surviving-choice": "Ama found no placement that survived this position.",
-    unavailable: "Ama could not match this move to a scored placement.",
-  };
   reviewOverlay.querySelectorAll("details").forEach((details) => {
     details.open = false;
   });
@@ -1774,37 +1642,38 @@ function displayLastMoveReview(
   reviewReplayContext = {
     evaluation,
     turn,
+    diagnostics,
     allCandidates,
     colors: [...tokopuyoSession.pattern.colors],
     replays: new Map(),
   };
-  reviewTitleEl.textContent = "Last move review";
+  reviewTitleEl.textContent = t("review.title");
   const closeAggregate =
     evaluation.verdict === "different-choice" &&
     evaluation.aggregateRetention >= 0.9;
-  reviewSummaryEl.textContent = `${summaries[evaluation.verdict]}${
-    closeAggregate ? " The aggregate scores are within 10%." : ""
+  reviewSummaryEl.textContent = `${t(`review.summary.${evaluation.verdict}`)}${
+    closeAggregate ? ` ${t("review.withinTen")}` : ""
   }`;
   reviewSummaryEl.hidden = !reviewSummaryEl.textContent;
   reviewRankingStatEl.replaceChildren();
   appendReviewStat(
     reviewRankingStatEl,
     evaluation.rank ? `${evaluation.rank}/${evaluation.legalCount}` : "—",
-    "YOUR RANK",
-    "Your placement's rank among Ama's legal Current placements. Rank 1 is Ama's top choice.",
+    t("review.yourRank"),
+    t("review.ranking"),
     { inline: true },
   );
   appendReviewStat(
     reviewRankingStatEl,
-    evaluation.userStats?.maximum.toLocaleString() ?? "—",
-    "YOUR MAX SCORE",
-    "The highest score your placement found in any one of Ama's six tested futures. It is evidence, not the value used to rank moves.",
+    evaluation.userStats ? formatNumber(evaluation.userStats.maximum) : "—",
+    t("review.yourMaxScore"),
+    t("review.maxScore"),
     { inline: true },
   );
   renderReviewRankingChart(allCandidates, evaluation.rank);
   reviewRangesEl.replaceChildren();
-  appendReviewRange(evaluation.userStats, "YOUR FOUND RANGE");
-  appendReviewRange(evaluation.bestStats, "AMA FOUND RANGE");
+  appendReviewRange(evaluation.userStats, t("review.foundRange"));
+  appendReviewRange(evaluation.bestStats, t("review.amaRange"));
   renderFutureCoaching(evaluation);
   renderReviewBranchChart(evaluation.branchComparisons);
   const userBestBranch = selectBestAmaBranch(evaluation.user);
@@ -1812,11 +1681,11 @@ function displayLastMoveReview(
   reviewUserReplayButton.disabled = !userBestBranch || userBestBranch.score <= 0;
   reviewAmaReplayButton.disabled = !amaBestBranch || amaBestBranch.score <= 0;
   reviewUserReplayButton.title = reviewUserReplayButton.disabled
-    ? "No positive-score future was found"
-    : "Replay your highest-scoring tested future";
+    ? t("review.potentialUnavailable")
+    : t("review.replay");
   reviewAmaReplayButton.title = reviewAmaReplayButton.disabled
-    ? "No positive-score future was found"
-    : "Replay Ama's highest-scoring tested future";
+    ? t("review.potentialUnavailable")
+    : t("review.replay");
   const userPreview = dropTsumo(
     turn.beforeBoard,
     turn.current,
@@ -1839,11 +1708,11 @@ function displayLastMoveReview(
   reviewAmaBoardStateEl.textContent = "";
   reviewUserBoardEl.setAttribute(
     "aria-label",
-    "Your placement preview before chain resolution",
+    `${t("review.yourMove")}・${t("review.preview")}`,
   );
   reviewAmaBoardEl.setAttribute(
     "aria-label",
-    "Ama's placement preview before chain resolution",
+    `${t("review.amaChoice")}・${t("review.preview")}`,
   );
   renderReviewMiniBoard(
     reviewUserBoardEl,
@@ -1867,8 +1736,8 @@ function displayLastMoveReviewError() {
   closeReviewReplay();
   closeReviewRankingPreview();
   reviewReplayContext = null;
-  reviewTitleEl.textContent = "Review unavailable";
-  reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
+  reviewTitleEl.textContent = t("review.unavailable");
+  reviewSummaryEl.textContent = t("review.summary.unavailable");
   reviewSummaryEl.hidden = false;
   reviewRankingStatEl.replaceChildren();
   renderReviewRankingChart([], null);
@@ -1998,7 +1867,7 @@ async function showTokopuyoSuggestion() {
       return;
     }
     if (!candidates.length) {
-      statusEl.textContent = messages.suggestionNone[locale];
+      statusEl.textContent = t("message.tokopuyoSuggestionNone");
       return;
     }
     cacheAmaAnalysis(key, allCandidates);
@@ -2006,7 +1875,7 @@ async function showTokopuyoSuggestion() {
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);
   } catch (error) {
     console.error("Tokopuyo suggestion search failed", error);
-    statusEl.textContent = messages.suggestionError[locale];
+    statusEl.textContent = t("message.suggestionError");
   } finally {
     isSuggesting = false;
     render();
@@ -2310,7 +2179,7 @@ async function dropTokopuyoPair() {
   render();
 
   if (tokopuyoSession.gameOver) {
-    showToast(messages.tokopuyoGameOver[locale], 3000);
+    showToast(t("message.tokopuyoGameOver"), 3000);
   }
 }
 
@@ -2371,7 +2240,7 @@ function openFlick(row, col, event) {
   flickMenu.style.left = `${event.clientX}px`;
   flickMenu.style.top = `${event.clientY}px`;
   flickMenu.hidden = false;
-  setStatus("Flick to choose an option, then release to place it");
+  setStatus(t("message.flickChoose"));
 }
 
 function flickIndex(x, y) {
@@ -2404,7 +2273,7 @@ function buildFlickMenu(tools) {
     button.className = "flick-option";
     button.type = "button";
     button.dataset.tool = tool;
-    button.ariaLabel = `${tool} puyo`;
+    button.ariaLabel = t("message.placed", t(`color.${tool}`));
 
     if (tool === "garbage") {
       const garbage = document.createElement("i");
@@ -2421,7 +2290,7 @@ function buildFlickMenu(tools) {
       setTool(tool);
       flick.suppressClick = true;
       closeFlick();
-      setStatus("Option selected. Tap a board cell to place it");
+      setStatus(t("message.optionSelected"));
     });
     flickMenu.append(button);
   });
@@ -2429,7 +2298,7 @@ function buildFlickMenu(tools) {
   const deleteIcon = document.createElement("span");
   deleteIcon.className = "flick-delete";
   deleteIcon.textContent = "⌫";
-  deleteIcon.ariaLabel = "Delete without flicking";
+  deleteIcon.ariaLabel = t("message.deleteWithoutFlicking");
   flickMenu.append(deleteIcon);
 }
 
@@ -2459,8 +2328,8 @@ window.addEventListener("pointerup", (event) => {
     flick.suppressClick = true;
     setStatus(
       selectedTool === "erase"
-        ? "Erased puyo"
-        : `Placed ${selectedTool} puyo`,
+        ? t("message.erased")
+        : t("message.placed", t(`color.${selectedTool}`)),
     );
   } else {
     selectedTool = "erase";
@@ -2487,7 +2356,7 @@ document.querySelector("#undo").addEventListener("click", undo);
 document.querySelector("#redo").addEventListener("click", redo);
 chainBadge.addEventListener("click", () => {
   if (appMode !== "drawing") return;
-  showToast(localizedMessage(messages.scoreSummary, cumulativeScore, chainCount));
+  showToast(t("message.scoreSummary", cumulativeScore, chainCount));
 });
 document.querySelector("#clear").addEventListener("click", () => {
   if (appMode !== "drawing" || isSimulating) return;
@@ -2508,7 +2377,7 @@ document.querySelector("#clear").addEventListener("click", () => {
   board = emptyBoard();
   chainCount = 0;
   cumulativeScore = 0;
-  showToast(messages.cleared[locale]);
+  showToast(t("message.cleared"));
   render();
 });
 document.querySelector("#reset").addEventListener("click", () => {
@@ -2522,7 +2391,7 @@ document.querySelector("#reset").addEventListener("click", () => {
     tokopuyoDisplayedChain = null;
     render();
     showToast(
-      localizedMessage(messages.tokopuyoReset, tokopuyoSession.pattern.number),
+      t("message.tokopuyoReset", tokopuyoSession.pattern.number),
     );
     return;
   }
@@ -2544,7 +2413,7 @@ document.querySelector("#reset").addEventListener("click", () => {
   board = clone(initialBoard);
   chainCount = 0;
   cumulativeScore = 0;
-  showToast(messages.reset[locale]);
+  showToast(t("message.reset"));
   render();
 });
 document.querySelector("#simulate").addEventListener("click", runSimulation);
@@ -2574,6 +2443,20 @@ document.querySelector("#toggleGarbage").addEventListener("click", () => {
 });
 document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 toggleAppModeButton.addEventListener("click", switchAppMode);
+languageSelect.value = getLocale();
+languageSelect.addEventListener("change", () => {
+  setLocale(languageSelect.value);
+  localizeDocument();
+  if (reviewReplayContext && !reviewOverlay.hidden) {
+    displayLastMoveReview(
+      reviewReplayContext.evaluation,
+      reviewReplayContext.turn,
+      reviewReplayContext.diagnostics,
+      reviewReplayContext.allCandidates,
+    );
+  }
+  render();
+});
 document.querySelector("#help").addEventListener("click", () => {
   helpOverlay.hidden = false;
 });
@@ -2624,5 +2507,7 @@ window.addEventListener("resize", () => {
   if (appMode === "tokopuyo") renderActivePair();
 });
 
+setLocale(getLocale());
+localizeDocument();
 render();
 updatePaletteButton();
