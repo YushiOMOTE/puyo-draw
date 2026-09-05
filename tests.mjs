@@ -75,6 +75,7 @@ import {
   analyzeAmaBranches,
   compareAmaFutureProfiles,
   createAmaBranchQueue,
+  createAmaRankingRows,
   evaluateAmaMove,
   summarizeAmaBranchScores,
 } from "./tokopuyo/pressureless-ama.js";
@@ -769,6 +770,12 @@ const amaAllCandidates = analyzeAmaBranches(
     ],
   })),
 );
+const amaRankingRows = createAmaRankingRows(amaAllCandidates, 1);
+assert.equal(amaRankingRows.length, 1);
+assert.equal(amaRankingRows[0].rank, 1);
+assert.equal(amaRankingRows[0].candidate, amaAllCandidates[0]);
+assert.equal(amaRankingRows[0].maximumScore, 600);
+assert.throws(() => createAmaRankingRows(amaAllCandidates, 0), /positive integer/);
 const reviewedMove = evaluateAmaMove({
   placement: { cells: amaAllCandidates[1].moves[0].cells },
   result: { gameOver: false },

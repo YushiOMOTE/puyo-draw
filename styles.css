@@ -1756,6 +1756,87 @@ body[data-mode="drawing"] .help-btn {
   background: #f1f3f6;
 }
 
+.review-ranking-section { margin-top: 17px; }
+
+.review-ranking-section[hidden],
+.review-ranking-preview[hidden] { display: none; }
+
+.review-ranking-section h3 { margin: 0; font-size: 15px; }
+
+.review-ranking-table-wrap {
+  margin-top: 7px;
+  overflow-x: auto;
+  border: 1px solid #dfe4ec;
+  border-radius: 12px;
+}
+
+.review-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.review-ranking-table th,
+.review-ranking-table td {
+  padding: 7px 8px;
+  border-bottom: 1px solid #e7eaf0;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.review-ranking-table thead th {
+  color: #69738a;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #f7f8fb;
+}
+
+.review-ranking-table tr:last-child > * { border-bottom: 0; }
+.review-ranking-table th:first-child { width: 38px; text-align: center; }
+
+.review-ranking-table th:last-child,
+.review-ranking-table td:last-child {
+  width: 72px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-ranking-move {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.review-ranking-move button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  color: #315b9c;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  background: #eef5ff;
+  border: 0;
+  border-radius: 8px;
+}
+
+.review-ranking-move button[aria-pressed="true"] {
+  color: #fff;
+  background: #315b9c;
+}
+
+.review-ranking-preview {
+  margin-top: 9px;
+  padding: 13px;
+  background: #f7f8fb;
+  border: 1px solid #dfe4ec;
+  border-radius: 14px;
+}
+
+.review-ranking-preview .review-mini-board { width: 150px; }
+
 .review-replay-panel {
   margin-top: 17px;
   padding: 13px;

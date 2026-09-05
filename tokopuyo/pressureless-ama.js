@@ -133,6 +133,20 @@ export function summarizeAmaBranchScores(scores) {
   };
 }
 
+export function createAmaRankingRows(candidates, limit = 5) {
+  if (!Array.isArray(candidates)) {
+    throw new TypeError("Ama ranking requires candidates");
+  }
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new RangeError("Ama ranking limit must be a positive integer");
+  }
+  return candidates.slice(0, limit).map((candidate, index) => ({
+    rank: index + 1,
+    candidate,
+    maximumScore: summarizeAmaBranchScores(candidate.branchScores).maximum,
+  }));
+}
+
 export function compareAmaFutureProfiles(userStats, amaStats, tolerance = 0.05) {
   if (!userStats || !amaStats) {
     return { potentialLeader: "unavailable", stabilityLeader: "unavailable" };

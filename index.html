@@ -420,6 +420,38 @@
               <button id="reviewAmaReplay" class="review-replay-launch" type="button">▶ Best future</button>
             </section>
           </div>
+          <section id="reviewRankingSection" class="review-ranking-section" hidden>
+            <div class="review-section-heading">
+              <h3>Ranking</h3>
+              <details class="review-help">
+                <summary aria-label="Explain candidate ranking">?</summary>
+                <p>Rank follows the total score across all six tested futures. Max score is the highest score found in any one of those futures.</p>
+              </details>
+            </div>
+            <div class="review-ranking-table-wrap">
+              <table class="review-ranking-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Candidate move</th>
+                    <th scope="col">Max score</th>
+                  </tr>
+                </thead>
+                <tbody id="reviewRankingBody"></tbody>
+              </table>
+            </div>
+            <section id="reviewRankingPreview" class="review-ranking-preview" hidden>
+              <div class="review-section-heading">
+                <div>
+                  <p id="reviewRankingPreviewSource" class="review-replay-source"></p>
+                  <h3>Candidate preview</h3>
+                </div>
+                <button id="closeReviewRankingPreview" class="review-replay-close" type="button" aria-label="Close candidate preview">×</button>
+              </div>
+              <p id="reviewRankingPreviewState" class="review-board-state"></p>
+              <div id="reviewRankingPreviewBoard" class="review-mini-board" aria-label="Candidate placement preview before chain resolution"></div>
+            </section>
+          </section>
           <section id="reviewReplayPanel" class="review-replay-panel" hidden>
             <div class="review-section-heading">
               <div>

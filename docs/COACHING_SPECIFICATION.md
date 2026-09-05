@@ -34,8 +34,9 @@ The first coaching implementation includes:
   evidence produced by Ama;
 - deterministic plain-language summaries of the most material differences;
 - the six existing per-branch maximum chain scores;
-- a future-potential summary derived from those six scores; and
-- a stability comparison derived from their relative dispersion; and
+- a future-potential summary derived from those six scores;
+- a stability comparison derived from their relative dispersion;
+- a five-row candidate ranking with an exclusive, on-demand placement preview; and
 - an on-demand replay of each comparison move's maximum-score branch.
 
 Intermediate-field explanations, live-versus tactics, incoming garbage,
@@ -382,14 +383,22 @@ modify the live board, score, history, or caches.
 The existing last-move report is extended in this order:
 
 1. concise outcome and Current-placement comparison;
-2. "How Ama reads these fields," containing two synchronized mini-boards and up
+2. a five-row Ranking table below the comparison, showing each candidate's rank,
+   text placement, and maximum single-future score, with one closable candidate
+   placement preview at a time;
+3. "How Ama reads these fields," containing two synchronized mini-boards and up
    to three explanation cards;
-3. an expandable signal list with raw value, weight, contribution, definition,
+4. an expandable signal list with raw value, weight, contribution, definition,
    and a "Show on board" action;
-4. "Future potential and stability," containing the six branch chart, mapped
+5. "Future potential and stability," containing the six branch chart, mapped
    color-pair labels, mean, range, standard deviation, and relative dispersion;
    and
-5. methodology and limitation notes.
+6. methodology and limitation notes.
+
+The ranking order remains the aggregate of all six future scores. Its displayed
+maximum is the largest score for that candidate in any one tested future and is
+not the sorting value. Opening one candidate preview replaces any previously
+open candidate preview and never changes the live Tokopuyo field or history.
 
 Selecting a signal updates only the read-only comparison boards. It never mutates
 the Tokopuyo session or history. The dialog remains internally scrollable and
@@ -423,6 +432,8 @@ mobile-first.
 - Future-potential ordering matches the existing six-score aggregate ordering.
 - An enabled replay reproduces the selected candidate's original branch score
   and chain count, and its first placement is the compared Current move.
+- The Ranking section shows no more than five aggregate-ranked candidates, and
+  switching its preview replaces the prior candidate without changing live state.
 - Next advances exactly one hand, Play composes the same operation, and neither
   path changes the live Tokopuyo session or history.
 - Stability never affects or is described as affecting Ama's move selection.

@@ -22,6 +22,7 @@ import {
 import {
   AMA_FUTURE_PAIRINGS,
   compareAmaFutureProfiles,
+  createAmaRankingRows,
   evaluateAmaMove,
 } from "./tokopuyo/pressureless-ama.js";
 import {
@@ -93,6 +94,13 @@ const reviewUserBoardStateEl = document.querySelector("#reviewUserBoardState");
 const reviewAmaBoardStateEl = document.querySelector("#reviewAmaBoardState");
 const reviewUserBoardEl = document.querySelector("#reviewUserBoard");
 const reviewAmaBoardEl = document.querySelector("#reviewAmaBoard");
+const reviewRankingSectionEl = document.querySelector("#reviewRankingSection");
+const reviewRankingBodyEl = document.querySelector("#reviewRankingBody");
+const reviewRankingPreviewEl = document.querySelector("#reviewRankingPreview");
+const reviewRankingPreviewSourceEl = document.querySelector("#reviewRankingPreviewSource");
+const reviewRankingPreviewStateEl = document.querySelector("#reviewRankingPreviewState");
+const reviewRankingPreviewBoardEl = document.querySelector("#reviewRankingPreviewBoard");
+const closeReviewRankingPreviewButton = document.querySelector("#closeReviewRankingPreview");
 const reviewEvaluationSectionEl = document.querySelector("#reviewEvaluationSection");
 const reviewEvaluationSummaryEl = document.querySelector("#reviewEvaluationSummary");
 const reviewContributionChartEl = document.querySelector("#reviewContributionChart");
@@ -1581,6 +1589,78 @@ function closeReviewReplay() {
   reviewReplayPanelEl.hidden = true;
 }
 
+function closeReviewRankingPreview() {
+  reviewRankingPreviewEl.hidden = true;
+  reviewRankingPreviewSourceEl.textContent = "";
+  reviewRankingPreviewStateEl.textContent = "";
+  reviewRankingPreviewBoardEl.replaceChildren();
+  reviewRankingBodyEl.querySelectorAll("button").forEach((button) => {
+    button.setAttribute("aria-pressed", "false");
+  });
+}
+
+function showReviewRankingPreview(row, turn, button) {
+  const preview = dropTsumo(
+    turn.beforeBoard,
+    turn.current,
+    row.candidate.col,
+    row.candidate.orientation,
+    turn.beforeRow14,
+  );
+  if (!preview) return;
+  reviewRankingBodyEl.querySelectorAll("button").forEach((candidateButton) => {
+    candidateButton.setAttribute(
+      "aria-pressed",
+      candidateButton === button ? "true" : "false",
+    );
+  });
+  reviewRankingPreviewSourceEl.textContent = `RANK ${row.rank} · ${describePlacement(row.candidate)}`;
+  reviewRankingPreviewStateEl.textContent = "Before resolution";
+  renderReviewMiniBoard(
+    reviewRankingPreviewBoardEl,
+    preview.board,
+    preview.row14,
+    preview.cells,
+  );
+  reviewRankingPreviewEl.hidden = false;
+  reviewRankingPreviewEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function renderReviewRanking(candidates, turn) {
+  closeReviewRankingPreview();
+  reviewRankingBodyEl.replaceChildren();
+  const rows = createAmaRankingRows(candidates);
+  reviewRankingSectionEl.hidden = rows.length === 0;
+  for (const row of rows) {
+    const tableRow = document.createElement("tr");
+    const rank = document.createElement("th");
+    rank.scope = "row";
+    rank.textContent = String(row.rank);
+    const move = document.createElement("td");
+    const moveContent = document.createElement("div");
+    moveContent.className = "review-ranking-move";
+    const label = document.createElement("span");
+    label.textContent = describePlacement(row.candidate);
+    const previewButton = document.createElement("button");
+    previewButton.type = "button";
+    previewButton.textContent = "Preview";
+    previewButton.setAttribute("aria-pressed", "false");
+    previewButton.setAttribute(
+      "aria-label",
+      `Preview rank ${row.rank}: ${label.textContent}`,
+    );
+    previewButton.addEventListener("click", () => {
+      showReviewRankingPreview(row, turn, previewButton);
+    });
+    moveContent.append(label, previewButton);
+    move.append(moveContent);
+    const maximumScore = document.createElement("td");
+    maximumScore.textContent = row.maximumScore.toLocaleString();
+    tableRow.append(rank, move, maximumScore);
+    reviewRankingBodyEl.append(tableRow);
+  }
+}
+
 function showReviewReplayResult(source, selection, replay) {
   reviewReplayState = {
     source,
@@ -1669,6 +1749,7 @@ async function launchReviewReplay(source) {
 
 function closeLastMoveReview() {
   closeReviewReplay();
+  closeReviewRankingPreview();
   reviewReplayContext = null;
   reviewOverlay.hidden = true;
 }
@@ -1797,6 +1878,7 @@ function displayLastMoveReview(
     amaPreview?.row14 ?? turn.beforeRow14,
     amaPlacementCells,
   );
+  renderReviewRanking(allCandidates, turn);
   renderEvaluationCoaching(diagnostics?.user, diagnostics?.ama);
   reviewOverlay.hidden = false;
   closeReviewButton.focus();
@@ -1804,6 +1886,7 @@ function displayLastMoveReview(
 
 function displayLastMoveReviewError() {
   closeReviewReplay();
+  closeReviewRankingPreview();
   reviewReplayContext = null;
   reviewTitleEl.textContent = "Review unavailable";
   reviewSummaryEl.textContent = "Pressureless Ama could not review this move. Close this dialog and try again.";
@@ -1821,6 +1904,8 @@ function displayLastMoveReviewError() {
   reviewAmaBoardStateEl.textContent = "";
   reviewUserBoardEl.replaceChildren();
   reviewAmaBoardEl.replaceChildren();
+  reviewRankingBodyEl.replaceChildren();
+  reviewRankingSectionEl.hidden = true;
   reviewOverlay.hidden = false;
   closeReviewButton.focus();
 }
@@ -2524,6 +2609,7 @@ reviewAmaReplayButton.addEventListener("click", () => {
   void launchReviewReplay("ama");
 });
 closeReviewReplayButton.addEventListener("click", closeReviewReplay);
+closeReviewRankingPreviewButton.addEventListener("click", closeReviewRankingPreview);
 resetReviewReplayButton.addEventListener("click", resetReviewReplay);
 nextReviewReplayButton.addEventListener("click", () => {
   void advanceReviewReplay();
