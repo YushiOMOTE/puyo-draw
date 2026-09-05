@@ -43,7 +43,7 @@
 
 ## Simulation UI
 
-- Drawing mode shows only the current chain count in a standard-width sidebar button, with `chains` below the number. Tapping it shows the cumulative points and chain count in a toast. Tokopuyo has no chain sidebar button; it instead shows the cumulative score and chain count as `XXX points / XXX chains` below the field. Both modes retain their values without requiring a simulation result toast.
+- Drawing mode shows only the current chain count in a standard-width sidebar button, with the localized chain label below the number. Tapping it shows the cumulative points and chain count in a toast. Tokopuyo has no chain sidebar button; it instead shows the cumulative score and chain count with localized score and chain labels below the field. Both modes retain their values without requiring a simulation result toast.
 - Reset and Clear reset the chain count and cumulative score to zero. Undo and Redo restore the board, chain count, and cumulative score together.
 
 The left-side rail is ordered from top to bottom in both modes:
@@ -82,7 +82,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Quarter-turn rotations use the existing Tsu-style wall kicks.
 - On lock, horizontally separated puyos fall independently when their columns have different heights. The current hand advances only after lock.
 - Groups of four or more trigger the existing chain animation and scoring automatically. Pair input and history controls are disabled until resolution finishes.
-- The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero, and both values are shown below the field as `XXX points / XXX chains`.
+- The chain count and cumulative score describe the most recently committed hand. A non-clearing hand resets both to zero, and both values are shown below the field with the selected language's score and chain labels.
 - Tokopuyo Undo/Redo is independent from Drawing mode. One committed pair and its complete chain result form one atomic history entry; pre-lock movement and rotation are not history entries. Redo restores the resolved state without replaying animation.
 - After chain resolution, occupancy of the marked third-column choke point ends the session. Reset, Undo, Drawing mode, and Help remain available at game over.
 - The Tokopuyo right-side rail ends above the bottom control bar and contains, below the previews: Undo, Redo, long-chain Suggestion, emergency-attack Suggestion, and Palette/Garbage controls are hidden. Reset and the Drawing mode switch are on the left rail, with Help pinned at the bottom.

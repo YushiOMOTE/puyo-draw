@@ -186,8 +186,8 @@ export function localizeDocument() {
   document.querySelector("#chainBadge small").textContent = t("app.chains");
   document.querySelector("#helpTitle").textContent = t("app.help");
   document.querySelector(".language-picker span").textContent = t("app.language");
-  document.querySelector("#tokopuyoChainReadout").childNodes[1].textContent = ` ${t("app.points")} / `;
-  document.querySelector("#tokopuyoChainReadout").childNodes[3].textContent = ` ${t("app.chains")}`;
+  document.querySelector("#tokopuyoChainPointsLabel").textContent = t("app.points");
+  document.querySelector("#tokopuyoChainChainsLabel").textContent = t("app.chains");
   document.querySelector("#tokopuyoPreview small").textContent = t("app.next");
   document.querySelector(".next-next small").textContent = t("app.nextNext");
   const drawingItems = translations[locale].app.drawingHelp;
