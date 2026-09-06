@@ -18,6 +18,17 @@ const translations = {
       openTokopuyo: "Open Tokopuyo mode",
       startTokopuyoFromDrawing: "Start Tokopuyo from this board",
       customTokopuyo: "Start Tokopuyo from this board",
+      searchTsumo: "Search Tsumo",
+      tsumoSearchTitle: "Search Tsumo",
+      tsumoSearchIntro: "Search by pattern number or the first individual puyos using r, g, b, y, and p.",
+      tsumoSearchInputLabel: "Search",
+      tsumoSearchHint: "Numbers select an exact No.; letters search a color prefix.",
+      tsumoSearchCandidates: "Tsumo search candidates",
+      tsumoSearchLoading: "Preparing search data…",
+      tsumoSearchNoResults: "No matching Tsumo found",
+      tsumoSearchCandidate: (number, colors) => `No. ${number}: ${colors}`,
+      confirmTsumoSearch: "Start with selected Tsumo",
+      closeTsumoSearch: "Close Tsumo search",
       customTokopuyoTitle: "Start Tokopuyo from this board",
       customTokopuyoIntro: "Choose a four-color palette, then flick each opening puyo to set Current, Next, and Next Next.",
       closeCustomTokopuyo: "Close custom Tokopuyo setup",
@@ -79,7 +90,7 @@ const translations = {
       shortcuts: { undo: " (Shortcut: U)", redo: " (Shortcut: R)", simulate: " (Shortcut: Space)", suggest: " (Shortcut: S)", palette: " (Shortcuts: 1–6)", garbage: " (Shortcut: O)", reset: " (Shortcut: Delete)", attack: " (Shortcut: A)", review: " (Shortcut: I)", stepMode: " (Shortcut: P)", left: " (Shortcut: Left Arrow)", right: " (Shortcut: Right Arrow)", drop: " (Shortcut: Down Arrow)", rotateLeft: " (Shortcut: Z)", rotateRight: " (Shortcut: X)", previous: " (Shortcut: Left Arrow)", next: " (Shortcut: Right Arrow)", play: " (Shortcut: Space)", stop: " (Shortcut: Space)" },
       controlHelp: {
         drawing: { reset: "Clear the board and reset the score.", mode: "Switch to Tokopuyo practice mode.", customTokopuyo: "Choose opening pairs and start Tokopuyo from the current Drawing board.", help: "Open this help.", chain: "Show the current score and chain count.", undo: "Undo the latest board change.", redo: "Restore an undone board change.", simulate: "Run the current board's chain reaction.", suggest: "Show dotted puyos for a chain extension.", palette: "Cycle the available four- and five-color palettes.", garbage: "Add garbage puyos to the flick menu." },
-        tokopuyo: { reset: "Start a new random pattern.", mode: "Return to Drawing mode.", help: "Open this help.", undo: "Undo one complete placed pair or garbage puyo.", redo: "Restore one undone placed pair or garbage puyo.", suggest: "Suggest a resilient long-chain construction move.", attack: "Find the highest-scoring safe attack in the visible pairs.", review: "Compare the last placed pair with Pressureless Ama's analysis.", stepMode: "Enable or disable chain step mode.", garbage: "Replace Current with one movable garbage puyo without consuming the normal Current." },
+        tokopuyo: { reset: "Start a new random pattern.", searchTsumo: "Search and select a predefined Tsumo pattern.", mode: "Return to Drawing mode.", help: "Open this help.", undo: "Undo one complete placed pair or garbage puyo.", redo: "Restore one undone placed pair or garbage puyo.", suggest: "Suggest a resilient long-chain construction move.", attack: "Find the highest-scoring safe attack in the visible pairs.", review: "Compare the last placed pair with Pressureless Ama's analysis.", stepMode: "Enable or disable chain step mode.", garbage: "Replace Current with one movable garbage puyo without consuming the normal Current." },
         tsumo: { left: "Move the active pair left.", right: "Move the active pair right.", rotateLeft: "Rotate the active pair counterclockwise.", drop: "Hard-drop the active pair.", rotateRight: "Rotate the active pair clockwise." },
         steps: { previous: "Show the previous completed chain round.", first: "Jump to just before the first chain round fires.", last: "Jump to just before the final chain round fires.", next: "Advance to the next chain round.", play: "Play the remaining chain rounds automatically.", stop: "Pause automatic chain playback." },
       },
@@ -137,6 +148,23 @@ const translations = {
     color: { red: "赤", green: "緑", blue: "青", yellow: "黄", purple: "紫", garbage: "おじゃま", empty: "空", axis: "軸", child: "子" },
   },
 };
+
+Object.assign(translations.ja.app, {
+  searchTsumo: "ツモを検索",
+  tsumoSearchTitle: "ツモを検索",
+  tsumoSearchIntro: "パターン番号、または r・g・b・y・p で始まるぷよ列を検索します。",
+  tsumoSearchInputLabel: "検索",
+  tsumoSearchHint: "数字はNo.の完全一致、英字はぷよ列の先頭検索です。",
+  tsumoSearchCandidates: "ツモ検索候補",
+  tsumoSearchLoading: "検索データを準備中…",
+  tsumoSearchNoResults: "一致するツモがありません",
+  tsumoSearchCandidate: (number, colors) => `No. ${number}：${colors}`,
+  confirmTsumoSearch: "選択したツモで開始",
+  closeTsumoSearch: "ツモ検索を閉じる",
+});
+Object.assign(translations.ja.app.controlHelp.tokopuyo, {
+  searchTsumo: "定義済みのツモ列を検索して選択します。",
+});
 
 const reviewTranslations = {
   en: {
@@ -201,7 +229,7 @@ export function localizeDocument() {
     "#reset": "app.reset", "#help": "app.help", "#undo": "app.undo", "#redo": "app.redo",
     "#simulate": "app.simulate", "#suggest": "app.suggest", "#attackSuggest": "app.attackSuggest",
     "#reviewLastMove": "app.reviewLastMove", "#cyclePalette": "app.palette", "#toggleGarbage": "app.garbage",
-    "#startTokopuyoFromDrawing": "app.startTokopuyoFromDrawing", "#closeCustomTokopuyo": "app.closeCustomTokopuyo",
+    "#startTokopuyoFromDrawing": "app.startTokopuyoFromDrawing", "#searchTsumo": "app.searchTsumo", "#closeTsumoSearch": "app.closeTsumoSearch", "#closeCustomTokopuyo": "app.closeCustomTokopuyo",
     "#movePairLeft": "app.moveLeft", "#movePairRight": "app.moveRight", "#rotatePairLeft": "app.rotateLeft",
     "#rotatePairRight": "app.rotateRight", "#dropPair": "app.drop", "#stepChainBack": "app.previousStep", "#stepChainFirst": "app.firstStep", "#stepChainLast": "app.lastStep",
     "#stepChainForward": "app.nextStep", "#playChainSteps": "app.playSteps", "#stopChainSteps": "app.stopSteps",

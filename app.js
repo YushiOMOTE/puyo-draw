@@ -32,7 +32,7 @@ import {
 import {
   TOKOPUYO_ATTACK_SUGGESTION_CONFIG,
 } from "./tokopuyo/attack-suggestion-config.js";
-import { getTsumo, randomSeed } from "./tokopuyo/queue.js";
+import { generatePattern, getTsumo, randomSeed } from "./tokopuyo/queue.js";
 import {
   actOnPair,
   commitActivePair,
@@ -52,6 +52,7 @@ import {
   setLocale,
   t,
 } from "./i18n.js";
+import { patternSequence, searchTsumo } from "./tokopuyo/tsumo-search.js";
 
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
@@ -77,6 +78,13 @@ const startTokopuyoFromDrawingButton = document.querySelector("#startTokopuyoFro
 const leftSidebar = document.querySelector(".left-sidebar");
 const leftModeDivider = document.querySelector("#leftModeDivider");
 const resetButton = document.querySelector("#reset");
+const searchTsumoButton = document.querySelector("#searchTsumo");
+const tsumoSearchOverlay = document.querySelector("#tsumoSearchOverlay");
+const closeTsumoSearchButton = document.querySelector("#closeTsumoSearch");
+const tsumoSearchInput = document.querySelector("#tsumoSearchInput");
+const tsumoSearchStatus = document.querySelector("#tsumoSearchStatus");
+const tsumoSearchCandidates = document.querySelector("#tsumoSearchCandidates");
+const confirmTsumoSearchButton = document.querySelector("#confirmTsumoSearch");
 const helpButton = document.querySelector("#help");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
@@ -170,6 +178,8 @@ let reviewReplayContext = null;
 let reviewReplayState = null;
 let reviewReplayRevision = 0;
 let customTokopuyoDraft = null;
+let tsumoSearchDraft = null;
+let tsumoSearchIndexPromise = null;
 const amaAnalysisCache = new Map();
 const AMA_ANALYSIS_CACHE_LIMIT = 8;
 const suggestionController = new SuggestionController();
@@ -233,6 +243,119 @@ function eligibleCustomPalettes() {
 
 function customOpeningHasColor() {
   return customTokopuyoDraft?.hands.some(({ axis, child }) => axis || child) || false;
+}
+
+function loadTsumoSearchIndex() {
+  tsumoSearchIndexPromise ??= import("./tokopuyo/tsumo-search-index.js").then(
+    ({ TSUMO_SEARCH_INDEX }) => TSUMO_SEARCH_INDEX,
+  );
+  return tsumoSearchIndexPromise;
+}
+
+function renderTsumoSearch() {
+  if (!tsumoSearchDraft) return;
+  tsumoSearchInput.value = tsumoSearchDraft.query;
+  tsumoSearchStatus.textContent = tsumoSearchDraft.loading
+    ? t("app.tsumoSearchLoading")
+    : tsumoSearchDraft.seeds.length
+      ? ""
+      : tsumoSearchDraft.query
+        ? t("app.tsumoSearchNoResults")
+        : "";
+  tsumoSearchCandidates.replaceChildren();
+  tsumoSearchDraft.seeds.forEach((seed) => {
+    const pattern = generatePattern(seed);
+    const sequence = patternSequence(pattern).slice(0, 12);
+    const candidate = document.createElement("button");
+    candidate.type = "button";
+    candidate.className = "tsumo-search-candidate";
+    candidate.role = "option";
+    candidate.ariaSelected = String(tsumoSearchDraft.selectedSeed === seed);
+    candidate.dataset.seed = String(seed);
+    candidate.ariaLabel = t("app.tsumoSearchCandidate", seed + 1, sequence);
+    candidate.title = candidate.ariaLabel;
+    const number = document.createElement("span");
+    number.className = "tsumo-search-number";
+    number.textContent = `No. ${seed + 1}`;
+    const colors = document.createElement("span");
+    colors.className = "tsumo-search-sequence";
+    colors.setAttribute("aria-hidden", "true");
+    sequence.split("").forEach((symbol) => {
+      const color = { r: "red", g: "green", b: "blue", y: "yellow", p: "purple" }[symbol];
+      const puyo = document.createElement("i");
+      puyo.className = `tsumo-search-puyo ${color}`;
+      colors.append(puyo);
+    });
+    candidate.append(number, colors);
+    candidate.addEventListener("click", () => {
+      if (!tsumoSearchDraft) return;
+      tsumoSearchDraft.selectedSeed = seed;
+      renderTsumoSearch();
+    });
+    tsumoSearchCandidates.append(candidate);
+  });
+  confirmTsumoSearchButton.disabled =
+    tsumoSearchDraft.loading || tsumoSearchDraft.selectedSeed === null;
+}
+
+async function updateTsumoSearch(query) {
+  if (!tsumoSearchDraft) return;
+  const revision = (tsumoSearchDraft.revision || 0) + 1;
+  tsumoSearchDraft.revision = revision;
+  tsumoSearchDraft.query = query;
+  tsumoSearchDraft.selectedSeed = null;
+  tsumoSearchDraft.seeds = [];
+  tsumoSearchDraft.loading = true;
+  renderTsumoSearch();
+  try {
+    const index = await loadTsumoSearchIndex();
+    if (!tsumoSearchDraft || tsumoSearchOverlay.hidden || tsumoSearchDraft.revision !== revision) return;
+    tsumoSearchDraft.seeds = searchTsumo(query, index).seeds;
+  } catch (error) {
+    console.error("Could not load Tsumo search index", error);
+  } finally {
+    if (tsumoSearchDraft && !tsumoSearchOverlay.hidden && tsumoSearchDraft.revision === revision) {
+      tsumoSearchDraft.loading = false;
+      renderTsumoSearch();
+    }
+  }
+}
+
+function openTsumoSearch() {
+  if (appMode !== "tokopuyo" || isSuggesting || tokopuyoSession?.busy) return;
+  tsumoSearchDraft = { query: "", seeds: [], selectedSeed: null, loading: true, revision: 0 };
+  tsumoSearchOverlay.hidden = false;
+  renderTsumoSearch();
+  void loadTsumoSearchIndex().then(() => {
+    if (!tsumoSearchDraft || tsumoSearchOverlay.hidden) return;
+    tsumoSearchDraft.loading = false;
+    renderTsumoSearch();
+  }).catch((error) => {
+    console.error("Could not load Tsumo search index", error);
+    if (!tsumoSearchDraft || tsumoSearchOverlay.hidden) return;
+    tsumoSearchDraft.loading = false;
+    renderTsumoSearch();
+  });
+  tsumoSearchInput.focus();
+}
+
+function closeTsumoSearch(restoreFocus = true) {
+  tsumoSearchOverlay.hidden = true;
+  tsumoSearchDraft = null;
+  if (restoreFocus) searchTsumoButton.focus();
+}
+
+function confirmTsumoSearch() {
+  if (!tsumoSearchDraft || tsumoSearchDraft.selectedSeed === null) return;
+  const number = tsumoSearchDraft.selectedSeed + 1;
+  cancelTokopuyoStepResolution();
+  clearTokopuyoSuggestions();
+  tokopuyoSession = createSession(tsumoSearchDraft.selectedSeed);
+  tokopuyoBoardOverride = null;
+  tokopuyoDisplayedChain = null;
+  closeTsumoSearch(false);
+  render();
+  showToast(t("message.tokopuyoReset", number));
 }
 
 function renderCustomTokopuyoDraft() {
@@ -388,6 +511,7 @@ function updateModeUi() {
   tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
   tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
   toggleTokopuyoGarbageButton.hidden = !isTokopuyo;
+  searchTsumoButton.hidden = !isTokopuyo;
   attackSuggestButton.hidden = !isTokopuyo;
   reviewLastMoveButton.hidden = !isTokopuyo;
   toggleTokopuyoStepModeButton.hidden = !isTokopuyo;
@@ -419,6 +543,8 @@ function updateModeUi() {
   suggestButton.title = suggestButton.ariaLabel;
   resetButton.ariaLabel = t(isTokopuyo ? "message.tokopuyoReset" : "app.reset", tokopuyoSession?.pattern.number);
   resetButton.title = resetButton.ariaLabel;
+  searchTsumoButton.ariaLabel = t("app.searchTsumo");
+  searchTsumoButton.title = searchTsumoButton.ariaLabel;
   toggleTokopuyoStepModeButton.classList.toggle("active", tokopuyoStepMode);
   toggleTokopuyoStepModeButton.ariaPressed = String(tokopuyoStepMode);
   toggleTokopuyoStepModeButton.ariaLabel = t(tokopuyoStepMode ? "app.stepModeOff" : "app.stepModeOn");
@@ -514,6 +640,7 @@ function render() {
   document.querySelector("#reset").disabled = appMode === "tokopuyo"
     ? (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : isSimulating || isSuggesting;
+  searchTsumoButton.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting;
   document.querySelector("#suggest").disabled = appMode === "tokopuyo"
     ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver || tokopuyoSession.garbageMode
     : isSimulating || isSuggesting;
@@ -2752,6 +2879,12 @@ document.querySelector("#toggleGarbage").addEventListener("click", () => {
 document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 toggleAppModeButton.addEventListener("click", switchAppMode);
 startTokopuyoFromDrawingButton.addEventListener("click", openCustomTokopuyo);
+searchTsumoButton.addEventListener("click", openTsumoSearch);
+closeTsumoSearchButton.addEventListener("click", closeTsumoSearch);
+tsumoSearchInput.addEventListener("input", (event) => {
+  void updateTsumoSearch(event.target.value);
+});
+confirmTsumoSearchButton.addEventListener("click", confirmTsumoSearch);
 closeCustomTokopuyoButton.addEventListener("click", closeCustomTokopuyo);
 customTokopuyoPaletteEl.querySelectorAll("[data-custom-palette]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -2849,6 +2982,9 @@ helpOverlay.addEventListener("click", (event) => {
 customTokopuyoOverlay.addEventListener("click", (event) => {
   if (event.target === customTokopuyoOverlay) closeCustomTokopuyo();
 });
+tsumoSearchOverlay.addEventListener("click", (event) => {
+  if (event.target === tsumoSearchOverlay) closeTsumoSearch();
+});
 reviewOverlay.addEventListener("click", (event) => {
   const selectedHelp = event.target.closest?.(".review-help") || null;
   reviewOverlay.querySelectorAll(".review-help[open]").forEach((details) => {
@@ -2860,6 +2996,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!reviewOverlay.hidden) closeLastMoveReview();
     else if (!helpOverlay.hidden) closeHelp();
+    else if (!tsumoSearchOverlay.hidden) closeTsumoSearch();
     else if (!customTokopuyoOverlay.hidden) closeCustomTokopuyo();
     return;
   }
@@ -2871,6 +3008,7 @@ document.addEventListener("keydown", (event) => {
     event.altKey ||
     !reviewOverlay.hidden ||
     !helpOverlay.hidden ||
+    !tsumoSearchOverlay.hidden ||
     !customTokopuyoOverlay.hidden ||
     event.target.closest?.("input, select, textarea, [contenteditable='true']")
   ) return;

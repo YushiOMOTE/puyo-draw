@@ -34,6 +34,15 @@
             </svg>
           </button>
           <button
+            id="searchTsumo"
+            class="secondary-btn sidebar-btn tokopuyo-only"
+            aria-label="Search Tsumo"
+            title="Search Tsumo"
+            hidden
+          >
+            <span class="tsumo-search-icon" aria-hidden="true">⌕</span>
+          </button>
+          <button
             id="toggleAppMode"
             class="secondary-btn sidebar-btn app-mode-btn"
             aria-label="Open Tokopuyo mode"
@@ -424,6 +433,7 @@
               <tr><td data-help-control="#toggleTokopuyoStepMode"></td><td><span data-help-text="tokopuyo.stepMode">Step mode</span><span class="desktop-shortcut" data-help-shortcut="stepMode"></span></td></tr>
               <tr><td data-help-control="#toggleTokopuyoGarbage"></td><td data-help-text="tokopuyo.garbage">Garbage mode</td></tr>
               <tr><td data-help-control="#reset"></td><td><span data-help-text="tokopuyo.reset">Reset</span><span class="desktop-shortcut" data-help-shortcut="reset"></span></td></tr>
+              <tr><td data-help-control="#searchTsumo"></td><td data-help-text="tokopuyo.searchTsumo">Search Tsumo</td></tr>
               <tr><td data-help-control="#toggleAppMode"></td><td data-help-text="tokopuyo.mode">Drawing mode</td></tr>
               <tr><td data-help-control="#help"></td><td data-help-text="tokopuyo.help">Help</td></tr>
             </tbody></table>
@@ -445,6 +455,29 @@
               <tr><td data-help-control="#stopChainSteps"></td><td><span data-help-text="steps.stop">Stop</span><span class="desktop-shortcut" data-help-shortcut="stop"></span></td></tr>
             </tbody></table>
           </div>
+        </section>
+      </div>
+
+      <div id="tsumoSearchOverlay" class="tsumo-search-overlay" hidden>
+        <section
+          class="tsumo-search-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tsumoSearchTitle"
+        >
+          <button id="closeTsumoSearch" class="help-close" aria-label="Close Tsumo search">
+            ×
+          </button>
+          <h2 id="tsumoSearchTitle" data-i18n="app.tsumoSearchTitle">Search Tsumo</h2>
+          <p class="tsumo-search-intro" data-i18n="app.tsumoSearchIntro">Search by pattern number or the first individual puyos using r, g, b, y, and p.</p>
+          <label class="tsumo-search-field">
+            <span data-i18n="app.tsumoSearchInputLabel">Search</span>
+            <input id="tsumoSearchInput" type="text" inputmode="text" autocomplete="off" spellcheck="false" aria-describedby="tsumoSearchHint" />
+          </label>
+          <p id="tsumoSearchHint" class="tsumo-search-hint" data-i18n="app.tsumoSearchHint">Numbers select an exact No.; letters search a color prefix.</p>
+          <div id="tsumoSearchStatus" class="tsumo-search-status" role="status" aria-live="polite"></div>
+          <div id="tsumoSearchCandidates" class="tsumo-search-candidates" role="listbox" aria-label="Tsumo search candidates" data-i18n-aria-label="app.tsumoSearchCandidates"></div>
+          <button id="confirmTsumoSearch" type="button" class="primary-btn tsumo-search-confirm" data-i18n="app.confirmTsumoSearch" disabled>Start with selected Tsumo</button>
         </section>
       </div>
 

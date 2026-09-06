@@ -45,7 +45,7 @@ Each generated pattern contains 128 pairs. Its canonical individual-puyo sequenc
 The candidate row contains:
 
 - the localized pattern number, for example `No. 12344`;
-- the first eight individual puyos, rendered left-to-right as eight colored circular elements;
+- the first twelve individual puyos, rendered left-to-right as twelve colored circular elements;
 - an accessible text alternative describing the number and colors.
 
 Candidates are always ordered by ascending pattern number and limited to five rows. Numeric exact queries produce zero or one row.
