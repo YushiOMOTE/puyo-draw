@@ -4,7 +4,7 @@
 
 - Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
 - Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
-- The left sidebar is present in both modes. In Drawing mode it is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. In Tokopuyo mode it additionally contains the Tokopuyo garbage mode toggle below the mode switch. The custom-start action is unavailable in Tokopuyo mode. Help is pinned to the bottom.
+- The left sidebar is present in both modes. In Drawing mode it is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. In Tokopuyo mode it is ordered from top to bottom as Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, the Tokopuyo garbage mode toggle, and Help. The custom-start action is unavailable in Tokopuyo mode. Help is pinned to the bottom.
 - Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
@@ -41,6 +41,7 @@
 - Undo and redo maintain board snapshots and are disabled when their respective history is empty.
 - Clear empties a non-empty board and creates an undo point; clearing an already empty board is a no-op.
 - Reset returns to the initial empty board and records the previous board as an undo point, preserving earlier history. It always removes suggestion markers, even when the board is already identical to the initial board.
+- Tokopuyo Search Tsumo opens a modal for searching the session's predefined tsumo patterns. Closing the modal without confirming does not change the session. Confirming a selected pattern starts a fresh empty Tokopuyo session using that pattern and clears Tokopuyo history, score, chain count, move review, step resolution, and suggestion state, with the same user-visible reset behavior as selecting a new ordinary pattern.
 
 ## Simulation UI
 
@@ -50,9 +51,10 @@
 The left-side rail is ordered from top to bottom in both modes:
 
 1. Reset (trash).
-2. Drawing/Tokopuyo mode.
-3. Start Tokopuyo from This Board (Drawing mode only).
-4. Help (`i`).
+2. Search Tsumo (Tokopuyo mode only).
+3. Drawing/Tokopuyo mode.
+4. Start Tokopuyo from This Board (Drawing mode only).
+5. Help (`i`).
 
 The right-side rail is ordered from top to bottom:
 
@@ -65,7 +67,7 @@ The right-side rail is ordered from top to bottom:
 7. Palette.
 8. Garbage puyo mode.
 
-The Help (`i`) button is pinned to the bottom of the left rail. A divider appears between Reset and the Drawing/Tokopuyo mode button; the Help button remains visually separated.
+The Help (`i`) button is pinned to the bottom of the left rail. In Tokopuyo mode, a divider appears between Search Tsumo and the Drawing/Tokopuyo mode button. In Drawing mode, a divider appears between Reset and the Drawing/Tokopuyo mode button; the Help button remains visually separated.
 
 The Drawing/Tokopuyo mode button displays a small shortcut-style arrow badge at the lower-right of its mode icon. In Tokopuyo mode, the return-to-Drawing icon uses a brush silhouette.
 
@@ -77,6 +79,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Drawing mode: Undo `U`, Redo `R`, Simulate `Space`, Suggestion `S`, select one of the six palette states directly with `1`–`6` (the five four-color palettes followed by the five-color palette), toggle Garbage mode `O`, and Reset `Delete`.
 - Tokopuyo mode: Undo `U`, Redo `R`, long-chain Suggestion `S`, emergency-attack Suggestion `A`, Review Last Move `I`, toggle step mode `P`, Reset `Delete`, move right `Right Arrow`, move left `Left Arrow`, drop `Down Arrow`, rotate counterclockwise `Z`, and rotate clockwise `X`.
 - During a Tokopuyo step resolution: previous round `Left Arrow`, next round `Right Arrow`, and Play/Stop `Space` (toggles based on playback state).
+- Search Tsumo has no keyboard shortcut. Keyboard shortcuts are inactive while its dialog is open or while its search field has focus.
 - The Help control descriptions append these assignments on desktop widths only; mobile layouts hide the shortcut text.
 
 ## Tokopuyo Mode
@@ -101,6 +104,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - The Tokopuyo coaching report, including its ranking, future-potential comparison, evaluation features, and replay controls, uses the selected application language. Changing language while the report is open redraws its displayed content in that language.
 - The Tokopuyo right-side rail contains a chain step-mode toggle. The same blue highlight used for enabled garbage mode identifies when step mode is enabled. When enabled, a committed pair that starts a chain replaces the five pair controls at the bottom with Previous Step, Jump to First, Jump to Last, Next Step, Play, and Stop controls. Jump to First shows the locked field just before the first chain fires; Jump to Last shows the state just before the final chain fires. Previous and Next move between the locked field and each completed chain round; advancing a round shows its clearing and gravity animation. Jumping pauses automatic playback. Play advances the remaining rounds automatically, and Stop pauses that automatic playback without discarding the current step. The six step controls use smaller buttons as needed to fit the bottom bar at narrow widths.
 - While a Tokopuyo chain is in step mode, Undo, Redo, and Reset remain available. Undo or Redo first cancels the in-progress step view and then restores the normal atomic pre-placement or post-placement history snapshot; Reset cancels it and starts a new pattern.
+- Search Tsumo is a scrollable modal with a close button, backdrop close, and Escape close. It contains a text field, a candidate area showing at most five patterns, and a disabled-until-selection confirmation button. Each candidate shows its pattern number and the first eight individual puyos as eight colored circles. Selecting a candidate highlights it and enables confirmation. A digits-only query is an exact pattern-number query after leading-zero normalization; `0`, numbers above `65,536`, and unmatched numbers show no candidates. A case-insensitive query consisting only of `r`, `g`, `b`, `p`, and `y` is a prefix query against the first individual puyos of the canonical generated sequence, and candidates are ordered by ascending pattern number. Other query strings show no candidates.
 - The Help overlay shows instructions for the active mode.
 
 ### Start Tokopuyo from This Board
@@ -115,6 +119,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Reset after custom start retains its existing meaning: it creates an empty-board session with a new ordinary random pattern, not another copy of the custom start position.
 
 The detailed generator, interaction, history, and verification contract is in `docs/TOCOPUYO_TSUMO_SPECIFICATION.md`.
+The detailed Search Tsumo behavior, Trie index, and public-build generation procedure are in `docs/TOCOPUYO_TSUMO_SEARCH_SPECIFICATION.md`.
 
 The Palette button cycles through all five four-color palettes and then the five-color palette. The five-color state is shown with five colored circles arranged like the face of a die.
 

@@ -206,7 +206,7 @@ The data model distinguishes two concepts:
 1. **Restart session**: clear the board and reset the hand index to zero while preserving the seed and 4-color pattern. This reproduces the same tsumo sequence.
 2. **New pattern**: choose a new seed, clear the board, and reset the hand index to zero.
 
-The first implementation exposes Reset in the sidebar. Reset clears the Tokopuyo board, selects a new random pattern, resets the hand index to zero, and clears Tokopuyo Undo/Redo history. The tooltip and toast must state that a new pattern was selected. Replaying the same seed is retained as a data-model capability for future pattern selection or sharing, but it has no separate control in the first release.
+The sidebar exposes Reset and Search Tsumo. Reset clears the Tokopuyo board, selects a new random pattern, resets the hand index to zero, and clears Tokopuyo Undo/Redo history. Search Tsumo selects a specific predefined pattern and applies the same fresh-session semantics. The tooltip and toast must state the selected reset behavior. Replaying the same seed is available through Search Tsumo; the dialog, Trie index, and build-time index generation are specified in `docs/TOCOPUYO_TSUMO_SEARCH_SPECIFICATION.md`.
 
 The seed must be stored with any saved or shareable session state. A board alone is insufficient to reproduce a Tokopuyo run.
 

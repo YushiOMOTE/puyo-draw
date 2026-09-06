@@ -30,6 +30,12 @@ import {
   getTsumo,
   randomSeedForPalette,
 } from "./tokopuyo/queue.js";
+import { TSUMO_SEARCH_INDEX } from "./tokopuyo/tsumo-search-index.js";
+import {
+  candidateNumbers,
+  patternSequence,
+  searchTsumo,
+} from "./tokopuyo/tsumo-search.js";
 import {
   DRAG_RETURN_HYSTERESIS_RATIO,
   DRAG_STEP_RATIO,
@@ -357,6 +363,23 @@ assert.equal(
     .join(""),
   "bpbpbpypgybgbpbb",
 );
+assert.equal(patternSequence(seedZeroPattern).length, 256);
+assert.deepEqual(candidateNumbers(searchTsumo("1", TSUMO_SEARCH_INDEX)), [1]);
+assert.deepEqual(candidateNumbers(searchTsumo("001", TSUMO_SEARCH_INDEX)), [1]);
+assert.deepEqual(candidateNumbers(searchTsumo("65536", TSUMO_SEARCH_INDEX)), [65536]);
+assert.deepEqual(candidateNumbers(searchTsumo("0", TSUMO_SEARCH_INDEX)), []);
+assert.deepEqual(candidateNumbers(searchTsumo("65537", TSUMO_SEARCH_INDEX)), []);
+assert.deepEqual(candidateNumbers(searchTsumo("000", TSUMO_SEARCH_INDEX)), []);
+assert.deepEqual(candidateNumbers(searchTsumo("R", TSUMO_SEARCH_INDEX)), candidateNumbers(searchTsumo("r", TSUMO_SEARCH_INDEX)));
+assert.deepEqual(candidateNumbers(searchTsumo("rg1", TSUMO_SEARCH_INDEX)), []);
+assert.deepEqual(candidateNumbers(searchTsumo("r ", TSUMO_SEARCH_INDEX)), []);
+const longPrefix = patternSequence(generatePattern(34_066)).slice(0, 7);
+const longPrefixResult = searchTsumo(longPrefix, TSUMO_SEARCH_INDEX);
+assert.ok(candidateNumbers(longPrefixResult).includes(34_067));
+assert.ok(longPrefixResult.seeds.every((seed) =>
+  patternSequence(generatePattern(seed)).startsWith(longPrefix),
+));
+assert.deepEqual(candidateNumbers(searchTsumo(`${longPrefix}${"r".repeat(256)}`, TSUMO_SEARCH_INDEX)), []);
 
 const customPalette = [...seedZeroPattern.colors];
 assert.equal(
