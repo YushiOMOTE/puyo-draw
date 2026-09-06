@@ -706,12 +706,13 @@ body[data-mode="tokopuyo"] .board-card {
 
 .tsumo-search-icon {
   display: block;
+  width: min(30px, calc(var(--sidebar-size) - 16px));
+  height: min(30px, calc(var(--sidebar-size) - 16px));
   margin: auto;
-  color: currentColor;
-  font-family: Georgia, serif;
-  font-size: 36px;
-  line-height: 1;
-  transform: translateY(-1px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
 }
 
 .drawing-mode-icon {
