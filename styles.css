@@ -321,6 +321,52 @@ body[data-mode="tokopuyo"] .board-card {
   text-shadow: 0 1px 1px #10182799;
 }
 
+.chain-group-overlay {
+  position: absolute;
+  display: grid;
+  inset: 0;
+  z-index: 4;
+  place-items: center;
+  pointer-events: none;
+}
+
+.suggestion-group-label {
+  position: absolute;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  color: #fff;
+  font-size: clamp(12px, 3.2vw, 20px);
+  font-weight: 900;
+  line-height: 1;
+  background: transparent;
+  text-shadow: 0 1px 2px #10182799, 0 0 3px #101827;
+}
+
+.suggestion-marker.probe {
+  inset: 13%;
+  z-index: 3;
+  border-radius: 50% !important;
+  border-style: dotted !important;
+  border-color: currentColor !important;
+  background: transparent !important;
+  opacity: 1;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+
+.suggestion-marker.probe::after {
+  position: absolute;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  content: "ϟ";
+  color: currentColor;
+  font-size: clamp(15px, 4.2vw, 26px);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 2px #10182788, 0 0 3px #fff;
+}
+
 .suggestion-marker.virtual-suggestion-marker {
   inset: auto;
   transform: translate(-50%, -50%);

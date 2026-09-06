@@ -590,27 +590,42 @@ function render() {
         editCell(r, c);
       });
 
+      const suggestion = appMode === "drawing"
+        ? suggestionMarks.get(`${r},${c}`)
+        : tokopuyoSuggestionMarks.get(`${r},${c}`);
+
       if (color) {
         const puyo = document.createElement("span");
         puyo.className = `puyo ${color}`;
         cell.append(puyo);
       }
 
-      const suggestion = appMode === "drawing"
-        ? suggestionMarks.get(`${r},${c}`)
-        : tokopuyoSuggestionMarks.get(`${r},${c}`);
       if (suggestion) {
-        const marker = document.createElement("span");
-        marker.className = `suggestion-marker ${suggestion.color}${
-          suggestion.isTrigger ? " trigger" : ""
-        }${suggestion.kind ? ` ${suggestion.kind}` : ""}${
-          suggestion.isIgnitionTarget
-            ? ` ignition-target ignition-${suggestion.ignitionState}`
-            : ""
-        }`;
-        if (suggestion.step) marker.dataset.step = suggestion.step;
-        marker.ariaHidden = "true";
-        cell.append(marker);
+        let groupOverlay = null;
+        if (suggestion.chainNumber) {
+          groupOverlay = document.createElement("span");
+          groupOverlay.className = "chain-group-overlay";
+          groupOverlay.ariaHidden = "true";
+          const groupLabel = document.createElement("span");
+          groupLabel.className = "suggestion-group-label";
+          groupLabel.textContent = String(suggestion.chainNumber);
+          groupLabel.ariaHidden = "true";
+          groupOverlay.append(groupLabel);
+        }
+        if (suggestion.kind !== "chain-group") {
+          const marker = document.createElement("span");
+          marker.className = `suggestion-marker ${suggestion.color}${
+            suggestion.isTrigger ? " trigger" : ""
+          }${suggestion.kind ? ` ${suggestion.kind}` : ""}${
+            suggestion.isIgnitionTarget
+              ? ` ignition-target ignition-${suggestion.ignitionState}`
+              : ""
+          }`;
+          if (suggestion.step) marker.dataset.step = suggestion.step;
+          marker.ariaHidden = "true";
+          cell.append(marker);
+        }
+        if (groupOverlay) cell.append(groupOverlay);
         if (suggestion.isIgnitionTarget) {
           cell.ariaLabel += ` ${t("message.activePuyo", t("color.axis"), t(`color.${suggestion.color}`))}`;
         }
@@ -1012,6 +1027,7 @@ function displayTokopuyoSuggestion(candidate, index, total) {
   tokopuyoSuggestionMarks = createTokopuyoSuggestionMarks(
     candidate,
     tokopuyoSession.board,
+    candidate.amaDiagnostic,
   );
   render();
   if (candidate.solver === "pressureless-ama") {
@@ -2177,6 +2193,41 @@ async function showTokopuyoSuggestion() {
       statusEl.textContent = t("message.tokopuyoSuggestionNone");
       return;
     }
+    const diagnostics = await pressurelessAmaController.inspectPlacements({
+      board: clone(tokopuyoSession.board),
+      row14: tokopuyoSession.row14,
+      current: { ...hands[0] },
+      colors: [...tokopuyoSession.pattern.colors],
+    }, candidates.map(({ col, orientation }) => ({ col, orientation })));
+    candidates.forEach((candidate, index) => {
+      const diagnostic = diagnostics[index];
+      candidate.amaDiagnostic = diagnostic;
+      if (!diagnostic || !candidate.moves[0]?.cells?.length) return;
+
+      const visualBoard = clone(tokopuyoSession.board);
+      for (const cell of candidate.moves[0].cells) {
+        if (
+          cell.row >= 0 &&
+          cell.row < visualBoard.length &&
+          cell.col >= 0 &&
+          cell.col < visualBoard[cell.row].length &&
+          !visualBoard[cell.row][cell.col]
+        ) {
+          visualBoard[cell.row][cell.col] = cell.color;
+        }
+      }
+
+      candidate.amaDiagnostic = {
+        ...diagnostic,
+        board: visualBoard,
+      };
+      if (diagnostic.immediateChainScore > 0 && !diagnostic.selectedProbe) {
+        candidate.amaDiagnostic = {
+          ...candidate.amaDiagnostic,
+          firingCells: candidate.moves[0].cells,
+        };
+      }
+    });
     cacheAmaAnalysis(key, allCandidates);
     tokopuyoSuggestionSession = { key, candidates, index: 0 };
     displayTokopuyoSuggestion(candidates[0], 0, candidates.length);

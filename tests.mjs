@@ -159,6 +159,51 @@ chain[ROWS - 2][3] = "blue";
 chain[ROWS - 3][1] = "blue";
 
 assert.equal(simulate(chain).chains, 2);
+const probeChainBoard = clone(chain);
+probeChainBoard[ROWS - 1][3] = null;
+const probeMarks = createTokopuyoSuggestionMarks(
+  {
+    moves: [{
+      handOffset: 0,
+      cells: [{ row: ROWS - 1, col: 3, color: "red" }],
+    }],
+  },
+  probeChainBoard,
+  {
+    board: probeChainBoard,
+    selectedProbe: {
+      addedCells: [{ row: ROWS - 1, col: 3, color: "red" }],
+    },
+  },
+);
+assert.equal(probeMarks.get(`${ROWS - 1},3`).kind, "current");
+assert.equal(probeMarks.get(`${ROWS - 1},3`).chainNumber, 1);
+assert.ok([...probeMarks.values()].some(({ chainNumber }) => chainNumber >= 2));
+const simultaneousMarks = createTokopuyoSuggestionMarks(
+  { moves: [] },
+  simultaneous,
+  {
+    board: simultaneous,
+    firingCells: [{ row: ROWS - 3, col: COLS - 1, color: "yellow" }],
+  },
+);
+assert.equal(simultaneousMarks.get(`${ROWS - 1},0`).chainNumber, 1);
+assert.equal(simultaneousMarks.get(`${ROWS - 2},0`).chainNumber, 1);
+const firingMarks = createTokopuyoSuggestionMarks(
+  {
+    moves: [{
+      handOffset: 0,
+      cells: [{ row: ROWS - 1, col: 3, color: "red" }],
+    }],
+  },
+  probeChainBoard,
+  {
+    board: probeChainBoard,
+    firingCells: [{ row: ROWS - 1, col: 3, color: "red" }],
+  },
+);
+assert.equal(firingMarks.get(`${ROWS - 1},3`).kind, "current");
+assert.equal(firingMarks.get(`${ROWS - 1},3`).chainNumber, 1);
 assert.equal(COLS, 6);
 assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
