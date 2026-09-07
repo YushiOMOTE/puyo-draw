@@ -20,6 +20,7 @@
 - Field sizing includes the surrounding frame and uses all available space without allowing cells to overflow the frame.
 - Narrow mobile Drawing-mode layouts keep forced minimum margins around the field: 16px vertically and 10px horizontally, in addition to device safe-area insets.
 - Narrow mobile Tokopuyo layouts use the same outer, card, and field-frame spacing as Drawing mode while retaining square cells and the device safe-area insets.
+- The full-screen app resynchronizes its height and resets the non-scrollable outer page position when a browser restores it from navigation history, so the field and controls remain within the visible mobile viewport.
 
 ## Puyo Rules
 

@@ -54,6 +54,35 @@ import {
 } from "./i18n.js";
 import { patternSequence, searchTsumo } from "./tokopuyo/tsumo-search.js";
 
+let viewportSyncFrame = 0;
+
+function syncAppViewport() {
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  document.documentElement.style.setProperty(
+    "--app-viewport-height",
+    `${viewportHeight}px`,
+  );
+  if (appMode === "tokopuyo") renderActivePair();
+}
+
+function scheduleAppViewportSync() {
+  if (viewportSyncFrame) cancelAnimationFrame(viewportSyncFrame);
+  viewportSyncFrame = requestAnimationFrame(() => {
+    viewportSyncFrame = 0;
+    syncAppViewport();
+  });
+}
+
+function restoreAppViewport() {
+  window.scrollTo(0, 0);
+  syncAppViewport();
+  requestAnimationFrame(scheduleAppViewportSync);
+}
+
+if ("scrollRestoration" in window.history) {
+  window.history.scrollRestoration = "manual";
+}
+
 const boardEl = document.querySelector("#board");
 const boardWrap = document.querySelector(".board-wrap");
 const statusEl = document.querySelector("#status");
@@ -3118,11 +3147,12 @@ document.addEventListener("keydown", (event) => {
   };
   activate(tokopuyoShortcuts[key]);
 });
-window.addEventListener("resize", () => {
-  if (appMode === "tokopuyo") renderActivePair();
-});
+window.addEventListener("resize", scheduleAppViewportSync);
+window.addEventListener("pageshow", restoreAppViewport);
+window.visualViewport?.addEventListener("resize", scheduleAppViewportSync);
 
 setLocale(getLocale());
 localizeDocument();
+syncAppViewport();
 render();
 updatePaletteButton();
