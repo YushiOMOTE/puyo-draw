@@ -2,10 +2,10 @@
 
 ## Application Modes
 
-- Drawing mode is the existing free-form board editor, manual chain simulator, and suggestion interface.
-- Tokopuyo mode is a separate step-driven practice mode using deterministic modern Sega-style four-color Tsu patterns.
+- The application starts in Tokopuyo mode with a new randomly selected standard pattern. Tokopuyo mode is the default entry point and the main step-driven practice experience using deterministic modern Sega-style four-color Tsu patterns.
+- Drawing mode is a secondary submode for free-form board editing, manual chain simulation, and Drawing-mode suggestions. It is opened from Tokopuyo with the mode switch.
 - The left sidebar is present in both modes. In Drawing mode it is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. In Tokopuyo mode it is ordered from top to bottom as Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, the Tokopuyo garbage mode toggle, and Help. The custom-start action is unavailable in Tokopuyo mode. Help is pinned to the bottom.
-- Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode retains the Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
+- Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode returns to the retained Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
 ## Board Model
