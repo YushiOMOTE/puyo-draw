@@ -72,10 +72,12 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
     <tr>
       <td>
         <strong>Build and test a board in Drawing mode</strong><br />
-        Move from Tokopuyo into the Drawing submode to place colored or garbage puyos, erase cells, and simulate the settled field before practicing it as a sequence.
+        Move from Tokopuyo into the Drawing submode to place colored or garbage puyos, erase cells, and simulate the settled field. When the board is ready, choose the opening pairs and start Tokopuyo directly from your drawing.
       </td>
       <td align="center">
         <img src="docs/media/drawing-mode.png" alt="Drawing mode with a custom board and drawing controls" width="300" />
+        <br />
+        <img src="docs/media/start-tokopuyo-from-board.png" alt="Start Tokopuyo from this board setup dialog" width="300" />
       </td>
     </tr>
   </tbody>
