@@ -1419,7 +1419,8 @@ function appendComparisonMetric({
   const title = document.createElement("strong");
   title.textContent = label;
   heading.className = "review-metric-heading";
-  heading.append(title, createReviewHelp(label, help));
+  heading.append(title);
+  if (help) heading.append(createReviewHelp(label, help));
   metric.append(heading);
   const numericValues = [userValue, amaValue].filter(Number.isFinite);
   const minimum = Math.min(...numericValues);
@@ -1485,15 +1486,13 @@ function renderFutureCoaching(evaluation) {
   appendComparisonMetric({
     container: reviewFutureMetricsEl,
     label: t("review.potential"),
-    help: t("review.signal.potentialChain")[1],
     userValue: evaluation.userStats.mean,
     amaValue: evaluation.bestStats.mean,
     format: (value) => new Intl.NumberFormat(getLocale() === "ja" ? "ja-JP" : "en-US", { maximumFractionDigits: 1 }).format(value),
   });
   appendComparisonMetric({
     container: reviewFutureMetricsEl,
-    label: t("review.variation"),
-    help: t("review.future"),
+    label: t("review.stability"),
     userValue: evaluation.userStats.relativeDispersion,
     amaValue: evaluation.bestStats.relativeDispersion,
     format: (value) => `${(value * 100).toFixed(0)}%`,
@@ -1606,7 +1605,6 @@ function renderEvaluationCoaching(
     appendComparisonMetric({
       container: reviewEvaluationSummaryEl,
       label: t("review.immediatePriority"),
-      help: t("review.evaluation"),
       userValue: userPriority,
       amaValue: amaPriority,
       format: formatNumber,

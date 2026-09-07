@@ -290,10 +290,11 @@ No combined coaching grade is calculated. A stronger result in one layer must
 not erase a contrary result in another layer.
 
 The initial summary uses deterministic templates, not a generative model.
-Potential, variation, immediate priority, and the largest weighted feature gaps
-are visual comparisons. Definitions and raw calculations open from adjacent
-question-mark controls rather than occupying the default report. The six-future
-chart and complete feature table are collapsed initially. A short trigger-probe
+Potential, stability, immediate priority, and the largest weighted feature gaps
+are visual comparisons. Section explanations and the largest weighted feature
+gaps open from adjacent question-mark controls; the Potential, Stability, and
+Immediate priority metric cards do not duplicate those explanations. The
+six-future chart and complete feature table are collapsed initially. A short trigger-probe
 insight may be shown when available. Examples of supported coaching language
 include:
 
@@ -391,7 +392,7 @@ The existing last-move report is extended in this order:
    purple, and the chart title remains separated from that marker at rank 1.
    The table shows each candidate's rank, text placement, and maximum
    single-future score, with one closable candidate placement preview at a time;
-3. "Future potential and stability," containing potential, variation, found
+3. "Future potential and stability," containing potential, stability, found
    ranges, the six branch chart, mapped color-pair labels, mean, range,
    standard deviation, and relative dispersion;
 4. "How Ama reads these fields," containing two synchronized mini-boards and up
