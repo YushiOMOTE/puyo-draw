@@ -9,49 +9,61 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
 </p>
 
 <p align="center">
-  <img src="docs/media/ama-suggestion.png" alt="Drawing mode with Ama chain-extension suggestions marked on the board" width="390" />
-</p>
-
-<p align="center"><sub>Drawing mode: dotted puyos show one possible way to extend the current chain structure.</sub></p>
-
-## What makes it useful
-
-### Ama suggestions for the next move
-
-- Ask for a chain-extension suggestion while designing a settled board. Candidate additions appear directly on the field as dotted puyos.
-- In Tokopuyo mode, Pressureless Ama searches legal Current placements for long-chain construction and ranks several alternatives across six sampled futures.
-- Review the last move side by side with Ama's analysis, including move rank, future-potential evidence, and the move's immediate board evaluation.
-
-Ama's output is a bounded search and heuristic signal for exploring ideas—not a guarantee of the globally optimal move.
-
-### Draw, simulate, and iterate
-
-- Use the mobile-friendly Drawing mode to hold a cell and flick toward a color, garbage puyo, or delete.
-- Cycle through four-color palettes or enable five-color drawing when experimenting freely.
-- Press Simulate to resolve gravity, clearing, garbage interactions, and every subsequent chain.
-- Undo and redo board changes together with the displayed score and chain count.
-
-### Start Tokopuyo from your own setup
-
-Turn a carefully designed Drawing-mode board into a step-driven Tokopuyo practice session. Choose a compatible color palette, set the opening Current / Next / Next Next pairs, and optionally configure the special fourteenth-row occupancy.
-
-<p align="center">
   <img src="docs/media/tokopuyo-mode.png" alt="Tokopuyo mode with Current, Next, and Next Next previews" width="390" />
 </p>
 
-<p align="center"><sub>Tokopuyo mode: move, rotate, and drop a pair while the next two pairs stay visible.</sub></p>
+<p align="center"><sub>Tokopuyo mode is the main experience: play a pattern with Current, Next, and Next Next always in view.</sub></p>
 
-### See every part of a chain
+## Explore the features
 
-Enable chain step mode before dropping a pair that fires. The bottom bar becomes a chain timeline: jump to the first or last round, move one round at a time, or play and pause the sequence. This makes it easy to inspect exactly where a connection forms and how gravity creates the next chain.
+<table>
+  <thead>
+    <tr>
+      <th align="left">What you can do</th>
+      <th align="center">See it in action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>Ama suggestions and review</strong><br />
+        Ask for a long-chain construction move in Tokopuyo, or a chain extension while designing a settled Drawing-mode board. Review the last move side by side with Ama's ranking, future-potential evidence, and immediate board evaluation.
+      </td>
+      <td align="center">
+        <img src="docs/media/ama-suggestion.png" alt="Drawing mode with Ama chain-extension suggestions marked on the board" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Draw, simulate, and start Tokopuyo from your setup</strong><br />
+        Switch from the default Tokopuyo mode into the Drawing submode. Hold a cell and flick toward a color, garbage puyo, or delete, then simulate gravity and every chain. When the field is ready, choose compatible opening Current / Next / Next Next pairs and start a new Tokopuyo session from it.
+      </td>
+      <td align="center">
+        <img src="docs/media/tokopuyo-mode.png" alt="Tokopuyo session ready to practice a custom setup" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Inspect every chain step</strong><br />
+        Enable chain step mode before a drop that fires. Jump to the first or last round, move one round at a time, or play and pause the sequence to see exactly how clearing and gravity create the next chain.
+      </td>
+      <td align="center">
+        <img src="docs/media/tokopuyo-step-mode.png" alt="Tokopuyo step mode enabled" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Practice, attack, and add garbage</strong><br />
+        Move, rotate, and drop pairs with one-handed controls. Use emergency-attack Suggestion for the strongest safe route in the visible queue, or enable Tokopuyo garbage mode to place a movable garbage puyo without consuming the normal Current.
+      </td>
+      <td align="center">
+        <img src="docs/media/tokopuyo-demo.gif" alt="Tokopuyo pair movement, rotation, and drop demo" width="300" />
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-<p align="center">
-  <img src="docs/media/tokopuyo-step-mode.png" alt="Tokopuyo step mode enabled" width="390" />
-</p>
-
-### Add pressure with garbage puyos
-
-Garbage puyos can be placed from the Drawing-mode flick menu. Tokopuyo also has a separate garbage mode that replaces the active Current with one movable garbage puyo without consuming the normal queue. Garbage does not form groups by itself, but clears when it touches a clearing color group.
+Ama's output is a bounded search and heuristic signal for exploring ideas—not a guarantee of the globally optimal move.
 
 ## A quick tour
 
@@ -60,12 +72,6 @@ Garbage puyos can be placed from the Drawing-mode flick menu. Tokopuyo also has 
 3. Switch to Drawing mode, hold a cell, and flick toward a color to sketch a board.
 4. Tap Suggestion to see possible extensions, then Simulate to watch the chain resolve.
 5. Start Tokopuyo from This Board to practice the designed field, or switch back to return to the retained Tokopuyo session. Then try long-chain Suggestion, emergency-attack Suggestion, Review Last Move, and chain step mode.
-
-<p align="center">
-  <img src="docs/media/tokopuyo-demo.gif" alt="Tokopuyo pair movement, rotation, and drop demo" width="390" />
-</p>
-
-<p align="center"><sub>Tokopuyo in action: move the pair, rotate it, and drop it into the field.</sub></p>
 
 ## Live Demo
 
