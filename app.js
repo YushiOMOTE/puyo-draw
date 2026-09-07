@@ -55,6 +55,7 @@ import {
 import { patternSequence, searchTsumo } from "./tokopuyo/tsumo-search.js";
 
 let viewportSyncFrame = 0;
+let reviewHelpLayoutFrame = 0;
 
 function syncAppViewport() {
   const viewportHeight = window.visualViewport?.height || window.innerHeight;
@@ -1334,6 +1335,74 @@ function createReviewHelp(label, text, action = null) {
   if (action) body.append(action);
   details.append(summary, body);
   return details;
+}
+
+function getReviewHelpBody(details) {
+  return [...details.children].find((child) =>
+    child.matches("p, .review-help-body"),
+  ) || null;
+}
+
+function resetReviewHelpPosition(details) {
+  const body = getReviewHelpBody(details);
+  if (!body) return;
+  ["left", "right", "top", "width", "max-height", "overflow-y", "transform"]
+    .forEach((property) => body.style.removeProperty(property));
+}
+
+function clampReviewHelp(details) {
+  if (!details.open) return;
+  const body = getReviewHelpBody(details);
+  const card = reviewOverlay.querySelector(".review-card");
+  if (!body || !card) return;
+
+  resetReviewHelpPosition(details);
+  const detailsRect = details.getBoundingClientRect();
+  const naturalRect = body.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const inset = 8;
+  const cardLeft = cardRect.left + card.clientLeft + inset;
+  const cardRight = cardRect.left + card.clientLeft + card.clientWidth - inset;
+  const cardTop = cardRect.top + card.clientTop + inset;
+  const cardBottom = cardRect.top + card.clientTop + card.clientHeight - inset;
+  const availableWidth = Math.max(0, cardRight - cardLeft);
+  const width = Math.min(naturalRect.width, availableWidth);
+
+  body.style.right = "auto";
+  body.style.transform = "none";
+  body.style.width = `${width}px`;
+  body.style.left = `${naturalRect.left - detailsRect.left}px`;
+  body.style.top = `${naturalRect.top - detailsRect.top}px`;
+
+  let bodyRect = body.getBoundingClientRect();
+  const availableHeight = Math.max(0, cardBottom - cardTop);
+  if (bodyRect.height > availableHeight) {
+    body.style.maxHeight = `${availableHeight}px`;
+    body.style.overflowY = "auto";
+    bodyRect = body.getBoundingClientRect();
+  }
+
+  const preferredTop = naturalRect.top;
+  const aboveTop = detailsRect.top - bodyRect.height - 5;
+  const top = preferredTop + bodyRect.height <= cardBottom
+    ? Math.max(preferredTop, cardTop)
+    : aboveTop >= cardTop
+      ? aboveTop
+      : Math.min(Math.max(preferredTop, cardTop), cardBottom - bodyRect.height);
+  const left = Math.min(
+    Math.max(naturalRect.left, cardLeft),
+    cardRight - bodyRect.width,
+  );
+  body.style.left = `${left - detailsRect.left}px`;
+  body.style.top = `${top - detailsRect.top}px`;
+}
+
+function scheduleReviewHelpLayout() {
+  if (reviewHelpLayoutFrame) cancelAnimationFrame(reviewHelpLayoutFrame);
+  reviewHelpLayoutFrame = requestAnimationFrame(() => {
+    reviewHelpLayoutFrame = 0;
+    reviewOverlay.querySelectorAll(".review-help[open]").forEach(clampReviewHelp);
+  });
 }
 
 function appendComparisonMetric({
@@ -3070,8 +3139,15 @@ reviewOverlay.addEventListener("click", (event) => {
   reviewOverlay.querySelectorAll(".review-help[open]").forEach((details) => {
     if (details !== selectedHelp) details.open = false;
   });
+  scheduleReviewHelpLayout();
   if (event.target === reviewOverlay) closeLastMoveReview();
 });
+reviewOverlay.addEventListener("toggle", (event) => {
+  if (event.target.matches?.(".review-help")) scheduleReviewHelpLayout();
+}, true);
+reviewOverlay.addEventListener("scroll", scheduleReviewHelpLayout, true);
+window.addEventListener("resize", scheduleReviewHelpLayout);
+window.visualViewport?.addEventListener("resize", scheduleReviewHelpLayout);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (!reviewOverlay.hidden) closeLastMoveReview();

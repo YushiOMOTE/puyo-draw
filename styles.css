@@ -1907,6 +1907,11 @@ body[data-mode="drawing"] .help-btn {
 
 .review-help-body p { margin: 0; }
 
+.review-help > p,
+.review-help-body {
+  overflow-wrap: anywhere;
+}
+
 .review-contribution-label .review-help > p,
 .review-contribution-label .review-help-body,
 .review-signal-row .review-help > p,
