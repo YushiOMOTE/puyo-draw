@@ -91,10 +91,6 @@ Ama's output is a bounded search and heuristic signal for exploring ideas—not 
 4. Tap Suggestion to see possible extensions, then Simulate to watch the chain resolve.
 5. Start Tokopuyo from This Board to practice the designed field, or switch back to return to the retained Tokopuyo session. Then try long-chain Suggestion, emergency-attack Suggestion, Review Last Move, and chain step mode.
 
-## Live Demo
-
-Open the deployed app on GitHub Pages: [Puyo Chain Simulator](https://yushiomote.github.io/puyo-draw/)
-
 ## Local Development
 
 Start the included cache-disabled development server:
