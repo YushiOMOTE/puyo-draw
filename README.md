@@ -9,7 +9,7 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
 </p>
 
 <p align="center">
-  <img src="docs/media/cover.png" alt="Standard Tokopuyo mode screen with a board, Current pair, and upcoming pairs" width="390" />
+  <img src="docs/media/tokopuyo-overview.png" alt="Standard Tokopuyo mode screen with a board, Current pair, and upcoming pairs" width="390" />
 </p>
 
 <p align="center"><sub>Tokopuyo mode is the main experience: play a pattern with Current, Next, and Next Next always in view.</sub></p>
@@ -30,7 +30,7 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
         Find a pattern by its number or by entering the first puyo colors, compare matching sequences, and start Tokopuyo with the selected Tsumo.
       </td>
       <td align="center">
-        <img src="docs/media/search.png" alt="Search Tsumo dialog with matching sequences" width="300" />
+        <img src="docs/media/tsumo-search.png" alt="Search Tsumo dialog with matching sequences" width="300" />
       </td>
     </tr>
     <tr>
@@ -39,7 +39,7 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
         Compare your placement with Ama's preferred choice, then inspect the ranking and score to understand why another route was stronger.
       </td>
       <td align="center">
-        <img src="docs/media/ama-report.png" alt="Ama last move review comparing the player's move and Ama's choice" width="300" />
+        <img src="docs/media/ama-last-move-review.png" alt="Ama last move review comparing the player's move and Ama's choice" width="300" />
       </td>
     </tr>
     <tr>
@@ -48,7 +48,7 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
         Ask Ama to search the current field for promising placements. Numbered candidates make the potential of each route easy to compare at a glance.
       </td>
       <td align="center">
-        <img src="docs/media/suggestion.png" alt="Ama suggestions marked with numbered candidate placements on the board" width="300" />
+        <img src="docs/media/ama-chain-suggestions.png" alt="Ama suggestions marked with numbered candidate placements on the board" width="300" />
       </td>
     </tr>
     <tr>
@@ -57,7 +57,25 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
         Move from Tokopuyo into the Drawing submode to place colored or garbage puyos, erase cells, and simulate the settled field before practicing it as a sequence.
       </td>
       <td align="center">
-        <img src="docs/media/drawmode.png" alt="Drawing mode with a custom board and drawing controls" width="300" />
+        <img src="docs/media/drawing-mode.png" alt="Drawing mode with a custom board and drawing controls" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Inspect chains step by step</strong><br />
+        Turn on chain step mode to pause the result and move through each round with first, previous, next, last, play, and stop controls.
+      </td>
+      <td align="center">
+        <img src="docs/media/tokopuyo-chain-step-mode.png" alt="Tokopuyo chain step mode showing a two-chain result and timeline controls" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Drop garbage puyos</strong><br />
+        Enable Tokopuyo garbage mode to replace the active pair with a movable garbage puyo. Use it to practice handling pressure and see how garbage interacts with clearing groups.
+      </td>
+      <td align="center">
+        <img src="docs/media/tokopuyo-garbage-mode.png" alt="Tokopuyo garbage mode with a movable garbage puyo and garbage on the board" width="300" />
       </td>
     </tr>
   </tbody>
