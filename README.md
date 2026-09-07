@@ -9,7 +9,7 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
 </p>
 
 <p align="center">
-  <img src="docs/media/tokopuyo-mode.png" alt="Tokopuyo mode with Current, Next, and Next Next previews" width="390" />
+  <img src="docs/media/tokopuyo-overview.png" alt="Standard Tokopuyo mode screen with a board, Current pair, and upcoming pairs" width="390" />
 </p>
 
 <p align="center"><sub>Tokopuyo mode is the main experience: play a pattern with Current, Next, and Next Next always in view.</sub></p>
@@ -26,38 +26,60 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
   <tbody>
     <tr>
       <td>
-        <strong>Ama suggestions and review</strong><br />
-        Ask for a long-chain construction move in Tokopuyo, or a chain extension while designing a settled Drawing-mode board. Review the last move side by side with Ama's ranking, future-potential evidence, and immediate board evaluation.
+        <strong>Get long-chain construction suggestions</strong><br />
+        Ask Ama to search the current field for promising placements. Numbered candidates make the potential of each route easy to compare at a glance.
       </td>
       <td align="center">
-        <img src="docs/media/ama-suggestion.png" alt="Drawing mode with Ama chain-extension suggestions marked on the board" width="300" />
+        <img src="docs/media/ama-chain-suggestions.png" alt="Ama suggestions marked with numbered candidate placements on the board" width="300" />
       </td>
     </tr>
     <tr>
       <td>
-        <strong>Draw, simulate, and start Tokopuyo from your setup</strong><br />
-        Switch from the default Tokopuyo mode into the Drawing submode. Hold a cell and flick toward a color, garbage puyo, or delete, then simulate gravity and every chain. When the field is ready, choose compatible opening Current / Next / Next Next pairs and start a new Tokopuyo session from it.
+        <strong>Inspect chains step by step</strong><br />
+        Turn on chain step mode to pause the result and move through each round with first, previous, next, last, play, and stop controls.
       </td>
       <td align="center">
-        <img src="docs/media/tokopuyo-mode.png" alt="Tokopuyo session ready to practice a custom setup" width="300" />
+        <img src="docs/media/tokopuyo-chain-step-mode.png" alt="Tokopuyo chain step mode showing a two-chain result and timeline controls" width="300" />
       </td>
     </tr>
     <tr>
       <td>
-        <strong>Inspect every chain step</strong><br />
-        Enable chain step mode before a drop that fires. Jump to the first or last round, move one round at a time, or play and pause the sequence to see exactly how clearing and gravity create the next chain.
+        <strong>Review your last move with Ama</strong><br />
+        Compare your placement with Ama's preferred choice, then inspect the ranking and score to understand why another route was stronger. Learn more from the <a href="https://github.com/citrus610/ama">official Ama AI project</a>.
       </td>
       <td align="center">
-        <img src="docs/media/tokopuyo-step-mode.png" alt="Tokopuyo step mode enabled" width="300" />
+        <img src="docs/media/ama-last-move-review.png" alt="Ama last move review comparing the player's move and Ama's choice" width="300" />
+        <br />
+        <img src="docs/media/ama-future-potential-stability.png" alt="Ama review showing future potential, stability, and evaluation details" width="300" />
       </td>
     </tr>
     <tr>
       <td>
-        <strong>Practice, attack, and add garbage</strong><br />
-        Move, rotate, and drop pairs with one-handed controls. Use emergency-attack Suggestion for the strongest safe route in the visible queue, or enable Tokopuyo garbage mode to place a movable garbage puyo without consuming the normal Current.
+        <strong>Drop garbage puyos</strong><br />
+        Enable Tokopuyo garbage mode to replace the active pair with a movable garbage puyo. Use it to practice handling pressure and see how garbage interacts with clearing groups.
       </td>
       <td align="center">
-        <img src="docs/media/tokopuyo-demo.gif" alt="Tokopuyo pair movement, rotation, and drop demo" width="300" />
+        <img src="docs/media/tokopuyo-garbage-mode.png" alt="Tokopuyo garbage mode with a movable garbage puyo and garbage on the board" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Search and start a specific Tsumo</strong><br />
+        Find a pattern by its number or by entering the first puyo colors, compare matching sequences, and start Tokopuyo with the selected Tsumo.
+      </td>
+      <td align="center">
+        <img src="docs/media/tsumo-search.png" alt="Search Tsumo dialog with matching sequences" width="300" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Build and test a board in Drawing mode</strong><br />
+        Move from Tokopuyo into the Drawing submode to place colored or garbage puyos, erase cells, and simulate the settled field. When the board is ready, choose the opening pairs and start Tokopuyo directly from your drawing.
+      </td>
+      <td align="center">
+        <img src="docs/media/drawing-mode.png" alt="Drawing mode with a custom board and drawing controls" width="300" />
+        <br />
+        <img src="docs/media/start-tokopuyo-from-board.png" alt="Start Tokopuyo from this board setup dialog" width="300" />
       </td>
     </tr>
   </tbody>
@@ -72,10 +94,6 @@ Ama's output is a bounded search and heuristic signal for exploring ideas—not 
 3. Switch to Drawing mode, hold a cell, and flick toward a color to sketch a board.
 4. Tap Suggestion to see possible extensions, then Simulate to watch the chain resolve.
 5. Start Tokopuyo from This Board to practice the designed field, or switch back to return to the retained Tokopuyo session. Then try long-chain Suggestion, emergency-attack Suggestion, Review Last Move, and chain step mode.
-
-## Live Demo
-
-Open the deployed app on GitHub Pages: [Puyo Chain Simulator](https://yushiomote.github.io/puyo-draw/)
 
 ## Local Development
 
