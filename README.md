@@ -49,6 +49,8 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
       </td>
       <td align="center">
         <img src="docs/media/ama-last-move-review.png" alt="Ama last move review comparing the player's move and Ama's choice" width="300" />
+        <br />
+        <img src="docs/media/ama-future-potential-stability.png" alt="Ama review showing future potential, stability, and evaluation details" width="300" />
       </td>
     </tr>
     <tr>
