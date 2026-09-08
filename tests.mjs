@@ -92,6 +92,7 @@ import {
   createAmaBranchQueue,
   createAmaRankingRows,
   evaluateAmaMove,
+  selectAmaSuggestionCandidates,
   summarizeAmaBranchScores,
 } from "./tokopuyo/pressureless-ama.js";
 import {
@@ -179,6 +180,16 @@ const probeMarks = createTokopuyoSuggestionMarks(
 assert.equal(probeMarks.get(`${ROWS - 1},3`).kind, "current");
 assert.equal(probeMarks.get(`${ROWS - 1},3`).chainNumber, 1);
 assert.ok([...probeMarks.values()].some(({ chainNumber }) => chainNumber >= 2));
+const probeTakesPriorityMarks = createTokopuyoSuggestionMarks(
+  { moves: [] },
+  probeChainBoard,
+  {
+    board: probeChainBoard,
+    selectedProbe: { addedCells: [] },
+    firingCells: [{ row: ROWS - 1, col: 3, color: "red" }],
+  },
+);
+assert.equal(probeTakesPriorityMarks.has(`${ROWS - 1},3`), false);
 const simultaneousMarks = createTokopuyoSuggestionMarks(
   { moves: [] },
   simultaneous,
@@ -1007,6 +1018,7 @@ assert.equal(TOKOPUYO_SUGGESTION_CONFIG.width, 250);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.branchCount, 6);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.workerCount, 3);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.timeBudgetMs, 8_000);
+assert.equal(TOKOPUYO_SUGGESTION_CONFIG.minimumScoreRatio, 0.9);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.visibleSearchRatio, 0.72);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.maximumConstructionHeight, 11);
 assert.equal(TOKOPUYO_SUGGESTION_CONFIG.allowEmergencyClearFallback, true);
@@ -1024,7 +1036,7 @@ const amaAggregate = aggregateAmaBranches(
     branch,
     candidates: [
       { col: 0, orientation: ORIENTATION.UP, score: (branch + 1) * 100 },
-      { col: 1, orientation: ORIENTATION.RIGHT, score: 25 },
+      { col: 1, orientation: ORIENTATION.RIGHT, score: 325 },
     ],
   })),
 );
@@ -1035,6 +1047,20 @@ assert.equal(amaAggregate[0].score, 2_100);
 assert.equal(amaAggregate[0].averageScore, 350);
 assert.deepEqual(amaAggregate[0].branchScores, [100, 200, 300, 400, 500, 600]);
 assert.equal(amaAggregate[0].moves.length, 1);
+assert.deepEqual(
+  selectAmaSuggestionCandidates(
+    [{ score: 1_000 }, { score: 900 }, { score: 899 }],
+    { resultLimit: 4, minimumScoreRatio: 0.9 },
+  ),
+  [{ score: 1_000 }],
+);
+assert.deepEqual(
+  selectAmaSuggestionCandidates(
+    [{ score: 1_000 }, { score: 950 }, { score: 900 }],
+    { resultLimit: 2, minimumScoreRatio: 0.9 },
+  ),
+  [{ score: 1_000 }, { score: 950 }],
+);
 const amaAllCandidates = analyzeAmaBranches(
   {
     board: emptyBoard(),

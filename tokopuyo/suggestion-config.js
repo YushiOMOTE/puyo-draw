@@ -6,6 +6,7 @@ export const TOKOPUYO_SUGGESTION_CONFIG = Object.freeze({
   workerCount: 3,
   lookaheadHands: 3,
   resultLimit: 4,
+  minimumScoreRatio: 0.9,
   beamWidth: 240,
   timeBudgetMs: 8_000,
   visibleSearchRatio: 0.72,

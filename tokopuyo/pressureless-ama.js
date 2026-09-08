@@ -102,9 +102,41 @@ export function analyzeAmaBranches(request, branches) {
   return candidates;
 }
 
+export function selectAmaSuggestionCandidates(
+  candidates,
+  { resultLimit = 4, minimumScoreRatio = 0.9 } = {},
+) {
+  if (!Array.isArray(candidates)) {
+    throw new TypeError("Ama suggestion candidates must be an array");
+  }
+  if (!Number.isInteger(resultLimit) || resultLimit < 1) {
+    throw new RangeError("Ama suggestion result limit must be a positive integer");
+  }
+  if (
+    !Number.isFinite(minimumScoreRatio) ||
+    minimumScoreRatio < 0 ||
+    minimumScoreRatio > 1
+  ) {
+    throw new RangeError("Ama minimum score ratio must be between 0 and 1");
+  }
+  if (!candidates.length) return [];
+
+  const minimumScore = candidates[0].score * minimumScoreRatio;
+  return candidates
+    .filter((candidate, index) =>
+      index === 0 || candidate.score > minimumScore
+    )
+    .slice(0, resultLimit);
+}
+
 export function aggregateAmaBranches(request, branches) {
-  return analyzeAmaBranches(request, branches)
-    .slice(0, request.resultLimit ?? 4);
+  return selectAmaSuggestionCandidates(
+    analyzeAmaBranches(request, branches),
+    {
+      resultLimit: request.resultLimit ?? 4,
+      minimumScoreRatio: request.minimumScoreRatio ?? 0.9,
+    },
+  );
 }
 
 export function summarizeAmaBranchScores(scores) {

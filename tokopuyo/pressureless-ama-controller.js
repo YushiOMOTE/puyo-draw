@@ -7,6 +7,7 @@ import {
   AMA_BRANCH_COUNT,
   createAmaBranchQueue,
   analyzeAmaBranches,
+  selectAmaSuggestionCandidates,
 } from "./pressureless-ama.js";
 
 const STARTUP_TIMEOUT_MS = 10_000;
@@ -201,7 +202,10 @@ export class PressurelessAmaController {
         aggregateRequest,
         results,
       ).map((candidate) => ({ ...candidate, searchElapsedMs: elapsedMs }));
-      const candidates = allCandidates.slice(0, request.resultLimit ?? 4);
+      const candidates = selectAmaSuggestionCandidates(allCandidates, {
+        resultLimit: request.resultLimit ?? 4,
+        minimumScoreRatio: request.minimumScoreRatio ?? 0.9,
+      });
       return {
         solver: "pressureless-ama",
         candidates,

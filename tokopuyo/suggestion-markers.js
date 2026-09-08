@@ -7,8 +7,8 @@ import {
 } from "../engine.js";
 
 function addAmaChainMarks(marks, diagnostic) {
-  const addedCells = diagnostic?.selectedProbe?.addedCells?.length
-    ? diagnostic.selectedProbe.addedCells
+  const addedCells = diagnostic?.selectedProbe
+    ? diagnostic.selectedProbe.addedCells || []
     : diagnostic?.firingCells || [];
   if (!addedCells.length || !diagnostic.board) return;
 
