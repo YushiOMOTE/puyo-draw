@@ -218,6 +218,12 @@ The following requirements describe Drawing-mode suggestions. Tokopuyo uses the 
 - A completed position analysis is cached by the pre-move field, special-row mask, seed, and hand index. A review immediately following a matching long-chain Suggestion reuses that analysis; otherwise it starts one normal Pressureless Ama search. Stale review results are ignored if the review target changes during the search.
 - Closing the dialog, clicking its backdrop, or pressing Escape returns to the unchanged current field. The dialog scrolls internally when necessary and remains usable at narrow mobile widths.
 
+## Analytics
+
+- The site can optionally load Cloudflare Web Analytics for aggregate traffic and performance metrics. Analytics is disabled when the `cloudflare-web-analytics-token` meta tag in `index.html` is empty.
+- When enabled, the site loads Cloudflare's external beacon with the site-specific token. The app does not send board contents, random seeds, or custom interaction events.
+- Cloudflare Web Analytics configuration is deployment-only and does not alter the application's interaction or simulation rules.
+
 ## Technical Constraints
 
 - Use plain HTML, CSS, and JavaScript modules.

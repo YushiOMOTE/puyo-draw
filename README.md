@@ -119,6 +119,16 @@ npm test
 
 Pushing to the `main` branch triggers `.github/workflows/deploy.yml`. The workflow adds the deployment commit SHA to every local JavaScript and CSS URL before upload, preventing modules from different releases from being mixed by browser caches. In the repository settings, set Pages → Build and deployment → Source to **GitHub Actions**.
 
+### Optional traffic analytics
+
+The site includes an opt-in Cloudflare Web Analytics integration for basic page views and performance metrics. To enable it:
+
+1. In Cloudflare Web Analytics, add the deployed hostname and copy the JavaScript site token.
+2. Set the `content` value of `meta[name="cloudflare-web-analytics-token"]` in `index.html` to that token.
+3. Deploy the site and wait a few minutes for data to appear in the Cloudflare dashboard.
+
+Leave the value empty to keep analytics disabled. See the [Cloudflare setup guide](https://developers.cloudflare.com/web-analytics/get-started/) for the dashboard steps.
+
 ## Documentation
 
 - [Product concept](docs/CONCEPT.md)
