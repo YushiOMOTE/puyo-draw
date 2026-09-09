@@ -2639,6 +2639,18 @@ body[data-mode="drawing"] .help-btn {
 
 .help-gesture-note { margin-top: 14px !important; }
 
+.help-repository-link {
+  margin-top: 24px !important;
+  padding-top: 16px;
+  border-top: 1px solid #e2e7ef;
+  text-align: center;
+}
+
+.help-repository-link a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .help-controls-table {
   --sidebar-size: clamp(44px, 12vw, 58px);
 

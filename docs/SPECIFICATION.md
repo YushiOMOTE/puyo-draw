@@ -70,6 +70,8 @@ The right-side rail is ordered from top to bottom:
 
 The Help (`i`) button is pinned to the bottom of the left rail. In Tokopuyo mode, a divider appears between Search Tsumo and the Drawing/Tokopuyo mode button. In Drawing mode, a divider appears between Reset and the Drawing/Tokopuyo mode button; the Help button remains visually separated.
 
+The Help dialog ends with a link to the project's GitHub repository so users can find the README and license information.
+
 The Drawing/Tokopuyo mode button displays a small shortcut-style arrow badge at the lower-right of its mode icon. In Tokopuyo mode, the return-to-Drawing icon uses a brush silhouette.
 
 In Drawing mode, the right-side rail's action controls, below the chain-count badge, are ordered from top to bottom as Undo, Redo, Simulate, Suggestion, Palette, and Garbage mode. A divider appears between Suggestion and Palette.

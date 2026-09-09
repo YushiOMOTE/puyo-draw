@@ -87,6 +87,8 @@ const translations = {
       tokopuyoSidebarTitle: "Sidebar controls",
       tokopuyoTsumoTitle: "Tsumo controls",
       tokopuyoStepsTitle: "Chain step controls",
+      repositoryLinkIntro: "Read the README and licenses on",
+      repositoryLinkLabel: "GitHub",
       shortcuts: {
         undo: " (Shortcut: U)",
         redo: " (Shortcut: R)",
@@ -282,6 +284,8 @@ const translations = {
       tokopuyoSidebarTitle: "サイドバーのボタン",
       tokopuyoTsumoTitle: "ツモ操作のボタン",
       tokopuyoStepsTitle: "連鎖ステップのボタン",
+      repositoryLinkIntro: "READMEとライセンスは",
+      repositoryLinkLabel: "GitHub",
       shortcuts: {
         undo: "（ショートカット: U）",
         redo: "（ショートカット: R）",

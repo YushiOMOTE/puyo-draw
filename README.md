@@ -1,5 +1,7 @@
 # Puyo Chain Simulator
 
+> Powered by [Ama](https://github.com/citrus610/ama)
+
 > Draw a board, test the chain, and build longer chains with Ama.
 
 A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with chain ideas on a phone or desktop. The app opens in Tokopuyo mode for step-driven practice; Drawing mode is the board-building submode for freely placing puyos, simulating chains, and exploring ideas before returning to the retained Tokopuyo session.
@@ -86,6 +88,10 @@ A touch-friendly, dependency-free Puyo Puyo board lab for experimenting with cha
 </table>
 
 Ama's output is a bounded search and heuristic signal for exploring ideas—not a guarantee of the globally optimal move.
+
+## Ama attribution
+
+The Tokopuyo suggestions and last-move review use the [Ama](https://github.com/citrus610/ama) AI project by citrus610. Ama is distributed under the MIT License (Copyright (c) 2023 citrus610); the pinned upstream source used by this project is included in [`third_party/ama`](third_party/ama), with its license text in [`third_party/ama/LICENSE`](third_party/ama/LICENSE).
 
 ## A quick tour
 
