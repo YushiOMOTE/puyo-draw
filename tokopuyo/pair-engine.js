@@ -5,6 +5,15 @@ export const SPAWN_COL = 2;
 export const VIRTUAL_TOP_ROW = -1;
 export const EMPTY_ROW_14 = 0;
 
+export const PLACEMENT_REJECTION = Object.freeze({
+  INVALID: "invalid",
+  SPAWN_BLOCKED: "spawn-blocked",
+  TARGET_TOO_HIGH: "target-too-high",
+  ROW_14_OCCUPIED: "row-14-occupied",
+  PATH_BLOCKED: "path-blocked",
+  WALL_KICK_UNAVAILABLE: "wall-kick-unavailable",
+});
+
 export const ORIENTATION = Object.freeze({
   UP: 0,
   RIGHT: 1,
@@ -81,28 +90,38 @@ export function columnHeights(board) {
   });
 }
 
-export function isPlacementReachable(
+export function placementRejectionReason(
   board,
   col,
   orientation,
   row14 = EMPTY_ROW_14,
 ) {
   assertRow14(row14);
-  if (!Number.isInteger(col) || col < 0 || col >= COLS) return false;
-  if (!Object.values(ORIENTATION).includes(orientation)) return false;
+  if (!Number.isInteger(col) || col < 0 || col >= COLS) {
+    return PLACEMENT_REJECTION.INVALID;
+  }
+  if (!Object.values(ORIENTATION).includes(orientation)) {
+    return PLACEMENT_REJECTION.INVALID;
+  }
 
   const heights = columnHeights(board);
-  if (heights[SPAWN_COL] > 11) return false;
+  if (heights[SPAWN_COL] > 11) {
+    return PLACEMENT_REJECTION.SPAWN_BLOCKED;
+  }
 
   if (heights[col] + (orientation === ORIENTATION.DOWN ? 1 : 0) > 12) {
-    return false;
+    return PLACEMENT_REJECTION.TARGET_TOO_HIGH;
   }
 
   const childCol = col + OFFSETS[orientation][1];
-  if (childCol < 0 || childCol >= COLS) return false;
+  if (childCol < 0 || childCol >= COLS) {
+    return PLACEMENT_REJECTION.INVALID;
+  }
   const childHeight =
     heights[childCol] + (orientation === ORIENTATION.UP ? 1 : 0);
-  if (childHeight === 13 && hasRow14Puyo(row14, childCol)) return false;
+  if (childHeight === 13 && hasRow14Puyo(row14, childCol)) {
+    return PLACEMENT_REJECTION.ROW_14_OCCUPIED;
+  }
 
   const crossingColumns = [
     [1, 0],
@@ -130,20 +149,31 @@ export function isPlacementReachable(
 
   let floorKickOrigin = null;
   for (const crossingCol of crossingColumns[crossingTarget]) {
-    if (heights[crossingCol] > 12) return false;
+    if (heights[crossingCol] > 12) {
+      return PLACEMENT_REJECTION.PATH_BLOCKED;
+    }
     if (heights[crossingCol] === 12 && floorKickOrigin === null) {
       floorKickOrigin = crossingCol;
     }
   }
 
-  if (floorKickOrigin === null) return true;
-  if (heights[1] > 11 && heights[3] > 11) return true;
+  if (floorKickOrigin === null) return null;
+  if (heights[1] > 11 && heights[3] > 11) return null;
 
   for (const kickCol of floorKickColumns[floorKickOrigin]) {
     if (heights[kickCol] > 11) break;
-    if (heights[kickCol] === 11) return true;
+    if (heights[kickCol] === 11) return null;
   }
-  return false;
+  return PLACEMENT_REJECTION.WALL_KICK_UNAVAILABLE;
+}
+
+export function isPlacementReachable(
+  board,
+  col,
+  orientation,
+  row14 = EMPTY_ROW_14,
+) {
+  return placementRejectionReason(board, col, orientation, row14) === null;
 }
 
 export function pairAtPlacement(

@@ -11,7 +11,11 @@ import {
 } from "./engine.js";
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
-import { dropTsumo, pairCells } from "./tokopuyo/pair-engine.js";
+import {
+  dropTsumo,
+  pairCells,
+  placementRejectionReason,
+} from "./tokopuyo/pair-engine.js";
 import {
   createTokopuyoSuggestionMarks,
 } from "./tokopuyo/suggestion-markers.js";
@@ -2614,7 +2618,18 @@ function stopTokopuyoSteps() {
 async function dropTokopuyoPair() {
   if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
   const committed = commitActivePair(tokopuyoSession);
-  if (!committed) return;
+  if (!committed) {
+    const reason = tokopuyoSession.garbageMode
+      ? null
+      : placementRejectionReason(
+        tokopuyoSession.board,
+        tokopuyoSession.activePair.axis.col,
+        tokopuyoSession.activePair.orientation,
+        tokopuyoSession.row14,
+      );
+    showToast(t("message.tokopuyoDropRejected", reason), 2400);
+    return;
+  }
   clearTokopuyoSuggestions();
 
   if (tokopuyoStepMode && committed.result.chains) {

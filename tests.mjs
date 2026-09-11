@@ -47,6 +47,7 @@ import {
 } from "./tokopuyo/gesture.js";
 import {
   ORIENTATION,
+  PLACEMENT_REJECTION,
   SPAWN_COL,
   SPAWN_ROW,
   createActivePair,
@@ -56,6 +57,7 @@ import {
   isPlacementReachable,
   movePair,
   pairCells,
+  placementRejectionReason,
   rotatePair,
 } from "./tokopuyo/pair-engine.js";
 import {
@@ -719,12 +721,36 @@ assert.equal(
   false,
 );
 assert.equal(
+  placementRejectionReason(blockedPathBoard, 0, ORIENTATION.UP),
+  PLACEMENT_REJECTION.WALL_KICK_UNAVAILABLE,
+);
+assert.equal(
   hardDrop(blockedPathBoard, {
     ...createActivePair({ axis: "red", child: "blue" }),
     axis: { row: 0, col: 0 },
   }),
   null,
 );
+
+const tallRightWallBoard = boardWithHeights([9, 6, 6, 8, 12, 9]);
+let tallRightWallPair = createActivePair({ axis: "blue", child: "green" });
+for (let step = 0; step < 3; step++) {
+  tallRightWallPair = movePair(
+    tallRightWallBoard,
+    tallRightWallPair,
+    1,
+  );
+}
+assert.equal(tallRightWallPair.axis.col, 5);
+assert.equal(
+  placementRejectionReason(
+    tallRightWallBoard,
+    tallRightWallPair.axis.col,
+    tallRightWallPair.orientation,
+  ),
+  PLACEMENT_REJECTION.WALL_KICK_UNAVAILABLE,
+);
+assert.equal(hardDrop(tallRightWallBoard, tallRightWallPair), null);
 
 const row14LandingBoard = boardWithHeights([0, 0, 11, 12, 0, 0]);
 const row14Drop = dropTsumo(
@@ -752,6 +778,15 @@ assert.equal(
     1 << 3,
   ),
   null,
+);
+assert.equal(
+  placementRejectionReason(
+    row14LandingBoard,
+    3,
+    ORIENTATION.UP,
+    1 << 3,
+  ),
+  PLACEMENT_REJECTION.ROW_14_OCCUPIED,
 );
 
 function placementKey(col, orientation) {
@@ -817,6 +852,10 @@ assert.equal(
     ORIENTATION.UP,
   ),
   null,
+);
+assert.equal(
+  placementRejectionReason(solverTopOutBoard, 0, ORIENTATION.UP),
+  PLACEMENT_REJECTION.TARGET_TOO_HIGH,
 );
 
 const tokopuyoSession = createSession(0);
