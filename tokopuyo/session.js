@@ -259,6 +259,27 @@ export function previewHands(session) {
   ];
 }
 
+/** Return only upcoming pairs that are backed by recorded Redo history. */
+export function previewRecordedHands(session) {
+  const furthestHandIndex = session.future.reduce(
+    (maximum, snapshot) => Math.max(maximum, snapshot.handIndex),
+    session.handIndex,
+  );
+  return [1, 2].map((offset) =>
+    furthestHandIndex >= session.handIndex + offset
+      ? getTsumo(session.pattern, session.handIndex + offset)
+      : null
+  );
+}
+
+/** Return the recorded placement immediately after the current history cursor. */
+export function previewNextTurn(session) {
+  const snapshot = session.future.at(-1);
+  return snapshot?.lastTurn?.handIndex === session.handIndex
+    ? cloneLastTurn(snapshot.lastTurn)
+    : null;
+}
+
 export function actOnPair(session, action) {
   if (session.busy || session.gameOver) return false;
   const before = session.activePair;

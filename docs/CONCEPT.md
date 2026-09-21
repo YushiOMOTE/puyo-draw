@@ -8,6 +8,7 @@ Puyo Chain Simulator is a lightweight web app for practicing Tokopuyo, designing
 
 - Tokopuyo mode is the default entry point and the main step-driven practice experience. It presents the active pair, the next two pairs, and the controls for playing a pattern.
 - Drawing mode is a submode for freely editing a board, simulating its chain reaction, and asking for chain-extension suggestions.
+- Preview mode is a read-only history browser for reviewing the retained Tokopuyo session and resuming play from any recorded point.
 - Switching from Tokopuyo to Drawing imports the current settled Tokopuyo field for inspection. Switching back returns to the retained Tokopuyo session; Drawing edits do not replace that session unless the user explicitly starts Tokopuyo from the Drawing board.
 
 ## Core Experience

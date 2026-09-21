@@ -4,6 +4,7 @@
 
 - The application starts in Tokopuyo mode with a new randomly selected standard pattern. Tokopuyo mode is the default entry point and the main step-driven practice experience using deterministic modern Sega-style four-color Tsu patterns.
 - Drawing mode is a secondary submode for free-form board editing, manual chain simulation, and Drawing-mode suggestions. It is opened from Tokopuyo with the mode switch.
+- Preview mode is opened from Tokopuyo with the Preview switch below the Drawing switch. It browses the retained Tokopuyo history and returns to Tokopuyo at the selected history position.
 - The left sidebar is present in both modes. In Drawing mode it is ordered from top to bottom as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. In Tokopuyo mode it is ordered from top to bottom as Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, the Tokopuyo garbage mode toggle, and Help. The custom-start action is unavailable in Tokopuyo mode. Help is pinned to the bottom.
 - Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode returns to the retained Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
@@ -54,8 +55,9 @@ The left-side rail is ordered from top to bottom in both modes:
 1. Reset (trash).
 2. Search Tsumo (Tokopuyo mode only).
 3. Drawing/Tokopuyo mode.
-4. Start Tokopuyo from This Board (Drawing mode only).
-5. Help (`i`).
+4. Preview/Tokopuyo mode (Tokopuyo and Preview modes only).
+5. Start Tokopuyo from This Board (Drawing mode only).
+6. Help (`i`).
 
 The right-side rail is ordered from top to bottom:
 
@@ -82,6 +84,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Drawing mode: Undo `U`, Redo `R`, Simulate `Space`, Suggestion `S`, select one of the six palette states directly with `1`–`6` (the five four-color palettes followed by the five-color palette), toggle Garbage mode `O`, and Reset `Delete`.
 - Tokopuyo mode: Undo `U`, Redo `R`, long-chain Suggestion `S`, emergency-attack Suggestion `A`, Review Last Move `I`, toggle step mode `P`, Reset `Delete`, move right `Right Arrow`, move left `Left Arrow`, drop `Down Arrow`, rotate counterclockwise `Z`, and rotate clockwise `X`.
 - During a Tokopuyo step resolution: previous round `Left Arrow`, next round `Right Arrow`, and Play/Stop `Space` (toggles based on playback state).
+- In Preview mode: previous move `Left Arrow`, next move `Right Arrow`, Play/Stop `Space`, long-chain Suggestion `S`, emergency-attack Suggestion `A`, and Review Last Move `I`.
 - Search Tsumo has no keyboard shortcut. Keyboard shortcuts are inactive while its dialog is open or while its search field has focus.
 - The Help control descriptions append these assignments on desktop widths only; mobile layouts hide the shortcut text.
 
@@ -107,6 +110,14 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - The Tokopuyo coaching report, including its ranking, future-potential comparison, evaluation features, and replay controls, uses the selected application language. Changing language while the report is open redraws its displayed content in that language.
 - When a Tokopuyo long-chain suggestion is displayed, Ama's selected probe is visualized: probe puyos use the original puyo-colored circular dotted marker with a lightning symbol, unless that cell already has another suggestion marker. If Ama has a selected probe, it is the sole source for this chain visualization. Only when no selected probe exists and the candidate fires immediately are the candidate's locked cells used as the firing cells. Every connected group cleared through the probe or firing move's full chain receives a numeric text overlay in the foreground; groups cleared simultaneously in the same chain round share the same chain number. Group-only cells do not receive an additional legacy circular suggestion marker. The group overlay is independent from candidate and probe markers and must not modify their shape, color, or border style. If a probe or firing cell overlaps a candidate move, the candidate marker remains unchanged beneath the group overlay; the probe lightning is omitted.
 - The Tokopuyo right-side rail contains a chain step-mode toggle. The same blue highlight used for enabled garbage mode identifies when step mode is enabled. When enabled, a committed pair that starts a chain replaces the five pair controls at the bottom with Previous Step, Jump to First, Jump to Last, Next Step, Play, and Stop controls. Jump to First shows the locked field just before the first chain fires; Jump to Last shows the state just before the final chain fires. Previous and Next move between the locked field and each completed chain round; advancing a round shows its clearing and gravity animation. Jumping pauses automatic playback. Play advances the remaining rounds automatically, and Stop pauses that automatic playback without discarding the current step. The six step controls use smaller buttons as needed to fit the bottom bar at narrow widths.
+
+## Preview Mode
+
+- Preview mode uses the Tokopuyo Undo/Redo snapshots as a read-only timeline. It opens at the current history position; returning to Tokopuyo resumes from the position selected in Preview mode, retaining later snapshots as Redo history until a new move replaces them.
+- The bottom bar uses the chain-step layout and contains Jump to Beginning, Previous Move, Next Move, Jump to End, Play, and Stop. Next Move advances exactly one recorded hand. Play advances the complete hand history in order, keeping every non-clearing result visible for one playback interval instead of skipping directly to a later chain. Recorded chains use the normal clearing and gravity animation; direct jumps and backward movement do not animate.
+- Current is rendered over the board at its next recorded placement when one exists. Next and Next Next use the standard preview UI but appear only when their respective pairs are backed by recorded future history. The pattern number is `No. -`.
+- Tokopuyo Undo, Redo, Reset, Search Tsumo, garbage mode, pair placement controls, and chain step mode are disabled. Drawing mode cannot be entered directly from Preview mode. The Preview switch becomes Return to Tokopuyo, and Help remains available.
+- Long-chain and emergency-attack suggestions remain available only when both recorded Next and Next Next exist. Review Last Move remains available whenever the current history position has a previous normal move.
 - While a Tokopuyo chain is in step mode, Undo, Redo, and Reset remain available. Undo or Redo first cancels the in-progress step view and then restores the normal atomic pre-placement or post-placement history snapshot; Reset cancels it and starts a new pattern.
 - Search Tsumo is a scrollable modal with a close button, backdrop close, and Escape close. It contains a text field, a candidate area showing at most five patterns, and a disabled-until-selection confirmation button. Each candidate shows its pattern number and the first twelve individual puyos as twelve colored circles. Selecting a candidate highlights it and enables confirmation. A digits-only query is an exact pattern-number query after leading-zero normalization; `0`, numbers above `65,536`, and unmatched numbers show no candidates. A case-insensitive query consisting only of `r`, `g`, `b`, `p`, and `y` is a prefix query against the first individual puyos of the canonical generated sequence, and candidates are ordered by ascending pattern number. Other query strings show no candidates.
 - The Help overlay shows instructions for the active mode.

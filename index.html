@@ -56,6 +56,18 @@
             <span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>
           </button>
           <button
+            id="togglePreviewMode"
+            class="secondary-btn sidebar-btn app-mode-btn tokopuyo-only"
+            aria-label="Open preview mode"
+            title="Open preview mode"
+            hidden
+          >
+            <svg class="preview-mode-icon" viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M4 16s4.5-8 12-8 12 8 12 8-4.5 8-12 8S4 16 4 16Z" />
+              <circle cx="16" cy="16" r="4" />
+            </svg>
+          </button>
+          <button
             id="toggleTokopuyoGarbage"
             class="secondary-btn sidebar-btn mode-btn tokopuyo-only"
             aria-label="Enable Tokopuyo garbage mode"
@@ -379,6 +391,26 @@
           </svg>
         </button>
       </section>
+      <section id="previewControls" class="tokopuyo-controls tokopuyo-step-controls" aria-label="History preview controls" hidden>
+        <button id="previewFirst" type="button" class="pair-control-btn" aria-label="Jump to the beginning" title="Jump to the beginning">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.7 7.3h1.8v9.4H7.7V7.3Zm8.6.3v8.8L9.5 12l6.8-4.4Z" /></svg>
+        </button>
+        <button id="previewBack" type="button" class="pair-control-btn" aria-label="Previous move" title="Previous move">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.3h1.8v9.4H3.5V7.3Zm8.3.3v8.8L5 12l6.8-4.4Zm7.2 0v8.8L12.2 12 19 7.6Z" /></svg>
+        </button>
+        <button id="previewForward" type="button" class="pair-control-btn" aria-label="Next move" title="Next move">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.7 7.3h1.8v9.4h-1.8V7.3ZM5 7.6l6.8 4.4L5 16.4V7.6Zm7.2 0L19 12l-6.8 4.4V7.6Z" /></svg>
+        </button>
+        <button id="previewLast" type="button" class="pair-control-btn" aria-label="Jump to the end" title="Jump to the end">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 7.3h1.8v9.4h-1.8V7.3ZM7.7 7.6l6.8 4.4-6.8 4.4V7.6Z" /></svg>
+        </button>
+        <button id="previewPlay" type="button" class="pair-control-btn pair-drop-btn" aria-label="Play history automatically" title="Play history automatically">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.7 4.7v14.6L18 12 6.7 4.7Z" /></svg>
+        </button>
+        <button id="previewStop" type="button" class="pair-control-btn" aria-label="Stop history playback" title="Stop history playback">
+          <svg class="step-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5h13v13h-13v-13Z" /></svg>
+        </button>
+      </section>
 
       <div id="helpOverlay" class="help-overlay" hidden>
         <section
@@ -634,8 +666,25 @@
                   </tr>
                 </thead>
                 <tbody id="reviewRankingBody"></tbody>
-              </table>
-            </div>
+            </table>
+          </div>
+          <div id="previewHelp" hidden>
+            <p data-i18n="app.previewHelpIntro">Browse the recorded Tokopuyo history, then return to resume from the selected position.</p>
+            <h3 data-i18n="app.previewControlsTitle">Preview controls</h3>
+            <table class="help-controls-table"><tbody>
+              <tr><td data-help-control="#previewFirst"></td><td data-help-text="preview.first">Jump to the beginning</td></tr>
+              <tr><td data-help-control="#previewBack"></td><td><span data-help-text="preview.previous">Previous move</span><span class="desktop-shortcut" data-help-shortcut="previous"></span></td></tr>
+              <tr><td data-help-control="#previewForward"></td><td><span data-help-text="preview.next">Next move</span><span class="desktop-shortcut" data-help-shortcut="next"></span></td></tr>
+              <tr><td data-help-control="#previewLast"></td><td data-help-text="preview.last">Jump to the end</td></tr>
+              <tr><td data-help-control="#previewPlay"></td><td><span data-help-text="preview.play">Play</span><span class="desktop-shortcut" data-help-shortcut="play"></span></td></tr>
+              <tr><td data-help-control="#previewStop"></td><td><span data-help-text="preview.stop">Stop</span><span class="desktop-shortcut" data-help-shortcut="stop"></span></td></tr>
+              <tr><td data-help-control="#suggest"></td><td><span data-help-text="preview.suggest">Long-chain suggestion</span><span class="desktop-shortcut" data-help-shortcut="suggest"></span></td></tr>
+              <tr><td data-help-control="#attackSuggest"></td><td><span data-help-text="preview.attack">Emergency Attack</span><span class="desktop-shortcut" data-help-shortcut="attack"></span></td></tr>
+              <tr><td data-help-control="#reviewLastMove"></td><td><span data-help-text="preview.review">Review Last Move</span><span class="desktop-shortcut" data-help-shortcut="review"></span></td></tr>
+              <tr><td data-help-control="#togglePreviewMode"></td><td data-help-text="preview.return">Return to Tokopuyo</td></tr>
+              <tr><td data-help-control="#help"></td><td data-help-text="preview.help">Help</td></tr>
+            </tbody></table>
+          </div>
             <section id="reviewRankingPreview" class="review-ranking-preview" hidden>
               <div class="review-section-heading">
                 <div>

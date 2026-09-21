@@ -74,6 +74,8 @@ import {
   createSession,
   createSessionFromPosition,
   previewHands,
+  previewNextTurn,
+  previewRecordedHands,
   previewPairAtColumn,
   previewPairAtPlacement,
   redoSession,
@@ -867,6 +869,7 @@ actOnPair(tokopuyoSession, "left");
 const committed = commitActivePair(tokopuyoSession);
 assert.ok(committed);
 assert.equal(tokopuyoSession.handIndex, 1);
+assert.deepEqual(previewRecordedHands(tokopuyoSession), [null, null]);
 
 const garbageModeSession = createSession(0);
 const savedCurrent = { ...garbageModeSession.activePair };
@@ -913,8 +916,38 @@ assert.equal(tokopuyoSession.history.length, 1);
 assert.equal(undoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 0);
 assert.equal(tokopuyoSession.activePair.axis.col, 2);
+assert.deepEqual(previewRecordedHands(tokopuyoSession), [
+  getTsumo(tokopuyoSession.pattern, 1),
+  null,
+]);
+assert.equal(
+  previewNextTurn(tokopuyoSession)?.placement.col,
+  committed.droppedPair.axis.col,
+);
+assert.equal(
+  previewNextTurn(tokopuyoSession)?.placement.orientation,
+  committed.droppedPair.orientation,
+);
 assert.equal(redoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 1);
+assert.equal(previewNextTurn(tokopuyoSession), null);
+
+const previewHistorySession = createSession(0);
+assert.ok(commitPairAtPlacement(previewHistorySession, 0, ORIENTATION.UP));
+assert.ok(commitPairAtPlacement(previewHistorySession, 2, ORIENTATION.UP));
+assert.deepEqual(previewRecordedHands(previewHistorySession), [null, null]);
+assert.equal(undoSession(previewHistorySession), true);
+assert.deepEqual(previewRecordedHands(previewHistorySession), [
+  getTsumo(previewHistorySession.pattern, 2),
+  null,
+]);
+assert.equal(previewNextTurn(previewHistorySession)?.placement.col, 2);
+assert.equal(undoSession(previewHistorySession), true);
+assert.deepEqual(previewRecordedHands(previewHistorySession), [
+  getTsumo(previewHistorySession.pattern, 1),
+  getTsumo(previewHistorySession.pattern, 2),
+]);
+assert.equal(previewNextTurn(previewHistorySession)?.placement.col, 0);
 
 const row14Session = createSession(0);
 row14Session.board = boardWithHeights([0, 0, 11, 12, 0, 0]);
