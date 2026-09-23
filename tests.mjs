@@ -51,6 +51,7 @@ import {
   SPAWN_COL,
   SPAWN_ROW,
   createActivePair,
+  createGarbagePair,
   dropTsumo,
   enumerateTsumoPlacements,
   hardDrop,
@@ -83,6 +84,10 @@ import {
   setGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
+import {
+  createTokopuyoShareUrl,
+  loadTokopuyoHistory,
+} from "./tokopuyo/share-history.js";
 import {
   PUYOP_ENCODE_CHAR,
   parsePuyopPayload,
@@ -2020,5 +2025,169 @@ const colorSymmetricSuggestions = rankCandidates(
   { board: emptyBoard() },
 );
 assert.equal(colorSymmetricSuggestions.length, 1);
+
+function createShareTestSession(hands) {
+  const session = createSession(0);
+  session.pattern = Object.freeze({
+    seed: null,
+    number: null,
+    colors: Object.freeze([...new Set(hands.flatMap(({ axis, child }) => [axis, child]))]),
+    hands: Object.freeze(hands.map((hand) => Object.freeze({ ...hand }))),
+  });
+  session.activePair = hands.length ? createActivePair(hands[0]) : null;
+  return session;
+}
+
+const encodeReplayTestBytes = (bytes) => Buffer.from(bytes).toString("base64url");
+const goldenShareSession = createShareTestSession([
+  { axis: "red", child: "blue" },
+]);
+assert.ok(commitPairAtPlacement(goldenShareSession, 2, ORIENTATION.RIGHT));
+const goldenShareUrl = createTokopuyoShareUrl(
+  goldenShareSession,
+  "https://puyo.example/simulator",
+);
+assert.equal(
+  goldenShareUrl,
+  "https://puyo.example/simulator#r=EAEsASQ",
+);
+const goldenShareReplay = loadTokopuyoHistory("EAEsASQ");
+assert.equal(goldenShareReplay.future.length, 1);
+assert.equal(redoSession(goldenShareReplay), true);
+assert.equal(goldenShareReplay.board[ROWS - 1][2], "red");
+assert.equal(goldenShareReplay.board[ROWS - 1][3], "blue");
+
+const emptyQueueSession = createShareTestSession([]);
+emptyQueueSession.customOpening = true;
+assert.equal(
+  createTokopuyoShareUrl(emptyQueueSession, "https://puyo.example/simulator"),
+  "https://puyo.example/simulator#r=EAAA",
+);
+const emptyQueueReplay = loadTokopuyoHistory("EAAA");
+assert.equal(emptyQueueReplay.pattern.hands.length, 0);
+assert.equal(emptyQueueReplay.activePair, null);
+assert.deepEqual(previewHands(emptyQueueReplay), [null, null]);
+assert.deepEqual(previewRecordedHands(emptyQueueReplay), [null, null]);
+assert.equal(commitPairAtPlacement(emptyQueueReplay, 2, ORIENTATION.UP), null);
+assert.equal(loadTokopuyoHistory("EAAA").pattern.hands.length, 0);
+const emptySequenceGarbageReplay = loadTokopuyoHistory(
+  encodeReplayTestBytes([0x10, 0, 1, 0x80]),
+);
+assert.equal(emptySequenceGarbageReplay.pattern.hands.length, 0);
+assert.equal(emptySequenceGarbageReplay.activePair, null);
+assert.equal(emptySequenceGarbageReplay.future.length, 1);
+assert.equal(redoSession(emptySequenceGarbageReplay), true);
+assert.equal(emptySequenceGarbageReplay.handIndex, 0);
+assert.equal(emptySequenceGarbageReplay.board[ROWS - 1][0], GARBAGE);
+assert.equal(emptySequenceGarbageReplay.lastTurn.mode, "garbage");
+assert.equal(emptySequenceGarbageReplay.lastTurn.next, null);
+
+const explicitShareSession = createShareTestSession([
+  { axis: "red", child: "blue" },
+]);
+explicitShareSession.board[ROWS - 1][0] = "purple";
+explicitShareSession.row14 = 0b101001;
+explicitShareSession.customOpening = true;
+const explicitSharePayload = new URL(
+  createTokopuyoShareUrl(explicitShareSession, "https://puyo.example/"),
+).hash.slice(3);
+assert.equal(Buffer.from(explicitSharePayload, "base64url")[0], 0x11);
+const explicitShareReplay = loadTokopuyoHistory(explicitSharePayload);
+assert.deepEqual(explicitShareReplay.board, explicitShareSession.board);
+assert.equal(explicitShareReplay.row14, 0b101001);
+
+const mixedShareSession = createShareTestSession([
+  { axis: "red", child: "blue" },
+  { axis: "yellow", child: "green" },
+]);
+assert.ok(commitPairAtPlacement(mixedShareSession, 2, ORIENTATION.RIGHT));
+assert.equal(setGarbageMode(mixedShareSession, true), true);
+mixedShareSession.activePair = createGarbagePair(1);
+assert.ok(commitActivePair(mixedShareSession));
+assert.equal(mixedShareSession.handIndex, 1);
+assert.equal(setGarbageMode(mixedShareSession, false), true);
+assert.ok(commitPairAtPlacement(mixedShareSession, 4, ORIENTATION.UP));
+assert.equal(mixedShareSession.handIndex, 2);
+const fullMixedShareUrl = createTokopuyoShareUrl(
+  mixedShareSession,
+  "https://puyo.example/",
+);
+for (let index = 0; index < 3; index++) {
+  assert.equal(undoSession(mixedShareSession), true);
+}
+assert.equal(
+  createTokopuyoShareUrl(mixedShareSession, "https://puyo.example/"),
+  fullMixedShareUrl,
+);
+const mixedSharePayload = new URL(fullMixedShareUrl).hash.slice(3);
+const mixedShareReplay = loadTokopuyoHistory(mixedSharePayload);
+assert.equal(mixedShareReplay.future.length, 3);
+assert.deepEqual(previewRecordedHands(mixedShareReplay), [
+  getTsumo(mixedShareReplay.pattern, 1),
+  null,
+]);
+assert.equal(redoSession(mixedShareReplay), true);
+assert.equal(mixedShareReplay.handIndex, 1);
+assert.equal(mixedShareReplay.lastTurn.current.axis, "red");
+assert.deepEqual(previewRecordedHands(mixedShareReplay), [
+  getTsumo(mixedShareReplay.pattern, 1),
+  null,
+]);
+assert.equal(redoSession(mixedShareReplay), true);
+assert.equal(mixedShareReplay.handIndex, 1);
+assert.equal(mixedShareReplay.lastTurn.mode, "garbage");
+assert.deepEqual(previewRecordedHands(mixedShareReplay), [null, null]);
+assert.equal(redoSession(mixedShareReplay), true);
+assert.equal(mixedShareReplay.handIndex, 2);
+assert.deepEqual(mixedShareReplay.lastTurn.current, {
+  axis: "yellow",
+  child: "green",
+});
+assert.equal(mixedShareReplay.activePair, null);
+
+const emptyInitialWithExplicitFlag = encodeReplayTestBytes([
+  0x11,
+  ...Array(30).fill(0),
+  0,
+  0,
+]);
+assert.throws(
+  () => loadTokopuyoHistory(emptyInitialWithExplicitFlag),
+  /Explicit empty initial state is non-canonical/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x12, 0, 0])),
+  /reserved flags/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([
+    0x10, 0x81, 0x00, 0x2c, 0x00,
+  ])),
+  /non-canonical/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 1, 0x2d, 0])),
+  /non-zero padding/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 0, 1, 0x84])),
+  /reserved bits/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 1, 0x2c, 1, 0x25])),
+  /non-zero padding/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 1, 0x2c, 1, 0x60])),
+  /invalid column/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 1, 0x2c, 1, 0x24, 0])),
+  /trailing bytes/,
+);
+assert.throws(
+  () => loadTokopuyoHistory(encodeReplayTestBytes([0x10, 0, 1, 0])),
+  /fewer tsumos/,
+);
 
 console.log("Chain logic tests passed");

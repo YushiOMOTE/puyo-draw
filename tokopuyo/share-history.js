@@ -12,11 +12,10 @@ import {
   createActivePair,
   createGarbagePair,
 } from "./pair-engine.js";
-import { generatePattern, getTsumo, randomSeed } from "./queue.js";
+import { getTsumo } from "./queue.js";
 import {
   commitActivePair,
   commitPairAtPlacement,
-  createSession,
   restoreSessionSnapshot,
   setGarbageMode,
   snapshotSession,
@@ -270,7 +269,13 @@ function decodePayload(payload) {
   const initialState = flags & 1
     ? readInitialState(reader)
     : { board: emptyBoard(), row14: 0 };
-  initialState.hasInitialState = Boolean(flags & 1);
+  if (
+    flags & 1 &&
+    initialState.row14 === 0 &&
+    initialState.board.every((row) => row.every((cell) => cell === null))
+  ) {
+    throw new RangeError("Explicit empty initial state is non-canonical");
+  }
 
   const sequenceCount = reader.readVarUint(MAX_SEQUENCE);
   const sequence = [];
@@ -338,8 +343,8 @@ function encodePayload(session) {
     throw new RangeError("Tokopuyo queue is too long to share");
   }
 
-  const explicitInitial = Boolean(session.customOpening) ||
-    initial.row14 !== 0 || initial.board.some((row) => row.some(Boolean));
+  const explicitInitial = initial.row14 !== 0 ||
+    initial.board.some((row) => row.some(Boolean));
   validateInitialState(initial);
 
   const writer = new BitWriter();
@@ -385,8 +390,7 @@ function encodePayload(session) {
 
 export function loadTokopuyoHistory(payload) {
   const replay = decodePayload(payload);
-  const fallback = generatePattern(randomSeed());
-  const hands = replay.sequence.length ? replay.sequence : fallback.hands;
+  const hands = replay.sequence;
   const colorsUsed = new Set([
     ...replay.initialState.board.flat().filter((cell) => COLORS.includes(cell)),
     ...hands.flatMap(({ axis, child }) => [axis, child]),
@@ -401,19 +405,27 @@ export function loadTokopuyoHistory(payload) {
     colors: Object.freeze(palette),
     hands: Object.freeze(hands.map((hand) => Object.freeze({ ...hand }))),
   });
-  const session = createSession(fallback.seed);
-  session.seed = null;
-  session.pattern = pattern;
-  session.board = replay.initialState.board.map((row) => [...row]);
-  session.row14 = replay.initialState.row14;
-  session.handIndex = 0;
-  session.activePair = createActivePair(getTsumo(pattern, 0));
-  session.customOpening = replay.initialState.hasInitialState ||
-    Boolean(replay.initialState.row14) ||
-    replay.initialState.board.some((row) => row.some(Boolean));
-  session.coachingCompatible = colorsUsed.size <= 4;
-  session.history = [];
-  session.future = [];
+  const session = {
+    seed: null,
+    pattern,
+    board: replay.initialState.board.map((row) => [...row]),
+    row14: replay.initialState.row14,
+    handIndex: 0,
+    activePair: hands.length ? createActivePair(getTsumo(pattern, 0)) : null,
+    chainCount: 0,
+    cumulativeScore: 0,
+    gameOver: false,
+    lastTurn: null,
+    garbageMode: false,
+    savedActivePair: null,
+    busy: false,
+    history: [],
+    future: [],
+    customOpening: Boolean(replay.initialState.row14) ||
+      replay.initialState.board.some((row) => row.some(Boolean)),
+    coachingCompatible: colorsUsed.size <= 4,
+    sharedHistory: true,
+  };
 
   const initialSnapshot = snapshotSession(session);
   const posts = [];
@@ -439,7 +451,7 @@ export function loadTokopuyoHistory(payload) {
   restoreSessionSnapshot(session, initialSnapshot);
   session.history = [];
   session.future = posts.reverse();
-  session.activePair = createActivePair(getTsumo(pattern, 0));
+  session.activePair = hands.length ? createActivePair(getTsumo(pattern, 0)) : null;
   return session;
 }
 

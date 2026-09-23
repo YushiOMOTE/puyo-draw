@@ -46,6 +46,8 @@ pairPlacementCount <= sequence.length
 
 The sequence is replay authority. Decoding must not regenerate stored tsumos from a seed or from the current queue generator.
 
+An empty sequence is valid. In that case, pair-placement count must be zero, and replay has no normal active pair or Next/Next Next previews. The decoder must not invent a queue to fill the empty sequence.
+
 A sequence may contain additional tsumos after the recorded history. These represent a fixed continuation that may be used after replay reaches the last stored operation.
 
 The URL format does not define what the application should generate after the stored sequence itself is exhausted.
@@ -141,6 +143,8 @@ Canonical version 1 headers are therefore:
 0x10  empty implicit initial state
 0x11  explicit initial state follows
 ```
+
+`0x11` is canonical only when the initial board contains at least one puyo or the row-14 mask is non-zero. An empty initial state is represented only by `0x10`, regardless of whether the source session was originally created as a custom opening.
 
 Version 0 is reserved.
 
@@ -310,6 +314,7 @@ A garbage drop does not consume a tsumo. The complete operation bitstream is zer
 A version 1 encoder must produce a single canonical byte representation for the same replay data:
 
 - reserved header bits are zero,
+- an explicit initial state is used only when it contains board or row-14 occupancy,
 - unsigned LEB128 values use their shortest representation,
 - all section padding bits are zero,
 - reserved cell, column, and operation values are never emitted,

@@ -1,4 +1,5 @@
 import {
+  COLORS,
   COLS,
   ROWS,
   HIDDEN_ROWS,
@@ -12,6 +13,7 @@ import {
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import {
+  createActivePair,
   createGarbagePair,
   dropTsumo,
   pairCells,
@@ -511,6 +513,7 @@ function renderActivePair() {
   const visible =
     appMode !== "drawing" &&
     tokopuyoSession &&
+    tokopuyoSession.activePair &&
     !tokopuyoSession.busy &&
     !tokopuyoSession.gameOver &&
     !tokopuyoBoardOverride;
@@ -780,6 +783,7 @@ function render() {
     isSuggesting ||
     tokopuyoBusy ||
     !tokopuyoSession?.lastTurn ||
+    !tokopuyoSession.lastTurn.next ||
     tokopuyoSession.coachingCompatible === false ||
     tokopuyoSession.lastTurn.mode === "garbage";
   toggleAppModeButton.disabled =
@@ -792,7 +796,7 @@ function render() {
     !isPractice || isPreview || isSuggesting || Boolean(tokopuyoStepResolution);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
     if (button.closest("#tokopuyoStepControls")) return;
-    button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || tokopuyoSession.gameOver;
+    button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.gameOver;
   });
   ["#rotatePairLeft", "#rotatePairRight"].forEach((selector) => {
     const button = document.querySelector(selector);
@@ -2270,6 +2274,7 @@ async function showLastMoveReview() {
     appMode === "drawing" ||
     tokopuyoSession?.coachingCompatible === false ||
     !tokopuyoSession?.lastTurn ||
+    !tokopuyoSession.lastTurn.next ||
     tokopuyoSession.lastTurn.mode === "garbage" ||
     tokopuyoSession.busy ||
     isSuggesting
@@ -2829,7 +2834,8 @@ function stopTokopuyoSteps() {
 }
 
 async function dropTokopuyoPair() {
-  if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
+  if (!tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.busy || isSuggesting) return;
+  const wasGarbageMode = tokopuyoSession.garbageMode;
   const committed = commitActivePair(tokopuyoSession);
   if (!committed) {
     const reason = tokopuyoSession.garbageMode
@@ -2842,6 +2848,9 @@ async function dropTokopuyoPair() {
       );
     showToast(t("message.tokopuyoDropRejected", reason), 2400);
     return;
+  }
+  if (!wasGarbageMode && !tokopuyoSession.activePair) {
+    extendSharedHistoryQueue();
   }
   clearTokopuyoSuggestions();
 
@@ -2893,6 +2902,7 @@ function performTokopuyoAction(action) {
   if (
     appMode !== "tokopuyo" ||
     !tokopuyoSession ||
+    !tokopuyoSession.activePair ||
     tokopuyoSession.busy ||
     tokopuyoSession.gameOver ||
     isSuggesting
@@ -2945,6 +2955,7 @@ function switchPreviewMode() {
   if (appMode === "preview") {
     previewRevision++;
     previewPlaying = false;
+    extendSharedHistoryQueue();
     appMode = "tokopuyo";
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
@@ -2959,6 +2970,42 @@ function switchPreviewMode() {
   appMode = "preview";
   positionPreviewCurrent();
   render();
+}
+
+function extendSharedHistoryQueue() {
+  const session = tokopuyoSession;
+  if (
+    !session?.sharedHistory ||
+    session.handIndex < session.pattern.hands.length
+  ) return;
+
+  const continuation = generatePattern(randomSeed());
+  const hands = Object.freeze([
+    ...session.pattern.hands,
+    ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
+  ]);
+  const colorsUsed = new Set([
+    ...session.board.flat().filter((color) => color && color !== "garbage"),
+    ...hands.flatMap(({ axis, child }) => [axis, child]),
+  ]);
+  const colors = [
+    ...COLORS.filter((color) => colorsUsed.has(color)).slice(0, 4),
+    ...COLORS.filter((color) => !colorsUsed.has(color)).slice(0, 4 - Math.min(4, colorsUsed.size)),
+  ];
+  session.pattern = Object.freeze({
+    ...session.pattern,
+    seed: null,
+    number: null,
+    colors: Object.freeze(colors),
+    hands,
+  });
+  session.coachingCompatible = colorsUsed.size <= 4;
+  const current = createActivePair(getTsumo(session.pattern, session.handIndex));
+  if (session.garbageMode) {
+    session.savedActivePair ||= current;
+  } else {
+    session.activePair = current;
+  }
 }
 
 function importTokopuyoBoardToDrawing() {
