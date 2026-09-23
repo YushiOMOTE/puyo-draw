@@ -120,7 +120,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Current is rendered over the board at its next recorded placement when one exists. Next and Next Next use the standard preview UI but appear only when their respective pairs are backed by recorded future history. The pattern number is `No. -`.
 - Tokopuyo Undo, Redo, Reset, Search Tsumo, garbage mode, pair placement controls, and chain step mode are unavailable. Preview hides Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, Tokopuyo garbage mode, Undo, Redo, and the chain step-mode control. Drawing mode cannot be entered directly from Preview mode. The Preview switch becomes Return to Tokopuyo, and Help remains available.
 - Long-chain and emergency-attack suggestions remain available only when both recorded Next and Next Next exist. Review Last Move remains available whenever the current history position has a previous normal move.
-- Preview mode Help lists only its eleven usable actions: the six history controls, Copy History URL, Pressureless Ama suggestion, immediate-fire suggestion, Review Last Move, and Return to Tokopuyo. The explanations are available in English and Japanese.
+- Preview mode Help groups the six bottom-bar history controls under Preview controls, then lists Copy History URL, both suggestions, Review Last Move, and Return to Tokopuyo under Sidebar controls. Only usable actions are listed, with explanations in English and Japanese.
 - Preview mode's left sidebar includes Copy History URL. Copying serializes the complete retained timeline in order, including operations on both sides of the current Undo/Redo cursor, and shows a localized clipboard-confirmation toast.
 
 ### Shared History URLs
