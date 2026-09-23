@@ -2143,6 +2143,7 @@ assert.deepEqual(mixedShareReplay.lastTurn.current, {
   axis: "yellow",
   child: "green",
 });
+assert.equal(mixedShareReplay.lastTurn.next, null);
 assert.equal(mixedShareReplay.activePair, null);
 
 const emptyInitialWithExplicitFlag = encodeReplayTestBytes([

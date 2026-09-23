@@ -396,7 +396,7 @@ function commitDroppedPair(session, dropped) {
     beforeRow14: before.row14,
     handIndex: before.handIndex,
     current: { ...current },
-    next: { ...next },
+    next: next ? { ...next } : null,
     placement: {
       col: dropped.pair.axis.col,
       orientation: dropped.pair.orientation,
