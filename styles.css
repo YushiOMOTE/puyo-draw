@@ -791,7 +791,7 @@ body[data-mode="preview"] .board-card {
   width: min(26px, calc(var(--sidebar-size) - 18px));
   height: min(26px, calc(var(--sidebar-size) - 18px));
   margin: auto;
-  color: #354049;
+  color: inherit;
   fill: currentColor;
 }
 

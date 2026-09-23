@@ -5,7 +5,7 @@
 - The application starts in Tokopuyo mode with a new randomly selected standard pattern. Tokopuyo mode is the default entry point and the main step-driven practice experience using deterministic modern Sega-style four-color Tsu patterns.
 - Drawing mode is a secondary submode for free-form board editing, manual chain simulation, and Drawing-mode suggestions. It is opened from Tokopuyo with the mode switch.
 - Preview mode is opened from Tokopuyo with the Preview switch below the Drawing switch, or directly from a valid shared-history URL. It browses the Tokopuyo history and returns to Tokopuyo at the selected history position.
-- The left sidebar is present in all modes. Drawing mode orders it as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. Tokopuyo mode orders it as Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, the Preview/Tokopuyo switch, the Tokopuyo garbage mode toggle, and Help. Preview mode retains disabled Reset, Search Tsumo, Drawing, and garbage controls, and adds Copy History URL beside Return to Tokopuyo. Help is pinned to the bottom.
+- The left sidebar is present in all modes. Drawing mode orders it as Reset, the Drawing/Tokopuyo mode switch, Start Tokopuyo from This Board, and Help. Tokopuyo mode orders it as Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, the Preview/Tokopuyo switch, the Tokopuyo garbage mode toggle, and Help. Preview mode hides Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, and the Tokopuyo garbage mode toggle; it shows Copy History URL and Return to Tokopuyo. Help is pinned to the bottom.
 - Switching from Tokopuyo mode to Drawing mode imports the settled Tokopuyo board's thirteen rows as one normal Drawing-mode board change. When the imported board differs from the current Drawing board, the import creates a Drawing Undo point containing the previous Drawing board and clears Drawing Redo; when there is no board difference, it does not change Drawing history. In both cases, the Drawing chain count and cumulative score reset to zero. Tokopuyo's active pair and special fourteenth-row occupancy are not imported. Switching from Drawing mode to Tokopuyo mode returns to the retained Tokopuyo session; Drawing edits are not transferred back. The mode switch itself is not a Tokopuyo history entry.
 - Direct board editing, palette selection, garbage mode, Clear, and manual Simulate are unavailable in Tokopuyo mode. Tokopuyo provides separate long-chain construction and emergency-attack Suggestion behaviors.
 
@@ -52,24 +52,24 @@
 
 The left-side rail is ordered from top to bottom in each mode:
 
-1. Reset (trash).
-2. Search Tsumo (Tokopuyo mode only).
-3. Drawing/Tokopuyo mode.
+1. Reset (trash; hidden in Preview mode).
+2. Search Tsumo (Tokopuyo mode only; hidden in Preview mode).
+3. Drawing/Tokopuyo mode (hidden in Preview mode).
 4. Preview/Tokopuyo mode (Tokopuyo and Preview modes only).
 5. Copy history URL (Preview mode only).
 6. Start Tokopuyo from This Board (Drawing mode only).
-7. Help (`i`).
+7. Help (`i`; always available).
 
 The right-side rail is ordered from top to bottom:
 
 1. Next and Next Next preview (Tokopuyo only), approximately 1.5 times the compact button width.
 2. Chain count (Drawing mode only).
-3. Undo.
-4. Redo.
+3. Undo (hidden in Preview mode).
+4. Redo (hidden in Preview mode).
 5. Simulate.
 6. Suggestion.
 7. Palette.
-8. Garbage puyo mode.
+8. Garbage puyo mode (hidden in Preview mode).
 
 The Help (`i`) button is pinned to the bottom of the left rail. In Tokopuyo mode, a divider appears between Search Tsumo and the Drawing/Tokopuyo mode button. In Drawing mode, a divider appears between Reset and the Drawing/Tokopuyo mode button; the Help button remains visually separated.
 
@@ -117,7 +117,7 @@ In Drawing mode, the right-side rail's action controls, below the chain-count ba
 - Preview mode uses the Tokopuyo Undo/Redo snapshots as a read-only timeline. It opens at the current history position; returning to Tokopuyo resumes from the position selected in Preview mode, retaining later snapshots as Redo history until a new move replaces them.
 - The bottom bar uses the chain-step layout and contains Jump to Beginning, Previous Move, Next Move, Jump to End, Play, and Stop. Next Move advances exactly one recorded hand. Play advances the complete hand history in order, keeping every non-clearing result visible for one playback interval instead of skipping directly to a later chain. Recorded chains use the normal clearing and gravity animation; direct jumps and backward movement do not animate.
 - Current is rendered over the board at its next recorded placement when one exists. Next and Next Next use the standard preview UI but appear only when their respective pairs are backed by recorded future history. The pattern number is `No. -`.
-- Tokopuyo Undo, Redo, Reset, Search Tsumo, garbage mode, pair placement controls, and chain step mode are disabled. Drawing mode cannot be entered directly from Preview mode. The Preview switch becomes Return to Tokopuyo, and Help remains available.
+- Tokopuyo Undo, Redo, Reset, Search Tsumo, garbage mode, pair placement controls, and chain step mode are unavailable. Preview hides Reset, Search Tsumo, the Drawing/Tokopuyo mode switch, Tokopuyo garbage mode, Undo, Redo, and the chain step-mode control. Drawing mode cannot be entered directly from Preview mode. The Preview switch becomes Return to Tokopuyo, and Help remains available.
 - Long-chain and emergency-attack suggestions remain available only when both recorded Next and Next Next exist. Review Last Move remains available whenever the current history position has a previous normal move.
 - Preview mode Help lists only its eleven usable actions: the six history controls, Copy History URL, Pressureless Ama suggestion, immediate-fire suggestion, Review Last Move, and Return to Tokopuyo. The explanations are available in English and Japanese.
 - Preview mode's left sidebar includes Copy History URL. Copying serializes the complete retained timeline in order, including operations on both sides of the current Undo/Redo cursor, and shows a localized clipboard-confirmation toast.

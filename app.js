@@ -587,13 +587,16 @@ function updateModeUi() {
   tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
   tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
   previewControls.hidden = !isPreview;
+  resetButton.hidden = isPreview;
+  searchTsumoButton.hidden = !isTokopuyo;
+  toggleAppModeButton.hidden = isPreview;
+  leftModeDivider.hidden = isPreview;
   togglePreviewModeButton.hidden = isDrawing;
   copyHistoryUrlButton.hidden = !isPreview;
-  toggleTokopuyoGarbageButton.hidden = !isPractice;
-  searchTsumoButton.hidden = !isPractice;
+  toggleTokopuyoGarbageButton.hidden = !isTokopuyo;
   attackSuggestButton.hidden = !isPractice;
   reviewLastMoveButton.hidden = !isPractice;
-  toggleTokopuyoStepModeButton.hidden = !isPractice;
+  toggleTokopuyoStepModeButton.hidden = !isTokopuyo;
   drawingHelp.hidden = isPractice;
   tokopuyoHelp.hidden = !isTokopuyo;
   previewHelp.hidden = !isPreview;
@@ -742,6 +745,8 @@ function render() {
   const isPractice = appMode !== "drawing";
   const hasPreviewLookahead = isPreview && previewRecordedHands(tokopuyoSession).every(Boolean);
   const isTokopuyoStepResolving = Boolean(tokopuyoStepResolution);
+  document.querySelector("#undo").hidden = isPreview;
+  document.querySelector("#redo").hidden = isPreview;
   document.querySelector("#undo").disabled = isPreview
     ? true
     : appMode === "tokopuyo"
