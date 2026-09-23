@@ -142,6 +142,7 @@ function pairAtColumn(session, col, direction) {
 function cloneLastTurn(lastTurn) {
   if (!lastTurn) return null;
   return {
+    mode: lastTurn.mode || "pair",
     beforeBoard: clone(lastTurn.beforeBoard),
     beforeRow14: lastTurn.beforeRow14,
     handIndex: lastTurn.handIndex,
@@ -178,6 +179,15 @@ function canonicalSnapshot(session) {
   };
 }
 
+// Shared-history loading uses the same atomic state as Undo and Redo.
+export function snapshotSession(session) {
+  return canonicalSnapshot(session);
+}
+
+export function restoreSessionSnapshot(session, snapshot) {
+  restoreSnapshot(session, snapshot);
+}
+
 function restoreSnapshot(session, snapshot) {
   session.board = clone(snapshot.board);
   session.row14 = snapshot.row14 ?? 0;
@@ -212,6 +222,15 @@ export function createSession(seed) {
     history: [],
     future: [],
   };
+}
+
+export function queueIdentity(session) {
+  return [
+    session.pattern.colors.join(","),
+    session.pattern.hands
+      .map(({ axis, child }) => `${axis},${child}`)
+      .join(";"),
+  ].join("|");
 }
 
 /**
@@ -402,7 +421,24 @@ function commitDroppedGarbage(session, dropped) {
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
-  session.lastTurn = null;
+  session.lastTurn = {
+    mode: "garbage",
+    beforeBoard: clone(before.board),
+    beforeRow14: before.row14,
+    handIndex: before.handIndex,
+    current: { axis: GARBAGE, child: null },
+    next: getTsumo(session.pattern, before.handIndex),
+    placement: {
+      col: dropped.pair.axis.col,
+      orientation: dropped.pair.orientation,
+      cells: dropped.cells.map((cell) => ({ ...cell })),
+    },
+    result: {
+      chains: result.chains,
+      score: result.score,
+      gameOver: session.gameOver,
+    },
+  };
   session.activePair = createGarbagePair(dropped.pair.axis.col);
 
   return {

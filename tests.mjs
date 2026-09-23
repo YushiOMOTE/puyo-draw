@@ -84,6 +84,10 @@ import {
   undoSession,
 } from "./tokopuyo/session.js";
 import {
+  PUYOP_ENCODE_CHAR,
+  parsePuyopPayload,
+} from "./tokopuyo/puyop-url.js";
+import {
   evaluateConstructionField,
   placementTearPenalty,
 } from "./tokopuyo/construction-evaluator.js";
@@ -128,6 +132,47 @@ const solveWithBeam = (request) =>
   solveSuggestion({ ...request, solver: "beam" });
 const solveWithHybrid = (request) =>
   solveSuggestion({ ...request, solver: "hybrid" });
+
+assert.equal(
+  PUYOP_ENCODE_CHAR,
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ[]",
+);
+const puyopSingleMove = parsePuyopPayload("_2q20");
+assert.deepEqual(puyopSingleMove.board, emptyBoard());
+assert.deepEqual(puyopSingleMove.entries, [
+  {
+    pair: { axis: "red", child: "blue" },
+    placement: { col: 2, orientation: ORIENTATION.RIGHT },
+  },
+  {
+    pair: { axis: "red", child: "blue" },
+    placement: null,
+  },
+]);
+assert.deepEqual(
+  parsePuyopPayload("/s/_2q20"),
+  puyopSingleMove,
+);
+assert.deepEqual(
+  parsePuyopPayload("https://www.puyop.com/s/_2q20"),
+  puyopSingleMove,
+);
+const puyopField = parsePuyopPayload("asK");
+assert.deepEqual(puyopField.board[ROWS - 1], [
+  "red", "green", "blue", "yellow", "purple", GARBAGE,
+]);
+assert.deepEqual(
+  parsePuyopPayload("=123456").board[ROWS - 1],
+  ["red", "green", "blue", "yellow", "purple", GARBAGE],
+);
+const knownPuyopRecord = parsePuyopPayload(
+  "_08lu6u3m9ofm1uigkw5qkwgigClQlEi0i0",
+);
+assert.equal(knownPuyopRecord.entries.length, 17);
+assert.equal(knownPuyopRecord.entries.filter(({ placement }) => placement).length, 15);
+assert.throws(() => parsePuyopPayload("_2"), /incomplete entry/);
+assert.throws(() => parsePuyopPayload("_p0"), /unsupported piece type/);
+assert.throws(() => parsePuyopPayload("_0U"), /nuisance entries/);
 
 const state = emptyBoard();
 for (let col = 0; col < 4; col++) state[ROWS - 1][col] = "red";
@@ -478,6 +523,7 @@ assert.deepEqual(
   getTsumo(customSession.pattern, 3),
   getTsumo(seedZeroPattern, 3),
 );
+
 assert.equal(customSession.activePair.axisColor, openingHands[0].axis);
 assert.equal(customSession.activePair.childColor, openingHands[0].child);
 assert.equal(customSession.activePair.axis.col, 2);

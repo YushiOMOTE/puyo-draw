@@ -68,6 +68,19 @@
             </svg>
           </button>
           <button
+            id="copyHistoryUrl"
+            class="secondary-btn sidebar-btn"
+            aria-label="Copy current history URL"
+            title="Copy current history URL"
+            hidden
+          >
+            <svg class="history-url-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5 14.5 14.5 9.5" />
+              <path d="M7.2 16.8 5.8 18.2a4 4 0 0 1-5.6-5.6l4-4a4 4 0 0 1 5.6 0" transform="translate(1 0)" />
+              <path d="m16.8 7.2 1.4-1.4a4 4 0 0 1 5.6 5.6l-4 4a4 4 0 0 1-5.6 0" transform="translate(-1 0)" />
+            </svg>
+          </button>
+          <button
             id="toggleTokopuyoGarbage"
             class="secondary-btn sidebar-btn mode-btn tokopuyo-only"
             aria-label="Enable Tokopuyo garbage mode"
@@ -502,6 +515,7 @@
               <tr><td data-help-control="#previewLast"></td><td data-help-text="preview.last">Jump to the end</td></tr>
               <tr><td data-help-control="#previewPlay"></td><td><span data-help-text="preview.play">Play</span><span class="desktop-shortcut" data-help-shortcut="play"></span></td></tr>
               <tr><td data-help-control="#previewStop"></td><td><span data-help-text="preview.stop">Stop</span><span class="desktop-shortcut" data-help-shortcut="stop"></span></td></tr>
+              <tr><td data-help-control="#copyHistoryUrl"></td><td data-help-text="preview.shareHistory">Copy current history URL</td></tr>
               <tr><td data-help-control="#suggest"></td><td><span data-help-text="preview.suggest">Pressureless Ama suggestion</span><span class="desktop-shortcut" data-help-shortcut="suggest"></span></td></tr>
               <tr><td data-help-control="#attackSuggest"></td><td><span data-help-text="preview.attack">Immediate-fire suggestion</span><span class="desktop-shortcut" data-help-shortcut="attack"></span></td></tr>
               <tr><td data-help-control="#reviewLastMove"></td><td><span data-help-text="preview.review">Review Last Move</span><span class="desktop-shortcut" data-help-shortcut="review"></span></td></tr>

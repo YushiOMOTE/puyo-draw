@@ -786,6 +786,18 @@ body[data-mode="preview"] .board-card {
   stroke-linejoin: round;
 }
 
+.history-url-icon {
+  display: block;
+  width: 29px;
+  height: 29px;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .app-mode-btn {
   position: relative;
 }

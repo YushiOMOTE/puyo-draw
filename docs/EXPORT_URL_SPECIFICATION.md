@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-This document proposes the version 1 export URL format for puyo-draw. It is a design specification only; the export and import behavior described here is not implemented yet.
+This document specifies the implemented version 1 export URL format for puyo-draw.
 
 The format is intended to be a compact, stable, client-side replay format. A shared URL must be sufficient to reproduce Tokopuyo history without depending on the current Tokopuyo randomizer implementation.
 
@@ -11,8 +11,9 @@ The format supports:
 - ordinary Tokopuyo history,
 - a Tokopuyo session that starts from an arbitrary settled Drawing-mode field,
 - a colorless special-fourteenth-row occupancy mask,
-- an arbitrary physical-color tsumo sequence that does not need to match a built-in Tokopuyo seed, and
-- a fixed continuation after the recorded history by storing more tsumos than recorded moves.
+- an arbitrary physical-color tsumo sequence that does not need to match a built-in Tokopuyo seed,
+- ordinary pair placements and one-puyo garbage drops in one ordered history, and
+- a fixed continuation after the recorded history by storing more tsumos than pair placements.
 
 The format does not store derived fields, chain counts, scores, animation state, the active pair's transient position, or a Tokopuyo seed as replay authority.
 
@@ -21,7 +22,7 @@ The format does not store derived fields, chain counts, scores, animation state,
 A replay consists of three logical parts:
 
 ```text
-initial state + tsumo sequence + placement history
+initial state + tsumo sequence + operation history
 ```
 
 Conceptually:
@@ -31,21 +32,21 @@ ReplayV1 {
   initialBoard?: Cell[13][6]
   initialRow14?: 6-bit occupancy mask
   sequence: Tsumo[]
-  moves: Placement[]
+  operations: (PairPlacement | GarbageDrop)[]
 }
 ```
 
 If the initial state is omitted, it is implicitly an empty 13 by 6 board with a zero row-14 mask.
 
-Each `moves[i]` places `sequence[i]`. Therefore:
+Each pair-placement operation consumes the next tsumo in `sequence`. A one-puyo garbage drop does not consume a tsumo. Therefore:
 
 ```text
-moves.length <= sequence.length
+pairPlacementCount <= sequence.length
 ```
 
 The sequence is replay authority. Decoding must not regenerate stored tsumos from a seed or from the current queue generator.
 
-A sequence may contain additional tsumos after the recorded history. These represent a fixed continuation that may be used after replay reaches the last stored move.
+A sequence may contain additional tsumos after the recorded history. These represent a fixed continuation that may be used after replay reaches the last stored operation.
 
 The URL format does not define what the application should generate after the stored sequence itself is exhausted.
 
@@ -59,15 +60,14 @@ row14  = initialRow14 or 0
 cursor = 0
 ```
 
-The imported replay initially has no applied moves. Redo applies stored moves in order.
+The imported replay initially has no applied operations. Redo applies stored operations in order. Export includes the complete retained timeline: operations before and after the current cursor, including the Redo side. A shared URL always opens at the beginning of that timeline.
 
-For move `i`:
+For each operation, in order:
 
-1. read `sequence[i]`,
-2. read `moves[i]`,
-3. place the tsumo using the normal Tokopuyo placement rules,
-4. resolve the resulting chain using the normal engine rules, and
-5. advance the replay cursor.
+1. for a pair placement, read and consume the next tsumo and place it using normal Tokopuyo placement rules;
+2. for a garbage drop, place one garbage puyo in the stored column without consuming a tsumo;
+3. resolve the resulting state using the normal engine rules; and
+4. advance the replay cursor by one operation.
 
 Intermediate and final boards are reconstructed. They are not serialized.
 
@@ -100,9 +100,9 @@ Variable-length integers and section boundaries are byte-aligned.
 | Tsumo sequence       6b each|
 | Zero padding to byte boundary|
 +-----------------------------+
-| Move count           varuint|
+| Operation count      varuint|
 +-----------------------------+
-| Placement history    5b each|
+| Operation history    6b each|
 | Zero padding to byte boundary|
 +-----------------------------+
 ```
@@ -211,7 +211,7 @@ No padding is required.
 
 ## Variable-length integers
 
-Sequence and move counts use canonical unsigned LEB128.
+Sequence and operation counts use canonical unsigned LEB128.
 
 Encoders must use the shortest representation. Decoders must reject a non-canonical representation, an integer outside the supported unsigned range, or a count that cannot be safely allocated.
 
@@ -248,19 +248,25 @@ red / blue
 => 001011
 ```
 
-The complete sequence bitstream is zero-padded to the next byte boundary before the move count begins.
+The complete sequence bitstream is zero-padded to the next byte boundary before the operation count begins.
 
 A replay sequence is independent of the Tokopuyo seed and randomizer. This is intentional: an old export URL must remain reproducible even if queue-generation code changes later.
 
-## Placement history
+## Operation history
 
-The move count is followed by exactly that many placements.
-
-Each placement occupies five bits:
+The operation count is followed by exactly that many operations. Every operation occupies six bits:
 
 ```text
-column       3 bits
-orientation  2 bits
+kind     1 bit
+column   3 bits
+detail   2 bits
+```
+
+Kind values:
+
+```text
+0 = pair placement
+1 = one-puyo garbage drop
 ```
 
 Column values:
@@ -276,7 +282,7 @@ Column values:
 111 = invalid
 ```
 
-Orientation values match the existing `ORIENTATION` constants:
+For pair placements, `detail` is the orientation and matches the existing `ORIENTATION` constants:
 
 ```text
 00 = UP
@@ -285,13 +291,19 @@ Orientation values match the existing `ORIENTATION` constants:
 11 = LEFT
 ```
 
-A placement is serialized as:
+Pair placements are serialized as:
 
 ```text
-[column:3][orientation:2]
+[kind:1=0][column:3][orientation:2]
 ```
 
-The complete move bitstream is zero-padded to the next byte boundary.
+Garbage drops have no orientation, so their detail bits are reserved and must be zero:
+
+```text
+[kind:1=1][column:3][reserved:2=00]
+```
+
+A garbage drop does not consume a tsumo. The complete operation bitstream is zero-padded to the next byte boundary.
 
 ## Canonical encoding
 
@@ -300,8 +312,9 @@ A version 1 encoder must produce a single canonical byte representation for the 
 - reserved header bits are zero,
 - unsigned LEB128 values use their shortest representation,
 - all section padding bits are zero,
-- reserved cell and column values are never emitted, and
-- no trailing bytes follow the move section.
+- reserved cell, column, and operation values are never emitted,
+- garbage operation detail bits are zero, and
+- no trailing bytes follow the operation section.
 
 This keeps exported URLs deterministic and simplifies test vectors.
 
@@ -317,12 +330,13 @@ A decoder must reject the payload if any of the following is true:
 - a reserved or invalid enum value is used,
 - a varuint is malformed or non-canonical,
 - a section ends before its declared count,
-- `moves.length > sequence.length`,
+- the pair-placement count exceeds `sequence.length`,
+- a garbage operation has non-zero reserved detail bits,
 - a required padding bit is non-zero,
-- trailing bytes remain after the move section, or
-- replaying a stored move is illegal for the reconstructed state.
+- trailing bytes remain after the operation section, or
+- replaying a stored operation is illegal for the reconstructed state.
 
-The implementation must apply practical decoded-size and count limits before allocating large arrays.
+The implementation must apply practical decoded-size and count limits before allocating large arrays. The current implementation limits the decoded payload to 2,048 bytes, the sequence to 1,024 pairs, and the operation history to 512 entries.
 
 The initial board is expected to be a settled Tokopuyo-compatible field. The codec itself stores physical cell state rather than a generator-specific palette, so all five physical colors may be represented.
 
@@ -336,7 +350,7 @@ The version nibble allows versions 1 through 15 in the current envelope. If that
 
 ## Size examples
 
-For a replay with 100 tsumos and 100 moves, with both counts encoded in one byte:
+For a replay with 100 tsumos and 100 operations, with both counts encoded in one byte:
 
 Without an explicit initial state:
 
@@ -344,19 +358,19 @@ Without an explicit initial state:
 header          1 byte
 sequence count  1 byte
 sequence       75 bytes
-move count      1 byte
-moves           63 bytes
+operation count 1 byte
+operations      75 bytes
 -----------------------
-total          141 bytes
+total          153 bytes
 ```
 
 With an explicit initial state:
 
 ```text
-141 + 30 = 171 bytes
+153 + 30 = 183 bytes
 ```
 
-The corresponding unpadded Base64url payloads are approximately 188 and 228 characters respectively.
+The corresponding unpadded Base64url payloads are approximately 204 and 244 characters respectively.
 
 ## Design rationale
 
@@ -367,7 +381,7 @@ In particular:
 - the actual tsumo sequence is stored instead of a randomizer seed,
 - physical colors are stored instead of palette-relative indices,
 - the initial field is a fixed 30-byte structure when present,
-- placements reuse the engine's existing column and orientation model,
+- pair placements reuse the engine's existing column and orientation model, while garbage drops use only a column,
 - derived states are reconstructed rather than duplicated, and
 - no Huffman coding, run-length encoding, or generator-specific compression is used.
 
