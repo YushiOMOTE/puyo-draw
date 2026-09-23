@@ -109,7 +109,7 @@ export function generatePattern(seed) {
 }
 
 export function getTsumo(pattern, handIndex) {
-  if (!pattern?.hands || pattern.hands.length !== 128) {
+  if (!pattern?.hands?.length) {
     throw new TypeError("Invalid Tokopuyo pattern");
   }
   if (!Number.isInteger(handIndex) || handIndex < 0) {

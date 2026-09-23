@@ -1,4 +1,5 @@
 import {
+  COLORS,
   COLS,
   ROWS,
   HIDDEN_ROWS,
@@ -12,6 +13,8 @@ import {
 import { SuggestionController } from "./solver/suggestion-controller.js";
 import { SUGGESTION_SEARCH_CONFIG } from "./solver/suggestion-config.js";
 import {
+  createActivePair,
+  createGarbagePair,
   dropTsumo,
   pairCells,
   placementRejectionReason,
@@ -43,11 +46,19 @@ import {
   createSession,
   createSessionFromPosition,
   previewHands,
+  previewNextTurn,
+  previewRecordedHands,
+  queueIdentity,
   redoSession,
   setActivePairAtPlacement,
   setGarbageMode as setTokopuyoGarbageMode,
   undoSession,
 } from "./tokopuyo/session.js";
+import {
+  loadTokopuyoHistory,
+  readTokopuyoShareFromLocation,
+  createTokopuyoShareUrl,
+} from "./tokopuyo/share-history.js";
 import {
   formatNumber,
   getLocale,
@@ -67,7 +78,7 @@ function syncAppViewport() {
     "--app-viewport-height",
     `${viewportHeight}px`,
   );
-  if (appMode === "tokopuyo") renderActivePair();
+  if (appMode !== "drawing") renderActivePair();
 }
 
 function scheduleAppViewportSync() {
@@ -107,6 +118,8 @@ const nextPairEl = document.querySelector("#nextPair");
 const nextNextPairEl = document.querySelector("#nextNextPair");
 const patternNumberEl = document.querySelector("#patternNumber");
 const toggleAppModeButton = document.querySelector("#toggleAppMode");
+const togglePreviewModeButton = document.querySelector("#togglePreviewMode");
+const copyHistoryUrlButton = document.querySelector("#copyHistoryUrl");
 const toggleTokopuyoGarbageButton = document.querySelector("#toggleTokopuyoGarbage");
 const startTokopuyoFromDrawingButton = document.querySelector("#startTokopuyoFromDrawing");
 const leftSidebar = document.querySelector(".left-sidebar");
@@ -122,6 +135,7 @@ const confirmTsumoSearchButton = document.querySelector("#confirmTsumoSearch");
 const helpButton = document.querySelector("#help");
 const drawingHelp = document.querySelector("#drawingHelp");
 const tokopuyoHelp = document.querySelector("#tokopuyoHelp");
+const previewHelp = document.querySelector("#previewHelp");
 const tokopuyoControls = document.querySelector("#tokopuyoControls");
 const tokopuyoStepControls = document.querySelector("#tokopuyoStepControls");
 const toggleTokopuyoStepModeButton = document.querySelector("#toggleTokopuyoStepMode");
@@ -131,6 +145,13 @@ const stepChainLastButton = document.querySelector("#stepChainLast");
 const stepChainForwardButton = document.querySelector("#stepChainForward");
 const playChainStepsButton = document.querySelector("#playChainSteps");
 const stopChainStepsButton = document.querySelector("#stopChainSteps");
+const previewControls = document.querySelector("#previewControls");
+const previewFirstButton = document.querySelector("#previewFirst");
+const previewBackButton = document.querySelector("#previewBack");
+const previewForwardButton = document.querySelector("#previewForward");
+const previewLastButton = document.querySelector("#previewLast");
+const previewPlayButton = document.querySelector("#previewPlay");
+const previewStopButton = document.querySelector("#previewStop");
 const attackSuggestButton = document.querySelector("#attackSuggest");
 const reviewLastMoveButton = document.querySelector("#reviewLastMove");
 const reviewOverlay = document.querySelector("#reviewOverlay");
@@ -198,8 +219,21 @@ let isSuggesting = false;
 let suggestionSession = null;
 let suggestionMarks = new Map();
 let suggestionRevision = 0;
-let appMode = "tokopuyo";
-let tokopuyoSession = createSession(randomSeed());
+
+function importedTokopuyoSession() {
+  const payload = readTokopuyoShareFromLocation();
+  if (!payload) return null;
+  try {
+    return loadTokopuyoHistory(payload);
+  } catch (error) {
+    console.warn("Ignored invalid Tokopuyo history URL payload", error);
+    return null;
+  }
+}
+
+const initialSharedSession = importedTokopuyoSession();
+let appMode = initialSharedSession ? "preview" : "tokopuyo";
+let tokopuyoSession = initialSharedSession || createSession(randomSeed());
 let tokopuyoBoardOverride = null;
 let tokopuyoDisplayedChain = null;
 let tokopuyoSuggestionSession = null;
@@ -208,6 +242,9 @@ let tokopuyoSuggestionMarks = new Map();
 let tokopuyoStepMode = false;
 let tokopuyoStepResolution = null;
 let tokopuyoStepRevision = 0;
+let previewPlaying = false;
+let previewAdvancing = false;
+let previewRevision = 0;
 let reviewReplayContext = null;
 let reviewReplayState = null;
 let reviewReplayRevision = 0;
@@ -463,6 +500,7 @@ function setCustomOpeningColor(pairIndex, slot, color) {
 
 function renderPreviewPair(element, tsumo) {
   element.innerHTML = "";
+  if (!tsumo) return;
   for (const color of [tsumo.child, tsumo.axis]) {
     const puyo = document.createElement("i");
     puyo.className = `preview-puyo ${color}`;
@@ -473,8 +511,9 @@ function renderPreviewPair(element, tsumo) {
 function renderActivePair() {
   activePairLayer.innerHTML = "";
   const visible =
-    appMode === "tokopuyo" &&
+    appMode !== "drawing" &&
     tokopuyoSession &&
+    tokopuyoSession.activePair &&
     !tokopuyoSession.busy &&
     !tokopuyoSession.gameOver &&
     !tokopuyoBoardOverride;
@@ -527,43 +566,63 @@ function renderActivePair() {
 
 function updateModeUi() {
   const isTokopuyo = appMode === "tokopuyo";
+  const isPreview = appMode === "preview";
+  const isDrawing = appMode === "drawing";
+  const isPractice = !isDrawing;
   leftSidebar.append(
     resetButton,
+    searchTsumoButton,
     leftModeDivider,
     toggleAppModeButton,
+    togglePreviewModeButton,
+    copyHistoryUrlButton,
     toggleTokopuyoGarbageButton,
     startTokopuyoFromDrawingButton,
     helpButton,
   );
   document.body.dataset.mode = appMode;
   document.querySelectorAll(".drawing-only").forEach((element) => {
-    element.hidden = isTokopuyo;
+    element.hidden = !isDrawing;
   });
-  chainBadge.hidden = isTokopuyo;
-  tokopuyoChainReadout.hidden = !isTokopuyo;
-  tokopuyoPreview.hidden = !isTokopuyo;
+  chainBadge.hidden = isPractice;
+  tokopuyoChainReadout.hidden = !isPractice;
+  tokopuyoPreview.hidden = !isPractice;
   tokopuyoControls.hidden = !isTokopuyo || Boolean(tokopuyoStepResolution);
   tokopuyoStepControls.hidden = !isTokopuyo || !tokopuyoStepResolution;
-  toggleTokopuyoGarbageButton.hidden = !isTokopuyo;
+  previewControls.hidden = !isPreview;
+  resetButton.hidden = isPreview;
   searchTsumoButton.hidden = !isTokopuyo;
-  attackSuggestButton.hidden = !isTokopuyo;
-  reviewLastMoveButton.hidden = !isTokopuyo;
+  toggleAppModeButton.hidden = isPreview;
+  leftModeDivider.hidden = isPreview;
+  togglePreviewModeButton.hidden = isDrawing;
+  copyHistoryUrlButton.hidden = !isPreview;
+  toggleTokopuyoGarbageButton.hidden = !isTokopuyo;
+  attackSuggestButton.hidden = !isPractice;
+  reviewLastMoveButton.hidden = !isPractice;
   toggleTokopuyoStepModeButton.hidden = !isTokopuyo;
-  drawingHelp.hidden = isTokopuyo;
+  drawingHelp.hidden = isPractice;
   tokopuyoHelp.hidden = !isTokopuyo;
+  previewHelp.hidden = !isPreview;
 
-  toggleAppModeButton.ariaLabel = t(isTokopuyo ? "app.returnDrawing" : "app.openTokopuyo");
+  toggleAppModeButton.ariaLabel = t(isPractice ? "app.returnDrawing" : "app.openTokopuyo");
   toggleAppModeButton.title = toggleAppModeButton.ariaLabel;
+  togglePreviewModeButton.ariaLabel = t(isPreview ? "app.returnTokopuyo" : "app.openPreview");
+  togglePreviewModeButton.title = togglePreviewModeButton.ariaLabel;
+  copyHistoryUrlButton.ariaLabel = t("app.copyHistoryUrl");
+  copyHistoryUrlButton.title = copyHistoryUrlButton.ariaLabel;
+  togglePreviewModeButton.innerHTML = isPreview
+    ? '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>'
+    : '<svg class="preview-mode-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 16s4.5-8 12-8 12 8 12 8-4.5 8-12 8S4 16 4 16Z"/><circle cx="16" cy="16" r="4"/></svg>';
   toggleTokopuyoGarbageButton.classList.toggle("active", Boolean(tokopuyoSession?.garbageMode));
   toggleTokopuyoGarbageButton.ariaPressed = String(Boolean(tokopuyoSession?.garbageMode));
   toggleTokopuyoGarbageButton.ariaLabel = t(
     tokopuyoSession?.garbageMode ? "app.tokopuyoGarbageOff" : "app.tokopuyoGarbageOn",
   );
   toggleTokopuyoGarbageButton.title = toggleTokopuyoGarbageButton.ariaLabel;
-  toggleAppModeButton.innerHTML = isTokopuyo
+  toggleAppModeButton.innerHTML = isPractice
     ? '<svg class="drawing-mode-icon" viewBox="0 0 28 32" aria-hidden="true"><path d="M12.1 14.3 23.1.4c.8-1 2.1-1.1 3-.2 1 .9 1.2 2.3.4 3.4l-9.1 14.3-5.3-3.6Z"/><path d="m11.4 15.1 5.3 3.5-1.6 2.5c-1 1.7-2.5 2.1-4 .9l-1.4-1.1c-1.6-1.3-1.7-2.3-.1-4.3l1.8-1.5Z"/><path fill-rule="evenodd" d="M8.1 21.1c-2.7-.2-4.7 1.8-5.5 5.3-.6 2.9-1.5 4.7-1.5 4.7 3.5 1.4 7.3-.1 9.8-2.6 2.4-2.4 1.4-5 1.4-5L9 21.2l-.9-.1Zm.9 1.1c-2 0-3.2 1.5-3.7 3.1-.2.9.5 1.4 1.2.8l1-.7c.6-.5 1.3.1.9.8l-.6.9c-.3.7.4 1.1 1 .5l.6-.6c.7-.6 1.4.1 1 1l-.6.8c-.5.8.4 1.3 1.1.7 1.5-1.2 2-3.6 1.1-5.5l-3-1.8Z"/></svg>'
     : '<span class="mode-pair-icon" aria-hidden="true"><i></i><i></i></span>';
-  if (!isTokopuyo) {
+  if (isDrawing) {
     const issue = drawingBoardStartIssue();
     startTokopuyoFromDrawingButton.disabled = Boolean(issue) || isSimulating || isSuggesting;
     const label = issue
@@ -573,9 +632,12 @@ function updateModeUi() {
     startTokopuyoFromDrawingButton.title = label;
   }
   const suggestButton = document.querySelector("#suggest");
-  suggestButton.ariaLabel = t(isTokopuyo ? "app.suggestTokopuyo" : "app.suggest");
+  suggestButton.ariaLabel = t(isPractice ? "app.suggestTokopuyo" : "app.suggest");
   suggestButton.title = suggestButton.ariaLabel;
-  resetButton.ariaLabel = t(isTokopuyo ? "message.tokopuyoReset" : "app.reset", tokopuyoSession?.pattern.number);
+  const patternNumber = tokopuyoSession?.pattern?.number;
+  resetButton.ariaLabel = isPractice && Number.isInteger(patternNumber)
+    ? t("message.tokopuyoReset", patternNumber)
+    : t("app.reset");
   resetButton.title = resetButton.ariaLabel;
   searchTsumoButton.ariaLabel = t("app.searchTsumo");
   searchTsumoButton.title = searchTsumoButton.ariaLabel;
@@ -584,11 +646,14 @@ function updateModeUi() {
   toggleTokopuyoStepModeButton.ariaLabel = t(tokopuyoStepMode ? "app.stepModeOff" : "app.stepModeOn");
   toggleTokopuyoStepModeButton.title = toggleTokopuyoStepModeButton.ariaLabel;
 
-  if (isTokopuyo && tokopuyoSession) {
-    const [next, nextNext] = previewHands(tokopuyoSession);
+  if (isPractice && tokopuyoSession) {
+    const [next, nextNext] = isPreview
+      ? previewRecordedHands(tokopuyoSession)
+      : previewHands(tokopuyoSession);
     renderPreviewPair(nextPairEl, next);
     renderPreviewPair(nextNextPairEl, nextNext);
-    patternNumberEl.textContent = tokopuyoSession.customOpening
+    patternNumberEl.textContent = isPreview || tokopuyoSession.customOpening ||
+      !Number.isInteger(tokopuyoSession.pattern.number)
       ? "No. -"
       : `No.${tokopuyoSession.pattern.number}`;
   }
@@ -596,7 +661,7 @@ function updateModeUi() {
 
 function render() {
   const renderedBoard =
-    appMode === "tokopuyo"
+    appMode !== "drawing"
       ? tokopuyoBoardOverride || tokopuyoSession?.board || emptyBoard()
       : board;
   boardEl.innerHTML = "";
@@ -612,11 +677,11 @@ function render() {
       cell.role = "gridcell";
       cell.disabled = isSimulating || isSuggesting;
       cell.ariaLabel = t("message.cell", r < HIDDEN_ROWS, ROWS - r, c + 1, t(`color.${color || "empty"}`), r === HIDDEN_ROWS && c === 2);
-      if (appMode !== "tokopuyo") {
+      if (appMode === "drawing") {
         cell.addEventListener("pointerdown", (event) => openFlick(r, c, event));
       }
       cell.addEventListener("click", () => {
-        if (appMode === "tokopuyo") return;
+        if (appMode !== "drawing") return;
         if (flick.suppressClick) {
           flick.suppressClick = false;
           return;
@@ -678,42 +743,60 @@ function render() {
   );
 
   const tokopuyoBusy = tokopuyoSession?.busy || false;
+  const isPreview = appMode === "preview";
+  const isDrawing = appMode === "drawing";
+  const isPractice = appMode !== "drawing";
+  const hasPreviewLookahead = isPreview && previewRecordedHands(tokopuyoSession).every(Boolean);
   const isTokopuyoStepResolving = Boolean(tokopuyoStepResolution);
-  document.querySelector("#undo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.history.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
+  document.querySelector("#undo").hidden = isPreview;
+  document.querySelector("#redo").hidden = isPreview;
+  document.querySelector("#undo").disabled = isPreview
+    ? true
+    : appMode === "tokopuyo"
+      ? !tokopuyoSession?.history.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : !history.length || isSimulating || isSuggesting;
-  document.querySelector("#redo").disabled = appMode === "tokopuyo"
-    ? !tokopuyoSession?.future.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
+  document.querySelector("#redo").disabled = isPreview
+    ? true
+    : appMode === "tokopuyo"
+      ? !tokopuyoSession?.future.length || (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : !future.length || isSimulating || isSuggesting;
   document.querySelector("#simulate").disabled = isSimulating || isSuggesting;
-  document.querySelector("#reset").disabled = appMode === "tokopuyo"
-    ? (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
+  document.querySelector("#reset").disabled = isPreview
+    ? true
+    : appMode === "tokopuyo"
+      ? (tokopuyoBusy && !isTokopuyoStepResolving) || isSuggesting
     : isSimulating || isSuggesting;
-  searchTsumoButton.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting;
-  document.querySelector("#suggest").disabled = appMode === "tokopuyo"
-    ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver || tokopuyoSession.garbageMode
+  searchTsumoButton.disabled = !isPractice || isPreview || tokopuyoBusy || isSuggesting;
+  document.querySelector("#suggest").disabled = isPractice
+    ? isSuggesting || tokopuyoBusy || !tokopuyoSession || tokopuyoSession.gameOver || tokopuyoSession.garbageMode || tokopuyoSession.coachingCompatible === false || (isPreview && !hasPreviewLookahead)
     : isSimulating || isSuggesting;
   attackSuggestButton.disabled =
-    appMode !== "tokopuyo" ||
+    !isPractice ||
+    (isPreview && !hasPreviewLookahead) ||
     isSuggesting ||
     tokopuyoBusy ||
     !tokopuyoSession ||
     tokopuyoSession.gameOver ||
     tokopuyoSession.garbageMode;
   reviewLastMoveButton.disabled =
-    appMode !== "tokopuyo" ||
+    !isPractice ||
     isSuggesting ||
     tokopuyoBusy ||
-    !tokopuyoSession?.lastTurn;
+    !tokopuyoSession?.lastTurn ||
+    !tokopuyoSession.lastTurn.next ||
+    tokopuyoSession.coachingCompatible === false ||
+    tokopuyoSession.lastTurn.mode === "garbage";
   toggleAppModeButton.disabled =
-    isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
+    isPreview || isSimulating || isSuggesting || Boolean(tokopuyoSession?.busy);
+  togglePreviewModeButton.disabled =
+    isDrawing || isSuggesting || Boolean(tokopuyoSession?.busy) || Boolean(tokopuyoStepResolution) || previewAdvancing;
   toggleTokopuyoGarbageButton.disabled =
-    appMode !== "tokopuyo" || isSuggesting || Boolean(tokopuyoSession?.busy) || Boolean(tokopuyoStepResolution);
+    !isPractice || isPreview || isSuggesting || Boolean(tokopuyoSession?.busy) || Boolean(tokopuyoStepResolution);
   toggleTokopuyoStepModeButton.disabled =
-    appMode !== "tokopuyo" || isSuggesting || Boolean(tokopuyoStepResolution);
+    !isPractice || isPreview || isSuggesting || Boolean(tokopuyoStepResolution);
   document.querySelectorAll(".pair-control-btn").forEach((button) => {
     if (button.closest("#tokopuyoStepControls")) return;
-    button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || tokopuyoSession.gameOver;
+    button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.gameOver;
   });
   ["#rotatePairLeft", "#rotatePairRight"].forEach((selector) => {
     const button = document.querySelector(selector);
@@ -738,17 +821,25 @@ function render() {
     stepResolution.playing ||
     stepResolution.stepIndex >= stepResolution.result.rounds.length;
   stopChainStepsButton.disabled = !stepResolution || !stepResolution.playing;
+  previewFirstButton.disabled = !isPreview || previewAdvancing || !tokopuyoSession?.history.length;
+  previewBackButton.disabled = previewFirstButton.disabled;
+  previewForwardButton.disabled = !isPreview || previewAdvancing || !tokopuyoSession?.future.length;
+  previewLastButton.disabled = previewForwardButton.disabled;
+  previewPlayButton.disabled = !isPreview || previewAdvancing || previewPlaying || !tokopuyoSession?.future.length;
+  previewStopButton.disabled = !isPreview || !previewPlaying;
+  copyHistoryUrlButton.disabled =
+    !isPreview || previewAdvancing || tokopuyoBusy || !tokopuyoSession;
   suggestionLoadingEl.hidden = !isSuggesting;
   boardEl.setAttribute(
     "aria-busy",
-    String(isSuggesting || (appMode === "tokopuyo" && tokopuyoBusy)),
+    String(isSuggesting || (isPractice && tokopuyoBusy)),
   );
   const displayedChain =
-    appMode === "tokopuyo"
+    isPractice
       ? tokopuyoDisplayedChain ?? tokopuyoSession?.chainCount ?? 0
       : chainCount;
   const displayedScore = Number(
-    appMode === "tokopuyo"
+    isPractice
       ? tokopuyoSession?.cumulativeScore ?? 0
       : cumulativeScore,
   );
@@ -1005,13 +1096,13 @@ function displaySuggestion(candidate, index, total) {
   render();
 }
 
-function pressurelessAmaKey({ board, row14, seed, handIndex }) {
+function pressurelessAmaKey({ board, row14, handIndex }, session = tokopuyoSession) {
   const field = board
     .map((row) => row.map((cell) => cell || "-").join(""))
     .join("/");
   return [
     "pressureless-ama",
-    seed,
+    queueIdentity(session),
     handIndex,
     row14,
     field,
@@ -1029,9 +1120,8 @@ function lastTurnReviewKey() {
   return pressurelessAmaKey({
     board: turn.beforeBoard,
     row14: turn.beforeRow14,
-    seed: tokopuyoSession.seed,
     handIndex: turn.handIndex,
-  });
+  }, tokopuyoSession);
 }
 
 function cacheAmaAnalysis(key, candidates) {
@@ -1049,7 +1139,7 @@ function tokopuyoAttackSuggestionKey() {
     .join("/");
   return [
     "attack",
-    tokopuyoSession.seed,
+    queueIdentity(tokopuyoSession),
     tokopuyoSession.handIndex,
     tokopuyoSession.row14,
     field,
@@ -2181,8 +2271,11 @@ function displayLastMoveReviewError() {
 
 async function showLastMoveReview() {
   if (
-    appMode !== "tokopuyo" ||
+    appMode === "drawing" ||
+    tokopuyoSession?.coachingCompatible === false ||
     !tokopuyoSession?.lastTurn ||
+    !tokopuyoSession.lastTurn.next ||
+    tokopuyoSession.lastTurn.mode === "garbage" ||
     tokopuyoSession.busy ||
     isSuggesting
   ) return;
@@ -2244,6 +2337,9 @@ async function showLastMoveReview() {
 
 async function showTokopuyoSuggestion() {
   if (
+    appMode === "drawing" ||
+    tokopuyoSession?.coachingCompatible === false ||
+    (appMode === "preview" && !previewRecordedHands(tokopuyoSession).every(Boolean)) ||
     !tokopuyoSession ||
     tokopuyoSession.busy ||
     tokopuyoSession.gameOver ||
@@ -2342,7 +2438,8 @@ async function showTokopuyoSuggestion() {
 
 async function showTokopuyoAttackSuggestion() {
   if (
-    appMode !== "tokopuyo" ||
+    appMode === "drawing" ||
+    (appMode === "preview" && !previewRecordedHands(tokopuyoSession).every(Boolean)) ||
     !tokopuyoSession ||
     tokopuyoSession.busy ||
     tokopuyoSession.gameOver ||
@@ -2405,7 +2502,7 @@ async function showTokopuyoAttackSuggestion() {
 }
 
 async function showSuggestion() {
-  if (appMode === "tokopuyo") return showTokopuyoSuggestion();
+  if (appMode !== "drawing") return showTokopuyoSuggestion();
   if (isSimulating || isSuggesting) return;
 
   if (!isSettled(board)) {
@@ -2463,6 +2560,7 @@ async function showSuggestion() {
 
 const CHAIN_CLEAR_DELAY_MS = 420;
 const CHAIN_GRAVITY_DELAY_MS = 280;
+const PREVIEW_HAND_DELAY_MS = 650;
 
 async function animateChainRounds({
   lockedBoard,
@@ -2494,6 +2592,126 @@ async function animateChainRounds({
     await new Promise((resolve) => setTimeout(resolve, CHAIN_GRAVITY_DELAY_MS));
   }
   return !isCancelled();
+}
+
+function positionPreviewCurrent() {
+  if (appMode !== "preview" || !tokopuyoSession) return;
+  const turn = previewNextTurn(tokopuyoSession);
+  if (turn?.mode === "garbage") {
+    if (!tokopuyoSession.garbageMode) {
+      setTokopuyoGarbageMode(tokopuyoSession, true);
+    }
+    tokopuyoSession.activePair = createGarbagePair(turn.placement.col);
+  } else if (turn) {
+    if (tokopuyoSession.garbageMode) {
+      setTokopuyoGarbageMode(tokopuyoSession, false);
+    }
+    setActivePairAtPlacement(
+      tokopuyoSession,
+      turn.placement.col,
+      turn.placement.orientation,
+    );
+  }
+}
+
+function stopPreviewPlayback() {
+  previewPlaying = false;
+  render();
+}
+
+function previewPrevious() {
+  if (appMode !== "preview" || previewAdvancing || !tokopuyoSession) return false;
+  previewPlaying = false;
+  if (!undoSession(tokopuyoSession)) return false;
+  clearTokopuyoSuggestions();
+  tokopuyoBoardOverride = null;
+  tokopuyoDisplayedChain = null;
+  positionPreviewCurrent();
+  render();
+  return true;
+}
+
+function previewJumpFirst() {
+  if (appMode !== "preview" || previewAdvancing || !tokopuyoSession) return;
+  previewPlaying = false;
+  while (undoSession(tokopuyoSession)) {}
+  clearTokopuyoSuggestions();
+  positionPreviewCurrent();
+  render();
+}
+
+function previewJumpLast() {
+  if (appMode !== "preview" || previewAdvancing || !tokopuyoSession) return;
+  previewPlaying = false;
+  while (redoSession(tokopuyoSession)) {}
+  clearTokopuyoSuggestions();
+  positionPreviewCurrent();
+  render();
+}
+
+async function previewNext() {
+  if (
+    appMode !== "preview" ||
+    previewAdvancing ||
+    !tokopuyoSession?.future.length
+  ) return false;
+
+  const revision = previewRevision;
+  const turn = previewNextTurn(tokopuyoSession);
+  const dropped = turn && turn.mode !== "garbage"
+    ? dropTsumo(
+      tokopuyoSession.board,
+      turn.current,
+      turn.placement.col,
+      turn.placement.orientation,
+      tokopuyoSession.row14,
+    )
+    : null;
+  const result = dropped ? simulate(dropped.board) : null;
+  previewAdvancing = true;
+  clearTokopuyoSuggestions();
+
+  if (dropped && result?.rounds.length) {
+    tokopuyoBoardOverride = dropped.board;
+    tokopuyoDisplayedChain = 0;
+    render();
+    await animateChainRounds({
+      lockedBoard: dropped.board,
+      rounds: result.rounds,
+      isCancelled: () => revision !== previewRevision || appMode !== "preview",
+      onFrame({ board: frameBoard, chain, clearingCells }) {
+        tokopuyoBoardOverride = frameBoard;
+        tokopuyoDisplayedChain = chain;
+        render();
+        clearingCells.forEach(({ row, col }) => {
+          boardEl.children[row * COLS + col]?.classList.add("clearing");
+        });
+      },
+    });
+  }
+
+  if (revision !== previewRevision || appMode !== "preview") return false;
+  redoSession(tokopuyoSession);
+  tokopuyoBoardOverride = null;
+  tokopuyoDisplayedChain = null;
+  previewAdvancing = false;
+  positionPreviewCurrent();
+  render();
+  return true;
+}
+
+async function playPreview() {
+  if (appMode !== "preview" || previewAdvancing || !tokopuyoSession?.future.length) return;
+  previewPlaying = true;
+  render();
+  while (previewPlaying && appMode === "preview" && tokopuyoSession.future.length) {
+    if (!await previewNext()) break;
+    if (previewPlaying && tokopuyoSession.future.length) {
+      await new Promise((resolve) => setTimeout(resolve, PREVIEW_HAND_DELAY_MS));
+    }
+  }
+  previewPlaying = false;
+  render();
 }
 
 function stepResolutionBoard(resolution) {
@@ -2616,7 +2834,8 @@ function stopTokopuyoSteps() {
 }
 
 async function dropTokopuyoPair() {
-  if (!tokopuyoSession || tokopuyoSession.busy || isSuggesting) return;
+  if (!tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.busy || isSuggesting) return;
+  const wasGarbageMode = tokopuyoSession.garbageMode;
   const committed = commitActivePair(tokopuyoSession);
   if (!committed) {
     const reason = tokopuyoSession.garbageMode
@@ -2629,6 +2848,9 @@ async function dropTokopuyoPair() {
       );
     showToast(t("message.tokopuyoDropRejected", reason), 2400);
     return;
+  }
+  if (!wasGarbageMode && !tokopuyoSession.activePair) {
+    extendSharedHistoryQueue();
   }
   clearTokopuyoSuggestions();
 
@@ -2680,6 +2902,7 @@ function performTokopuyoAction(action) {
   if (
     appMode !== "tokopuyo" ||
     !tokopuyoSession ||
+    !tokopuyoSession.activePair ||
     tokopuyoSession.busy ||
     tokopuyoSession.gameOver ||
     isSuggesting
@@ -2717,6 +2940,71 @@ function switchAppMode() {
     render();
   } else {
     importTokopuyoBoardToDrawing();
+  }
+}
+
+function switchPreviewMode() {
+  if (
+    appMode === "drawing" ||
+    isSuggesting ||
+    tokopuyoSession?.busy ||
+    tokopuyoStepResolution ||
+    previewAdvancing
+  ) return;
+  clearTokopuyoSuggestions();
+  if (appMode === "preview") {
+    previewRevision++;
+    previewPlaying = false;
+    extendSharedHistoryQueue();
+    appMode = "tokopuyo";
+    tokopuyoBoardOverride = null;
+    tokopuyoDisplayedChain = null;
+    render();
+    return;
+  }
+  if (tokopuyoSession?.garbageMode) {
+    setTokopuyoGarbageMode(tokopuyoSession, false);
+  }
+  cancelTokopuyoStepResolution();
+  previewPlaying = false;
+  appMode = "preview";
+  positionPreviewCurrent();
+  render();
+}
+
+function extendSharedHistoryQueue() {
+  const session = tokopuyoSession;
+  if (
+    !session?.sharedHistory ||
+    session.handIndex < session.pattern.hands.length
+  ) return;
+
+  const continuation = generatePattern(randomSeed());
+  const hands = Object.freeze([
+    ...session.pattern.hands,
+    ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
+  ]);
+  const colorsUsed = new Set([
+    ...session.board.flat().filter((color) => color && color !== "garbage"),
+    ...hands.flatMap(({ axis, child }) => [axis, child]),
+  ]);
+  const colors = [
+    ...COLORS.filter((color) => colorsUsed.has(color)).slice(0, 4),
+    ...COLORS.filter((color) => !colorsUsed.has(color)).slice(0, 4 - Math.min(4, colorsUsed.size)),
+  ];
+  session.pattern = Object.freeze({
+    ...session.pattern,
+    seed: null,
+    number: null,
+    colors: Object.freeze(colors),
+    hands,
+  });
+  session.coachingCompatible = colorsUsed.size <= 4;
+  const current = createActivePair(getTsumo(session.pattern, session.handIndex));
+  if (session.garbageMode) {
+    session.savedActivePair ||= current;
+  } else {
+    session.activePair = current;
   }
 }
 
@@ -2975,6 +3263,7 @@ document.querySelector("#clear").addEventListener("click", () => {
   render();
 });
 document.querySelector("#reset").addEventListener("click", () => {
+  if (appMode === "preview") return;
   if (appMode === "tokopuyo") {
     if (isSuggesting) return;
     cancelTokopuyoStepResolution();
@@ -3040,6 +3329,23 @@ document.querySelector("#toggleGarbage").addEventListener("click", () => {
 });
 document.querySelector("#cyclePalette").addEventListener("click", cyclePalette);
 toggleAppModeButton.addEventListener("click", switchAppMode);
+togglePreviewModeButton.addEventListener("click", switchPreviewMode);
+copyHistoryUrlButton.addEventListener("click", async () => {
+  if (appMode !== "preview" || !tokopuyoSession || previewAdvancing) return;
+  try {
+    await navigator.clipboard.writeText(createTokopuyoShareUrl(tokopuyoSession));
+    showToast(t("message.historyUrlCopied"), 3200);
+  } catch (error) {
+    console.error("Could not copy Tokopuyo history URL", error);
+    showToast(t("message.historyUrlCopyFailed"), 3200);
+  }
+});
+previewFirstButton.addEventListener("click", previewJumpFirst);
+previewBackButton.addEventListener("click", previewPrevious);
+previewForwardButton.addEventListener("click", () => { void previewNext(); });
+previewLastButton.addEventListener("click", previewJumpLast);
+previewPlayButton.addEventListener("click", () => { void playPreview(); });
+previewStopButton.addEventListener("click", stopPreviewPlayback);
 startTokopuyoFromDrawingButton.addEventListener("click", openCustomTokopuyo);
 searchTsumoButton.addEventListener("click", openTsumoSearch);
 closeTsumoSearchButton.addEventListener("click", closeTsumoSearch);
@@ -3211,6 +3517,17 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (appMode === "preview") {
+    if (key === "arrowleft") activate("#previewBack");
+    else if (key === "arrowright") activate("#previewForward");
+    else if (key === " ") {
+      activate(previewPlaying ? "#previewStop" : "#previewPlay");
+    } else if (key === "s") activate("#suggest");
+    else if (key === "a") activate("#attackSuggest");
+    else if (key === "i") activate("#reviewLastMove");
+    return;
+  }
+
   if (tokopuyoStepResolution) {
     if (key === "arrowleft") activate("#stepChainBack");
     else if (key === "arrowright") activate("#stepChainForward");
@@ -3243,5 +3560,6 @@ window.visualViewport?.addEventListener("resize", scheduleAppViewportSync);
 setLocale(getLocale());
 localizeDocument();
 syncAppViewport();
+if (appMode === "preview") positionPreviewCurrent();
 render();
 updatePaletteButton();
