@@ -788,14 +788,11 @@ body[data-mode="preview"] .board-card {
 
 .history-url-icon {
   display: block;
-  width: 29px;
-  height: 29px;
+  width: min(26px, calc(var(--sidebar-size) - 18px));
+  height: min(26px, calc(var(--sidebar-size) - 18px));
   margin: auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  color: #354049;
+  fill: currentColor;
 }
 
 .app-mode-btn {
