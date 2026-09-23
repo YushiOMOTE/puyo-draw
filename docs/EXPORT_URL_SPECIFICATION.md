@@ -13,7 +13,7 @@ The format supports:
 - a colorless special-fourteenth-row occupancy mask,
 - an arbitrary physical-color tsumo sequence that does not need to match a built-in Tokopuyo seed,
 - ordinary pair placements and one-puyo garbage drops in one ordered history, and
-- a fixed continuation after the recorded history by storing more tsumos than pair placements.
+- legacy URLs that contain a fixed continuation after the recorded history.
 
 The format does not store derived fields, chain counts, scores, animation state, the active pair's transient position, or a Tokopuyo seed as replay authority.
 
@@ -48,7 +48,7 @@ The sequence is replay authority. Decoding must not regenerate stored tsumos fro
 
 An empty sequence is valid. In that case, pair-placement count must be zero, and replay has no normal active pair or Next/Next Next previews. The decoder must not invent a queue to fill the empty sequence.
 
-A sequence may contain additional tsumos after the recorded history. These represent a fixed continuation that may be used after replay reaches the last stored operation.
+A decoder must accept sequences that contain additional tsumos after the recorded history for compatibility with existing version 1 URLs. These legacy tails represent a fixed continuation after replay reaches the last stored operation. Newly encoded URLs do not include such continuation: their sequence contains exactly one tsumo for each pair-placement operation in the complete retained timeline. An unplaced Current pair and any other unused queue entries are not part of the exported history. Garbage operations do not add sequence entries.
 
 The URL format does not define what the application should generate after the stored sequence itself is exhausted.
 
@@ -315,6 +315,7 @@ A version 1 encoder must produce a single canonical byte representation for the 
 
 - reserved header bits are zero,
 - an explicit initial state is used only when it contains board or row-14 occupancy,
+- the sequence contains exactly one tsumo per pair-placement operation and no unused continuation,
 - unsigned LEB128 values use their shortest representation,
 - all section padding bits are zero,
 - reserved cell, column, and operation values are never emitted,

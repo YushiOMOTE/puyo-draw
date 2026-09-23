@@ -338,7 +338,7 @@ function encodePayload(session) {
   const { initial, moves } = historyTimeline(session);
   if (moves.length > MAX_MOVES) throw new RangeError("Tokopuyo history is too long to share");
   const pairCount = moves.filter((move) => move.kind === "pair").length;
-  const sequenceCount = Math.max(session.pattern.hands.length, pairCount);
+  const sequenceCount = pairCount;
   if (sequenceCount > MAX_SEQUENCE) {
     throw new RangeError("Tokopuyo queue is too long to share");
   }

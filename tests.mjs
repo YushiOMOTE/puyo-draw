@@ -2057,6 +2057,30 @@ assert.equal(redoSession(goldenShareReplay), true);
 assert.equal(goldenShareReplay.board[ROWS - 1][2], "red");
 assert.equal(goldenShareReplay.board[ROWS - 1][3], "blue");
 
+const legacyContinuationReplay = loadTokopuyoHistory(
+  encodeReplayTestBytes([0x10, 2, 0x2e, 0x20, 1, 0x24]),
+);
+assert.equal(legacyContinuationReplay.pattern.hands.length, 2);
+assert.equal(legacyContinuationReplay.future.length, 1);
+assert.equal(redoSession(legacyContinuationReplay), true);
+assert.deepEqual(legacyContinuationReplay.lastTurn.next, {
+  axis: "yellow",
+  child: "green",
+});
+assert.equal(
+  createTokopuyoShareUrl(legacyContinuationReplay, "https://puyo.example/simulator"),
+  goldenShareUrl,
+);
+
+const unplacedCurrentSession = createShareTestSession([
+  { axis: "red", child: "blue" },
+]);
+assert.ok(unplacedCurrentSession.activePair);
+assert.equal(
+  createTokopuyoShareUrl(unplacedCurrentSession, "https://puyo.example/simulator"),
+  "https://puyo.example/simulator#r=EAAA",
+);
+
 const emptyQueueSession = createShareTestSession([]);
 emptyQueueSession.customOpening = true;
 assert.equal(
@@ -2096,6 +2120,22 @@ const explicitShareReplay = loadTokopuyoHistory(explicitSharePayload);
 assert.deepEqual(explicitShareReplay.board, explicitShareSession.board);
 assert.equal(explicitShareReplay.row14, 0b101001);
 
+const omittedCurrentSession = createShareTestSession([
+  { axis: "red", child: "blue" },
+  { axis: "yellow", child: "green" },
+]);
+assert.ok(commitPairAtPlacement(omittedCurrentSession, 2, ORIENTATION.RIGHT));
+assert.deepEqual(omittedCurrentSession.activePair.axisColor, "yellow");
+const omittedCurrentUrl = createTokopuyoShareUrl(
+  omittedCurrentSession,
+  "https://puyo.example/",
+);
+const omittedCurrentReplay = loadTokopuyoHistory(new URL(omittedCurrentUrl).hash.slice(3));
+assert.equal(omittedCurrentReplay.pattern.hands.length, 1);
+assert.equal(redoSession(omittedCurrentReplay), true);
+assert.equal(omittedCurrentReplay.lastTurn.next, null);
+assert.equal(omittedCurrentReplay.activePair, null);
+
 const mixedShareSession = createShareTestSession([
   { axis: "red", child: "blue" },
   { axis: "yellow", child: "green" },
@@ -2122,6 +2162,7 @@ assert.equal(
 const mixedSharePayload = new URL(fullMixedShareUrl).hash.slice(3);
 const mixedShareReplay = loadTokopuyoHistory(mixedSharePayload);
 assert.equal(mixedShareReplay.future.length, 3);
+assert.equal(mixedShareReplay.pattern.hands.length, 2);
 assert.deepEqual(previewRecordedHands(mixedShareReplay), [
   getTsumo(mixedShareReplay.pattern, 1),
   null,
