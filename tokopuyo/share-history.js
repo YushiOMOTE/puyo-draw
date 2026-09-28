@@ -451,6 +451,7 @@ export function loadTokopuyoHistory(payload) {
   restoreSessionSnapshot(session, initialSnapshot);
   session.history = [];
   session.future = posts.reverse();
+  session.recordedHandCount = hands.length;
   session.activePair = hands.length ? createActivePair(getTsumo(pattern, 0)) : null;
   return session;
 }

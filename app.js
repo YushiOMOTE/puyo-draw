@@ -995,6 +995,7 @@ function redo() {
     if (isSuggesting) return;
     cancelTokopuyoStepResolution();
     if (!tokopuyoSession || !redoSession(tokopuyoSession)) return;
+    extendTokopuyoSharedHistoryQueue(tokopuyoSession);
     clearTokopuyoSuggestions();
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
@@ -2836,7 +2837,6 @@ function stopTokopuyoSteps() {
 
 async function dropTokopuyoPair() {
   if (!tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.busy || isSuggesting) return;
-  const wasGarbageMode = tokopuyoSession.garbageMode;
   const committed = commitActivePair(tokopuyoSession);
   if (!committed) {
     const reason = tokopuyoSession.garbageMode
@@ -2850,9 +2850,7 @@ async function dropTokopuyoPair() {
     showToast(t("message.tokopuyoDropRejected", reason), 2400);
     return;
   }
-  if (!wasGarbageMode && !tokopuyoSession.activePair) {
-    extendSharedHistoryQueue();
-  }
+  extendTokopuyoSharedHistoryQueue(tokopuyoSession);
   clearTokopuyoSuggestions();
 
   if (tokopuyoStepMode && committed.result.chains) {
@@ -2938,6 +2936,7 @@ function switchAppMode() {
   if (appMode === "drawing") {
     appMode = "tokopuyo";
     if (!tokopuyoSession) tokopuyoSession = createSession(randomSeed());
+    extendTokopuyoSharedHistoryQueue(tokopuyoSession);
     render();
   } else {
     importTokopuyoBoardToDrawing();

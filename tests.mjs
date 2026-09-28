@@ -2106,6 +2106,35 @@ assert.ok(previewHands(continuationReplay).every(Boolean));
 assert.equal(continuationReplay.coachingCompatible, true);
 assert.equal(extendSharedHistoryQueue(continuationReplay), false);
 
+const redoContinuationSource = createSession(0);
+for (let hand = 0; hand < 3; hand++) {
+  assert.ok(commitActivePair(redoContinuationSource));
+}
+const redoContinuationReplay = loadTokopuyoHistory(
+  new URL(createTokopuyoShareUrl(
+    redoContinuationSource,
+    "https://puyo.example/simulator",
+  )).hash.slice(3),
+);
+assert.equal(extendSharedHistoryQueue(redoContinuationReplay, () => 0), false);
+assert.ok(previewHands(redoContinuationReplay).every(Boolean));
+assert.equal(redoSession(redoContinuationReplay), true);
+assert.equal(extendSharedHistoryQueue(redoContinuationReplay, () => 0), true);
+assert.ok(previewHands(redoContinuationReplay).every(Boolean));
+assert.deepEqual(previewRecordedHands(redoContinuationReplay), [
+  getTsumo(redoContinuationReplay.pattern, 2),
+  null,
+]);
+for (let hand = 0; hand < 2; hand++) {
+  assert.equal(redoSession(redoContinuationReplay), true);
+  assert.equal(extendSharedHistoryQueue(redoContinuationReplay), false);
+  assert.ok(previewHands(redoContinuationReplay).every(Boolean));
+}
+assert.deepEqual(redoContinuationReplay.lastTurn.next, {
+  axis: redoContinuationReplay.activePair.axisColor,
+  child: redoContinuationReplay.activePair.childColor,
+});
+
 const unplacedCurrentSession = createShareTestSession([
   { axis: "red", child: "blue" },
 ]);

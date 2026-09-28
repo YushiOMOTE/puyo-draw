@@ -238,47 +238,45 @@ export function createSession(seed) {
   };
 }
 
-/**
- * Continue an imported shared replay after its recorded queue is exhausted.
- * Keep the replay's inferred palette so the continuation stays compatible with
- * Ama analysis for ordinary four-color histories.
- */
+/** Keep Current and both lookahead pairs available while playing a shared replay. */
 export function extendSharedHistoryQueue(session, random = Math.random) {
-  if (
-    !session?.sharedHistory ||
-    session.handIndex < session.pattern.hands.length
-  ) return false;
+  if (!session?.sharedHistory) return false;
 
-  const continuation = generatePattern(
-    randomSeedForPalette(session.pattern.colors, random),
-  );
-  const hands = Object.freeze([
-    ...session.pattern.hands,
-    ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
-  ]);
-  const colorsUsed = new Set([
-    ...session.board.flat().filter((color) => color && color !== GARBAGE),
-    ...hands.flatMap(({ axis, child }) => [axis, child]),
-  ]);
-  session.pattern = Object.freeze({
-    ...session.pattern,
-    seed: null,
-    number: null,
-    colors: Object.freeze([...session.pattern.colors]),
-    hands,
-  });
-  session.coachingCompatible = colorsUsed.size <= 4;
+  const needsContinuation = session.handIndex + 2 >= session.pattern.hands.length;
+  if (needsContinuation) {
+    const continuation = generatePattern(
+      randomSeedForPalette(session.pattern.colors, random),
+    );
+    const hands = Object.freeze([
+      ...session.pattern.hands,
+      ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
+    ]);
+    const colorsUsed = new Set([
+      ...session.board.flat().filter((color) => color && color !== GARBAGE),
+      ...hands.flatMap(({ axis, child }) => [axis, child]),
+    ]);
+    session.pattern = Object.freeze({
+      ...session.pattern,
+      seed: null,
+      number: null,
+      colors: Object.freeze([...session.pattern.colors]),
+      hands,
+    });
+    session.coachingCompatible = colorsUsed.size <= 4;
+  }
 
-  const current = createActivePair(getTsumo(session.pattern, session.handIndex));
-  if (session.garbageMode) {
-    session.savedActivePair ||= current;
-  } else {
-    session.activePair = current;
+  const currentTsumo = sessionTsumoAt(session, session.handIndex);
+  if (currentTsumo) {
+    if (session.garbageMode) {
+      session.savedActivePair ||= createActivePair(currentTsumo);
+    } else {
+      session.activePair ||= createActivePair(currentTsumo);
+    }
+    if (session.lastTurn && !session.lastTurn.next) {
+      session.lastTurn.next = { ...currentTsumo };
+    }
   }
-  if (session.lastTurn) {
-    session.lastTurn.next = { ...getTsumo(session.pattern, session.handIndex) };
-  }
-  return true;
+  return needsContinuation;
 }
 
 export function queueIdentity(session) {
@@ -345,11 +343,13 @@ export function previewRecordedHands(session) {
   const upcomingTurn = futureTurns[0];
   const firstLookaheadIndex = session.handIndex +
     (upcomingTurn?.mode === "garbage" ? 0 : 1);
-  return [1, 2].map((offset) =>
-    futurePairCount >= offset
-      ? sessionTsumoAt(session, firstLookaheadIndex + offset - 1)
-      : null
-  );
+  return [1, 2].map((offset) => {
+    const index = firstLookaheadIndex + offset - 1;
+    return futurePairCount >= offset &&
+      (!session.sharedHistory || index < session.recordedHandCount)
+      ? sessionTsumoAt(session, index)
+      : null;
+  });
 }
 
 /** Return the recorded placement immediately after the current history cursor. */
@@ -431,6 +431,7 @@ function commitDroppedPair(session, dropped) {
   session.board = result.state;
   session.row14 = dropped.row14;
   session.handIndex++;
+  if (session.sharedHistory) session.recordedHandCount = session.handIndex;
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
