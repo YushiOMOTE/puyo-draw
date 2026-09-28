@@ -74,6 +74,7 @@ import {
   commitPairAtPlacement,
   createSession,
   createSessionFromPosition,
+  extendSharedHistoryQueue,
   previewHands,
   previewNextTurn,
   previewRecordedHands,
@@ -2071,6 +2072,39 @@ assert.equal(
   createTokopuyoShareUrl(legacyContinuationReplay, "https://puyo.example/simulator"),
   goldenShareUrl,
 );
+
+const continuationSource = createSession(0);
+assert.ok(commitActivePair(continuationSource));
+const continuationUrl = createTokopuyoShareUrl(
+  continuationSource,
+  "https://puyo.example/simulator",
+);
+const continuationReplay = loadTokopuyoHistory(
+  new URL(continuationUrl).hash.slice(3),
+);
+assert.equal(redoSession(continuationReplay), true);
+assert.equal(continuationReplay.lastTurn.next, null);
+const replayPalette = [...continuationReplay.pattern.colors];
+const replayHandCount = continuationReplay.pattern.hands.length;
+assert.equal(
+  extendSharedHistoryQueue(continuationReplay, () => 0),
+  true,
+);
+assert.deepEqual(continuationReplay.pattern.colors, replayPalette);
+assert.ok(
+  continuationReplay.pattern.hands
+    .slice(replayHandCount)
+    .flatMap(({ axis, child }) => [axis, child])
+    .every((color) => replayPalette.includes(color)),
+);
+assert.ok(continuationReplay.activePair);
+assert.deepEqual(continuationReplay.lastTurn.next, {
+  axis: continuationReplay.activePair.axisColor,
+  child: continuationReplay.activePair.childColor,
+});
+assert.ok(previewHands(continuationReplay).every(Boolean));
+assert.equal(continuationReplay.coachingCompatible, true);
+assert.equal(extendSharedHistoryQueue(continuationReplay), false);
 
 const unplacedCurrentSession = createShareTestSession([
   { axis: "red", child: "blue" },

@@ -45,6 +45,7 @@ import {
   commitActivePair,
   createSession,
   createSessionFromPosition,
+  extendSharedHistoryQueue as extendTokopuyoSharedHistoryQueue,
   previewHands,
   previewNextTurn,
   previewRecordedHands,
@@ -2955,7 +2956,7 @@ function switchPreviewMode() {
   if (appMode === "preview") {
     previewRevision++;
     previewPlaying = false;
-    extendSharedHistoryQueue();
+    extendTokopuyoSharedHistoryQueue(tokopuyoSession);
     appMode = "tokopuyo";
     tokopuyoBoardOverride = null;
     tokopuyoDisplayedChain = null;
@@ -2970,42 +2971,6 @@ function switchPreviewMode() {
   appMode = "preview";
   positionPreviewCurrent();
   render();
-}
-
-function extendSharedHistoryQueue() {
-  const session = tokopuyoSession;
-  if (
-    !session?.sharedHistory ||
-    session.handIndex < session.pattern.hands.length
-  ) return;
-
-  const continuation = generatePattern(randomSeed());
-  const hands = Object.freeze([
-    ...session.pattern.hands,
-    ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
-  ]);
-  const colorsUsed = new Set([
-    ...session.board.flat().filter((color) => color && color !== "garbage"),
-    ...hands.flatMap(({ axis, child }) => [axis, child]),
-  ]);
-  const colors = [
-    ...COLORS.filter((color) => colorsUsed.has(color)).slice(0, 4),
-    ...COLORS.filter((color) => !colorsUsed.has(color)).slice(0, 4 - Math.min(4, colorsUsed.size)),
-  ];
-  session.pattern = Object.freeze({
-    ...session.pattern,
-    seed: null,
-    number: null,
-    colors: Object.freeze(colors),
-    hands,
-  });
-  session.coachingCompatible = colorsUsed.size <= 4;
-  const current = createActivePair(getTsumo(session.pattern, session.handIndex));
-  if (session.garbageMode) {
-    session.savedActivePair ||= current;
-  } else {
-    session.activePair = current;
-  }
 }
 
 function importTokopuyoBoardToDrawing() {

@@ -238,6 +238,49 @@ export function createSession(seed) {
   };
 }
 
+/**
+ * Continue an imported shared replay after its recorded queue is exhausted.
+ * Keep the replay's inferred palette so the continuation stays compatible with
+ * Ama analysis for ordinary four-color histories.
+ */
+export function extendSharedHistoryQueue(session, random = Math.random) {
+  if (
+    !session?.sharedHistory ||
+    session.handIndex < session.pattern.hands.length
+  ) return false;
+
+  const continuation = generatePattern(
+    randomSeedForPalette(session.pattern.colors, random),
+  );
+  const hands = Object.freeze([
+    ...session.pattern.hands,
+    ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
+  ]);
+  const colorsUsed = new Set([
+    ...session.board.flat().filter((color) => color && color !== GARBAGE),
+    ...hands.flatMap(({ axis, child }) => [axis, child]),
+  ]);
+  session.pattern = Object.freeze({
+    ...session.pattern,
+    seed: null,
+    number: null,
+    colors: Object.freeze([...session.pattern.colors]),
+    hands,
+  });
+  session.coachingCompatible = colorsUsed.size <= 4;
+
+  const current = createActivePair(getTsumo(session.pattern, session.handIndex));
+  if (session.garbageMode) {
+    session.savedActivePair ||= current;
+  } else {
+    session.activePair = current;
+  }
+  if (session.lastTurn) {
+    session.lastTurn.next = { ...getTsumo(session.pattern, session.handIndex) };
+  }
+  return true;
+}
+
 export function queueIdentity(session) {
   return [
     session.pattern.colors.join(","),
