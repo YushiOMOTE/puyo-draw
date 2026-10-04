@@ -795,8 +795,7 @@ function render() {
     !isPractice || isPreview || isSuggesting || Boolean(tokopuyoSession?.busy) || Boolean(tokopuyoStepResolution);
   toggleTokopuyoStepModeButton.disabled =
     !isPractice || isPreview || isSuggesting || Boolean(tokopuyoStepResolution);
-  document.querySelectorAll(".pair-control-btn").forEach((button) => {
-    if (button.closest("#tokopuyoStepControls")) return;
+  document.querySelectorAll("#tokopuyoControls .pair-control-btn").forEach((button) => {
     button.disabled = appMode !== "tokopuyo" || tokopuyoBusy || isSuggesting || !tokopuyoSession || !tokopuyoSession.activePair || tokopuyoSession.gameOver;
   });
   ["#rotatePairLeft", "#rotatePairRight"].forEach((selector) => {

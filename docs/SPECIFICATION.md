@@ -158,6 +158,8 @@ The rail uses square icon buttons without explanatory labels in the compact layo
 
 Long-pressing the board or controls must not enter browser text-selection or touch-callout mode.
 
+Repeated taps on the bottom control bars, including their gaps and disabled controls, must not trigger double-tap zoom. Pinch zoom remains available on these bars. Bottom buttons use custom appearance in both enabled and disabled states; disabled buttons are dimmed without replacing their backgrounds, and Play retains its red background.
+
 The document itself must not scroll on mobile; the field and controls fit within the app's actual available area, including device safe-area insets, by reducing the field size when necessary.
 
 The Help button opens a modal instruction overlay. The overlay contains a visual example of the radial flick menu and a two-column control table: the left column clones each live control so its design stays synchronized with the application, and the right column explains it. Control previews are always enabled, regardless of the corresponding live control's temporary state. Drawing mode uses one table ordered by the right-side rail controls followed by the left-side rail controls. Tokopuyo uses three tables: sidebar controls ordered by the right-side rail followed by the left-side rail, tsumo controls, and chain-step controls shown while a step resolution is active. It closes from the top-right close button, by clicking outside the card, or with the Escape key. The help card scrolls internally when its content exceeds the viewport; the page behind it must not scroll.

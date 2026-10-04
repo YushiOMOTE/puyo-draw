@@ -160,6 +160,39 @@
       click("previewBack");
       lookahead(false, false);
     });
+    await test("Repeated Next preserves Play state and playback recovers after rewind", async () => {
+      await navigate(() => frame.contentWindow.location.reload());
+      const mutations = [];
+      const observer = new frame.contentWindow.MutationObserver((records) => mutations.push(...records));
+      observer.observe(element("previewPlay"), { attributes: true, attributeFilter: ["disabled"] });
+      try {
+        click("previewForward");
+        await Promise.resolve();
+        assert(!element("previewPlay").disabled, "Play did not remain available between non-clearing moves");
+        assert(mutations.length === 0, "Rendering unnecessarily toggled Play's disabled state");
+      } finally {
+        observer.disconnect();
+      }
+      for (let tap = 0; tap < 10; tap++) element("previewForward").click();
+      await until(() => element("previewForward").disabled && !element("previewBack").disabled,
+        "Repeated Next did not finish the replay");
+      assert(element("previewPlay").disabled, "Play should be unavailable at the end");
+      click("previewFirst");
+      assert(!element("previewPlay").disabled, "Rewinding did not restore Play");
+      click("previewPlay");
+      await until(() => element("previewStop").disabled, "Playback did not finish");
+      assert(element("previewForward").disabled, "Playback did not reach the end");
+    });
+    await test("Bottom controls retain custom styling and suppress double-tap zoom in gaps", async () => {
+      const style = (target) => frame.contentWindow.getComputedStyle(target);
+      for (const id of ["tokopuyoControls", "tokopuyoStepControls", "previewControls"]) {
+        assert(style(element(id)).touchAction === "manipulation", `${id} allows double-tap zoom in gaps`);
+      }
+      const playStyle = style(element("previewPlay"));
+      assert(playStyle.appearance === "none", "Play still uses native button appearance");
+      assert(playStyle.backgroundImage.includes("linear-gradient"), "Disabled Play lost its red background");
+      assert(Number(playStyle.opacity) < 1, "Disabled Play is not visually distinguished");
+    });
     results.dataset.status = "passed";
     results.textContent += `\nAll ${logs.length} browser regression tests passed.`;
   } catch (error) {
