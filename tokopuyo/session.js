@@ -109,10 +109,24 @@ function customPattern(pattern, openingHands) {
     hands: Object.freeze(hands),
   });
 }
+
+function sessionTsumoAt(session, handIndex) {
+  if (!session.pattern?.hands?.length) return null;
+  if (session.sharedHistory && handIndex >= session.pattern.hands.length) return null;
+  return getTsumo(session.pattern, handIndex);
+}
+
+function activePairAt(session, handIndex) {
+  const tsumo = sessionTsumoAt(session, handIndex);
+  return tsumo ? createActivePair(tsumo) : null;
+}
+
 function pairAtPlacement(session, col, orientation) {
+  const tsumo = sessionTsumoAt(session, session.handIndex);
+  if (!tsumo) return null;
   return createPairAtPlacement(
     session.board,
-    getTsumo(session.pattern, session.handIndex),
+    tsumo,
     col,
     orientation,
     session.row14,
@@ -142,11 +156,12 @@ function pairAtColumn(session, col, direction) {
 function cloneLastTurn(lastTurn) {
   if (!lastTurn) return null;
   return {
+    mode: lastTurn.mode || "pair",
     beforeBoard: clone(lastTurn.beforeBoard),
     beforeRow14: lastTurn.beforeRow14,
     handIndex: lastTurn.handIndex,
     current: { ...lastTurn.current },
-    next: { ...lastTurn.next },
+    next: lastTurn.next ? { ...lastTurn.next } : null,
     placement: {
       ...lastTurn.placement,
       cells: lastTurn.placement.cells.map((cell) => ({ ...cell })),
@@ -178,6 +193,15 @@ function canonicalSnapshot(session) {
   };
 }
 
+// Shared-history loading uses the same atomic state as Undo and Redo.
+export function snapshotSession(session) {
+  return canonicalSnapshot(session);
+}
+
+export function restoreSessionSnapshot(session, snapshot) {
+  restoreSnapshot(session, snapshot);
+}
+
 function restoreSnapshot(session, snapshot) {
   session.board = clone(snapshot.board);
   session.row14 = snapshot.row14 ?? 0;
@@ -190,7 +214,7 @@ function restoreSnapshot(session, snapshot) {
   session.savedActivePair = cloneActivePair(snapshot.savedActivePair);
   session.activePair = session.garbageMode
     ? cloneActivePair(snapshot.activePair) || createGarbagePair()
-    : createActivePair(getTsumo(session.pattern, session.handIndex));
+    : activePairAt(session, session.handIndex);
 }
 
 export function createSession(seed) {
@@ -212,6 +236,56 @@ export function createSession(seed) {
     history: [],
     future: [],
   };
+}
+
+/** Keep Current and both lookahead pairs available while playing a shared replay. */
+export function extendSharedHistoryQueue(session, random = Math.random) {
+  if (!session?.sharedHistory) return false;
+
+  const needsContinuation = session.handIndex + 2 >= session.pattern.hands.length;
+  if (needsContinuation) {
+    const continuation = generatePattern(
+      randomSeedForPalette(session.pattern.colors, random),
+    );
+    const hands = Object.freeze([
+      ...session.pattern.hands,
+      ...continuation.hands.map((hand) => Object.freeze({ ...hand })),
+    ]);
+    const colorsUsed = new Set([
+      ...session.board.flat().filter((color) => color && color !== GARBAGE),
+      ...hands.flatMap(({ axis, child }) => [axis, child]),
+    ]);
+    session.pattern = Object.freeze({
+      ...session.pattern,
+      seed: null,
+      number: null,
+      colors: Object.freeze([...session.pattern.colors]),
+      hands,
+    });
+    session.coachingCompatible = colorsUsed.size <= 4;
+  }
+
+  const currentTsumo = sessionTsumoAt(session, session.handIndex);
+  if (currentTsumo) {
+    if (session.garbageMode) {
+      session.savedActivePair ||= createActivePair(currentTsumo);
+    } else {
+      session.activePair ||= createActivePair(currentTsumo);
+    }
+    if (session.lastTurn && !session.lastTurn.next) {
+      session.lastTurn.next = { ...currentTsumo };
+    }
+  }
+  return needsContinuation;
+}
+
+export function queueIdentity(session) {
+  return [
+    session.pattern.colors.join(","),
+    session.pattern.hands
+      .map(({ axis, child }) => `${axis},${child}`)
+      .join(";"),
+  ].join("|");
 }
 
 /**
@@ -254,13 +328,41 @@ export const createSessionFromBoard = createSessionFromPosition;
 
 export function previewHands(session) {
   return [
-    getTsumo(session.pattern, session.handIndex + 1),
-    getTsumo(session.pattern, session.handIndex + 2),
+    sessionTsumoAt(session, session.handIndex + 1),
+    sessionTsumoAt(session, session.handIndex + 2),
   ];
 }
 
+/** Return only upcoming pairs that are backed by recorded Redo history. */
+export function previewRecordedHands(session) {
+  if (!session.pattern?.hands?.length) return [null, null];
+  const futureTurns = [...session.future].reverse()
+    .map((snapshot) => snapshot.lastTurn)
+    .filter(Boolean);
+  const futurePairCount = futureTurns.filter((turn) => turn.mode !== "garbage").length;
+  const upcomingTurn = futureTurns[0];
+  const currentPairCount = upcomingTurn && upcomingTurn.mode !== "garbage" ? 1 : 0;
+  const firstLookaheadIndex = session.handIndex +
+    (upcomingTurn?.mode === "garbage" ? 0 : 1);
+  return [1, 2].map((offset) => {
+    const index = firstLookaheadIndex + offset - 1;
+    return futurePairCount - currentPairCount >= offset &&
+      (!session.sharedHistory || index < session.recordedHandCount)
+      ? sessionTsumoAt(session, index)
+      : null;
+  });
+}
+
+/** Return the recorded placement immediately after the current history cursor. */
+export function previewNextTurn(session) {
+  const snapshot = session.future.at(-1);
+  return snapshot?.lastTurn?.handIndex === session.handIndex
+    ? cloneLastTurn(snapshot.lastTurn)
+    : null;
+}
+
 export function actOnPair(session, action) {
-  if (session.busy || session.gameOver) return false;
+  if (session.busy || session.gameOver || !session.activePair) return false;
   const before = session.activePair;
   if (action === "left") {
     session.activePair = movePair(session.board, before, -1);
@@ -307,7 +409,7 @@ export function setGarbageMode(session, enabled) {
     session.activePair = createGarbagePair();
   } else {
     session.activePair = cloneActivePair(session.savedActivePair) ||
-      createActivePair(getTsumo(session.pattern, session.handIndex));
+      activePairAt(session, session.handIndex);
     session.savedActivePair = null;
   }
   session.garbageMode = next;
@@ -323,13 +425,14 @@ function commitDroppedPair(session, dropped) {
     axis: dropped.pair.axisColor,
     child: dropped.pair.childColor,
   };
-  const next = getTsumo(session.pattern, session.handIndex + 1);
+  const next = sessionTsumoAt(session, session.handIndex + 1);
   const result = simulate(dropped.board);
   session.history.push(before);
   session.future = [];
   session.board = result.state;
   session.row14 = dropped.row14;
   session.handIndex++;
+  if (session.sharedHistory) session.recordedHandCount = session.handIndex;
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
@@ -338,7 +441,7 @@ function commitDroppedPair(session, dropped) {
     beforeRow14: before.row14,
     handIndex: before.handIndex,
     current: { ...current },
-    next: { ...next },
+    next: next ? { ...next } : null,
     placement: {
       col: dropped.pair.axis.col,
       orientation: dropped.pair.orientation,
@@ -350,9 +453,7 @@ function commitDroppedPair(session, dropped) {
       gameOver: session.gameOver,
     },
   };
-  session.activePair = createActivePair(
-    getTsumo(session.pattern, session.handIndex),
-  );
+  session.activePair = activePairAt(session, session.handIndex);
 
   return {
     droppedPair: dropped.pair,
@@ -381,7 +482,24 @@ function commitDroppedGarbage(session, dropped) {
   session.chainCount = result.chains;
   session.cumulativeScore = result.score;
   session.gameOver = Boolean(session.board[HIDDEN_ROWS][CHOKE_COL]);
-  session.lastTurn = null;
+  session.lastTurn = {
+    mode: "garbage",
+    beforeBoard: clone(before.board),
+    beforeRow14: before.row14,
+    handIndex: before.handIndex,
+    current: { axis: GARBAGE, child: null },
+    next: sessionTsumoAt(session, before.handIndex),
+    placement: {
+      col: dropped.pair.axis.col,
+      orientation: dropped.pair.orientation,
+      cells: dropped.cells.map((cell) => ({ ...cell })),
+    },
+    result: {
+      chains: result.chains,
+      score: result.score,
+      gameOver: session.gameOver,
+    },
+  };
   session.activePair = createGarbagePair(dropped.pair.axis.col);
 
   return {
@@ -393,6 +511,7 @@ function commitDroppedGarbage(session, dropped) {
 }
 
 export function commitActivePair(session) {
+  if (!session.activePair) return null;
   return commitPair(session, session.activePair);
 }
 
@@ -423,9 +542,11 @@ export function commitPairAtPlacement(session, col, orientation) {
     throw new RangeError("Unsupported Tokopuyo placement orientation");
   }
 
+  const tsumo = sessionTsumoAt(session, session.handIndex);
+  if (!tsumo) return null;
   const dropped = dropTsumo(
     session.board,
-    getTsumo(session.pattern, session.handIndex),
+    tsumo,
     col,
     orientation,
     session.row14,

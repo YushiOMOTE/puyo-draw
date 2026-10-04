@@ -85,7 +85,8 @@ button {
   width: 100%;
 }
 
-body[data-mode="tokopuyo"] .tokopuyo-field-stack {
+body[data-mode="tokopuyo"] .tokopuyo-field-stack,
+body[data-mode="preview"] .tokopuyo-field-stack {
   transform: translateY(14px);
 }
 
@@ -98,7 +99,8 @@ body[data-mode="tokopuyo"] .tokopuyo-field-stack {
   white-space: nowrap;
 }
 
-body[data-mode="tokopuyo"] .board-card {
+body[data-mode="tokopuyo"] .board-card,
+body[data-mode="preview"] .board-card {
   touch-action: none;
 }
 
@@ -120,7 +122,8 @@ body[data-mode="tokopuyo"] .board-card {
     width: min(100cqw, calc(46.153cqh + 7.539px));
   }
 
-  body[data-mode="tokopuyo"] .board-wrap {
+  body[data-mode="tokopuyo"] .board-wrap,
+  body[data-mode="preview"] .board-wrap {
     /* Leave room for the score, lower controls, and pair preview. */
     width: min(100cqw, calc(42.857cqh + 7.539px));
   }
@@ -768,6 +771,27 @@ body[data-mode="tokopuyo"] .board-card {
   height: 30px;
   margin: auto;
   color: #4f5b73;
+  fill: currentColor;
+}
+
+.preview-mode-icon {
+  display: block;
+  width: 31px;
+  height: 31px;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.history-url-icon {
+  display: block;
+  width: min(26px, calc(var(--sidebar-size) - 18px));
+  height: min(26px, calc(var(--sidebar-size) - 18px));
+  margin: auto;
+  color: inherit;
   fill: currentColor;
 }
 
