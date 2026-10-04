@@ -3519,6 +3519,8 @@ document.addEventListener("keydown", (event) => {
 });
 window.addEventListener("resize", scheduleAppViewportSync);
 window.addEventListener("pageshow", restoreAppViewport);
+// Reuse startup loading and discard asynchronous work from the previous URL.
+window.addEventListener("hashchange", () => window.location.reload());
 window.visualViewport?.addEventListener("resize", scheduleAppViewportSync);
 
 setLocale(getLocale());

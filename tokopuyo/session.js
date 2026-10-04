@@ -341,11 +341,12 @@ export function previewRecordedHands(session) {
     .filter(Boolean);
   const futurePairCount = futureTurns.filter((turn) => turn.mode !== "garbage").length;
   const upcomingTurn = futureTurns[0];
+  const currentPairCount = upcomingTurn && upcomingTurn.mode !== "garbage" ? 1 : 0;
   const firstLookaheadIndex = session.handIndex +
     (upcomingTurn?.mode === "garbage" ? 0 : 1);
   return [1, 2].map((offset) => {
     const index = firstLookaheadIndex + offset - 1;
-    return futurePairCount >= offset &&
+    return futurePairCount - currentPairCount >= offset &&
       (!session.sharedHistory || index < session.recordedHandCount)
       ? sessionTsumoAt(session, index)
       : null;

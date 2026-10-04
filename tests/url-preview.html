@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URL and Preview regression tests</title>
+<style>
+  body { margin: 16px; font: 16px system-ui; }
+  iframe { width: 390px; max-width: 100%; height: 844px; border: 1px solid #aaa; }
+</style>
+<h1>URL and Preview regression tests</h1>
+<p>Run with <code>npm run dev</code>, then open <code>/tests/url-preview.html</code>.</p>
+<pre id="results" role="status">Running...</pre>
+<iframe id="app" title="Mobile app under test"></iframe>
+<script type="module">
+  import { createSession, createSessionFromPosition, commitActivePair, commitPairAtPlacement } from "../tokopuyo/session.js";
+  import { emptyBoard, ROWS } from "../engine.js";
+  import { ORIENTATION } from "../tokopuyo/pair-engine.js";
+  import { createTokopuyoShareUrl } from "../tokopuyo/share-history.js";
+
+  const frame = document.querySelector("#app");
+  const results = document.querySelector("#results");
+  const base = new URL("../", location.href).href;
+  const session = createSession(0);
+  const emptyUrl = createTokopuyoShareUrl(session, base);
+  commitActivePair(session);
+  const oneMoveUrl = createTokopuyoShareUrl(session, base);
+  commitActivePair(session);
+  commitActivePair(session);
+  const threeMoveUrl = createTokopuyoShareUrl(session, base);
+  const chainBoard = emptyBoard();
+  chainBoard[ROWS - 1].splice(0, 3, "red", "red", "red");
+  const chainSession = createSessionFromPosition({
+    board: chainBoard,
+    palette: ["red", "green", "blue", "yellow"],
+    openingHands: Array.from({ length: 3 }, () => ({ axis: "red", child: "blue" })),
+  }, () => 0);
+  commitPairAtPlacement(chainSession, 3, ORIENTATION.UP);
+  const chainUrl = createTokopuyoShareUrl(chainSession, base);
+  const logs = [];
+  const element = (id) => frame.contentDocument.getElementById(id);
+  function assert(condition, message) {
+    if (!condition) throw new Error(message);
+  }
+  async function until(predicate, message) {
+    const deadline = performance.now() + 10000;
+    while (!predicate()) {
+      if (performance.now() > deadline) throw new Error(message);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+  async function navigate(action) {
+    const previousDocument = frame.contentDocument;
+    action();
+    await until(() => frame.contentDocument !== previousDocument &&
+      frame.contentDocument.readyState === "complete" &&
+      element("board")?.children.length === 78, "App did not initialize a new document");
+  }
+  function click(id) {
+    assert(element(id) && !element(id).disabled && !element(id).hidden, `${id} is unavailable`);
+    element(id).click();
+  }
+  function lookahead(next, nextNext) {
+    assert(Boolean(element("nextPair").children.length) === next, "Incorrect Next visibility");
+    assert(Boolean(element("nextNextPair").children.length) === nextNext, "Incorrect Next Next visibility");
+    for (const id of ["suggest", "attackSuggest"]) {
+      assert(element(id).disabled === !(next && nextNext), `${id} has incorrect availability`);
+    }
+  }
+  async function test(name, action) {
+    await action();
+    logs.push(`PASS ${name}`);
+    results.textContent = logs.join("\n");
+  }
+  try {
+    await test("Fresh shared URL opens Preview at the beginning", async () => {
+      await navigate(() => { frame.src = oneMoveUrl; });
+      assert(!element("previewControls").hidden, "Preview did not open");
+      assert(element("previewBack").disabled && !element("previewForward").disabled, "Wrong initial cursor");
+      lookahead(false, false);
+    });
+    await test("Same-tab fragment switch replaces the replay", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = new URL(emptyUrl).hash; });
+      assert(element("previewForward").disabled, "Previous replay survived the URL change");
+      lookahead(false, false);
+    });
+    await test("Browser Back and Forward load their own replay", async () => {
+      await navigate(() => frame.contentWindow.history.back());
+      assert(!element("previewForward").disabled, "Back did not restore the one-move URL");
+      await navigate(() => frame.contentWindow.history.forward());
+      assert(element("previewForward").disabled, "Forward did not restore the empty URL");
+    });
+    await test("URL switch during playback cancels the previous replay", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = new URL(threeMoveUrl).hash; });
+      lookahead(true, true);
+      click("previewPlay");
+      await navigate(() => { frame.contentWindow.location.hash = new URL(emptyUrl).hash; });
+      // Wait past the old replay's playback interval to detect delayed writes.
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      assert(element("previewForward").disabled && element("previewStop").disabled, "Old playback remained active");
+      assert([...element("board").children].every((cell) => !cell.querySelector(".puyo")), "Old playback changed the new board");
+    });
+    await test("Invalid and absent fragments use normal startup", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = "r=invalid"; });
+      assert(element("previewControls").hidden && !element("tokopuyoControls").hidden, "Invalid URL did not start Tokopuyo");
+      await navigate(() => { frame.contentWindow.location.hash = ""; });
+      assert(element("previewControls").hidden, "Removing the fragment did not start Tokopuyo");
+    });
+    for (const mode of ["Preview", "Tokopuyo"]) {
+      await test(`URL switch cancels a ${mode} chain animation`, async () => {
+        await navigate(() => { frame.contentWindow.location.hash = new URL(chainUrl).hash; });
+        if (mode === "Preview") {
+          click("previewForward");
+        } else {
+          click("togglePreviewMode");
+          click("dropPair");
+        }
+        await until(() => element("board").querySelector(".clearing"), "Chain animation did not start");
+        await navigate(() => { frame.contentWindow.location.hash = new URL(emptyUrl).hash; });
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        assert(element("previewForward").disabled, "Old animation restored a history entry");
+        assert(!element("board").querySelector(".puyo, .clearing"), "Old animation changed the new board");
+      });
+    }
+    await test("URL switch discards a pending suggestion", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = new URL(threeMoveUrl).hash; });
+      click("attackSuggest");
+      assert(element("attackSuggest").disabled, "Suggestion search did not start");
+      await navigate(() => { frame.contentWindow.location.hash = new URL(emptyUrl).hash; });
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      assert(!element("board").querySelector(".suggestion-marker"), "Old suggestion appeared on the new board");
+      assert(!element("togglePreviewMode").disabled, "Old search left the new session blocked");
+    });
+    await test("Native Preview hides unused queue entries at every boundary", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = ""; });
+      // Three ordinary placements give Current and two recorded lookahead pairs.
+      for (let hand = 0; hand < 3; hand++) {
+        click("dropPair");
+        await until(() => !element("dropPair").disabled, "Placement did not finish");
+      }
+      click("togglePreviewMode");
+      lookahead(false, false);
+      click("previewFirst");
+      lookahead(true, true);
+      click("previewForward");
+      await until(() => !element("previewForward").disabled, "Preview did not advance");
+      lookahead(true, false);
+      click("previewLast");
+      lookahead(false, false);
+      click("previewBack");
+      lookahead(false, false);
+    });
+    await test("Shared Preview has the same lookahead boundaries", async () => {
+      await navigate(() => { frame.contentWindow.location.hash = new URL(threeMoveUrl).hash; });
+      lookahead(true, true);
+      click("previewForward");
+      await until(() => !element("previewForward").disabled, "Shared Preview did not advance");
+      lookahead(true, false);
+      click("previewLast");
+      lookahead(false, false);
+      click("previewBack");
+      lookahead(false, false);
+    });
+    results.dataset.status = "passed";
+    results.textContent += `\nAll ${logs.length} browser regression tests passed.`;
+  } catch (error) {
+    results.dataset.status = "failed";
+    results.textContent = `${logs.join("\n")}\nFAIL ${error.stack}`;
+  }
+</script>
+</html>

@@ -969,7 +969,7 @@ assert.equal(undoSession(tokopuyoSession), true);
 assert.equal(tokopuyoSession.handIndex, 0);
 assert.equal(tokopuyoSession.activePair.axis.col, 2);
 assert.deepEqual(previewRecordedHands(tokopuyoSession), [
-  getTsumo(tokopuyoSession.pattern, 1),
+  null,
   null,
 ]);
 assert.equal(
@@ -990,14 +990,14 @@ assert.ok(commitPairAtPlacement(previewHistorySession, 2, ORIENTATION.UP));
 assert.deepEqual(previewRecordedHands(previewHistorySession), [null, null]);
 assert.equal(undoSession(previewHistorySession), true);
 assert.deepEqual(previewRecordedHands(previewHistorySession), [
-  getTsumo(previewHistorySession.pattern, 2),
+  null,
   null,
 ]);
 assert.equal(previewNextTurn(previewHistorySession)?.placement.col, 2);
 assert.equal(undoSession(previewHistorySession), true);
 assert.deepEqual(previewRecordedHands(previewHistorySession), [
   getTsumo(previewHistorySession.pattern, 1),
-  getTsumo(previewHistorySession.pattern, 2),
+  null,
 ]);
 assert.equal(previewNextTurn(previewHistorySession)?.placement.col, 0);
 
@@ -2063,6 +2063,7 @@ const legacyContinuationReplay = loadTokopuyoHistory(
 );
 assert.equal(legacyContinuationReplay.pattern.hands.length, 2);
 assert.equal(legacyContinuationReplay.future.length, 1);
+assert.deepEqual(previewRecordedHands(legacyContinuationReplay), [null, null]);
 assert.equal(redoSession(legacyContinuationReplay), true);
 assert.deepEqual(legacyContinuationReplay.lastTurn.next, {
   axis: "yellow",
@@ -2249,6 +2250,39 @@ assert.deepEqual(mixedShareReplay.lastTurn.current, {
 });
 assert.equal(mixedShareReplay.lastTurn.next, null);
 assert.equal(mixedShareReplay.activePair, null);
+
+// Lookahead must follow recorded pair placements at every cursor, even when
+// garbage operations leave the hand index unchanged or a queue has extra hands.
+const previewBoundarySource = createSession(0);
+for (const kind of ["garbage", "pair", "garbage", "pair", "pair", "garbage"]) {
+  setGarbageMode(previewBoundarySource, kind === "garbage");
+  if (kind === "garbage") previewBoundarySource.activePair = createGarbagePair(5);
+  assert.ok(commitActivePair(previewBoundarySource));
+}
+const previewBoundaryUrl = createTokopuyoShareUrl(
+  previewBoundarySource, "https://puyo.example/",
+);
+const previewBoundaryReplay = loadTokopuyoHistory(new URL(previewBoundaryUrl).hash.slice(3));
+const extendedBoundaryReplay = loadTokopuyoHistory(new URL(previewBoundaryUrl).hash.slice(3));
+for (const session of [previewBoundarySource, previewBoundaryReplay, extendedBoundaryReplay]) {
+  while (undoSession(session)) {}
+  const expectedLookahead = [[0, 1], [1, 2], [1, 2], [2, null], [null, null], [null, null], [null, null]];
+  for (const indices of expectedLookahead) {
+    if (session === extendedBoundaryReplay) extendSharedHistoryQueue(session, () => 0);
+    assert.deepEqual(previewRecordedHands(session), indices.map((index) =>
+      index === null ? null : getTsumo(session.pattern, index),
+    ));
+    assert.equal(createTokopuyoShareUrl(session, "https://puyo.example/"), previewBoundaryUrl);
+    redoSession(session);
+  }
+  // Moving backward must hide the same unrecorded tail.
+  for (const indices of expectedLookahead.slice(0, -1).reverse()) {
+    assert.equal(undoSession(session), true);
+    assert.deepEqual(previewRecordedHands(session), indices.map((index) =>
+      index === null ? null : getTsumo(session.pattern, index),
+    ));
+  }
+}
 
 const emptyInitialWithExplicitFlag = encodeReplayTestBytes([
   0x11,
