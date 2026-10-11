@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<defs>
+ <linearGradient id="r" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff6874"/><stop offset=".68" stop-color="#ff5364"/><stop offset="1" stop-color="#d92d48"/></linearGradient>
+ <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#66a7ff"/><stop offset=".68" stop-color="#4e8df7"/><stop offset="1" stop-color="#2867d6"/></linearGradient>
+ <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#64df91"/><stop offset=".68" stop-color="#42c879"/><stop offset="1" stop-color="#25a958"/></linearGradient>
+ <linearGradient id="y" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe26b"/><stop offset=".68" stop-color="#f7c83d"/><stop offset="1" stop-color="#e8a51e"/></linearGradient>
+</defs>
+<rect width="64" height="64" rx="12" fill="#28344d"/>
+<circle cx="20" cy="20" r="12.5" fill="url(#r)"/>
+<circle cx="44" cy="20" r="12.5" fill="url(#b)"/>
+<circle cx="20" cy="44" r="12.5" fill="url(#g)"/>
+<circle cx="44" cy="44" r="12.5" fill="url(#y)"/>
+<g fill="#fff" opacity=".91">
+<ellipse cx="16.2" cy="14.9" rx="4.3" ry="2.6" transform="rotate(-35 16.2 14.9)"/>
+<ellipse cx="40.2" cy="14.9" rx="4.3" ry="2.6" transform="rotate(-35 40.2 14.9)"/>
+<ellipse cx="16.2" cy="38.9" rx="4.3" ry="2.6" transform="rotate(-35 16.2 38.9)"/>
+<ellipse cx="40.2" cy="38.9" rx="4.3" ry="2.6" transform="rotate(-35 40.2 38.9)"/>
+</g>
+</svg>

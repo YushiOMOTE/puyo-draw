@@ -167,6 +167,28 @@ if available. Changes require Google to crawl the page again; neither this copy
 nor `data-nosnippet` guarantees that Google will show the meta description.
 See [Google's snippet guidance](https://developers.google.com/search/docs/appearance/snippet).
 
+### Site icons
+
+The page uses `favicon.svg` for scalable browser icons, `favicon.ico` for
+compatibility, and the 180 by 180 pixel `apple-touch-icon.png` for iOS Home screen
+shortcuts. Keep these URLs stable. The files are copied into the Pages artifact
+by the existing deployment workflow; no extra build step is needed.
+
+`site.webmanifest` supplies the app name, scoped launch URL, and SVG/PNG icons for
+browsers that use a manifest for Home screen shortcuts. Paths are relative so
+they resolve under `/puyo-draw/` on Pages and at the root during local testing.
+The launch URL opens the base app. `display: browser` preserves browser behavior;
+this change does not add offline support or guarantee installability. The icons
+use `purpose: any`; the supplied artwork is not declared as maskable.
+
+Google Search supports one favicon per hostname, not one per project path.
+For this Pages deployment, configure the same ICO or PNG favicon link on
+`https://yushiomote.github.io/` in the repository that owns that home page.
+Changes here configure tabs and shortcuts but cannot independently select a
+Google Search favicon for `/puyo-draw/`. Google must be able to crawl both the
+host home page and the icon, and display is not guaranteed after recrawling.
+See [Google's favicon guidance](https://developers.google.com/search/docs/appearance/favicon-in-search).
+
 ### Optional traffic analytics
 
 The site includes an opt-in Cloudflare Web Analytics integration for basic page views and performance metrics. To enable it:
