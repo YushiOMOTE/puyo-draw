@@ -125,6 +125,48 @@ npm test
 
 Pushing to the `main` branch triggers `.github/workflows/deploy.yml`. The workflow adds the deployment commit SHA to every local JavaScript and CSS URL before upload, preventing modules from different releases from being mixed by browser caches. In the repository settings, set Pages → Build and deployment → Source to **GitHub Actions**.
 
+### Search appearance
+
+The static HTML supplies the title, feature-focused description, canonical Pages
+URL, and matching Open Graph and Twitter metadata before JavaScript runs. The
+copy describes Drawing-mode board building and chain simulation, Ama AI move
+suggestions in Tokopuyo, and Preview-mode replay and URL sharing. These features
+run in the browser without a paid service or installation. Suggestions are
+heuristic guidance, not a guarantee of the best move.
+
+Keep the search and social descriptions aligned. The static document uses
+`lang="en"` to match its initial text. The existing localization code still sets
+the document language and browser title to the selected English or Japanese
+locale. Search and social descriptions stay in English; changing the locale does
+not rewrite them. The help overlay uses `data-nosnippet` to exclude manual
+instructions from Google's snippets without changing visible text or controls.
+
+GitHub Pages serves static files. It cannot produce a different social preview
+for each `#r=` replay, since URL fragments are not sent to the server. The
+canonical and Open Graph URLs therefore identify the app's base URL. No server
+rendering or crawler-specific rendering is needed for this metadata.
+
+Open Graph and Twitter use the existing `docs/media/ama-chain-suggestions.png`
+screenshot at its absolute Pages URL. The image is 750 by 1334 pixels and about
+514 KiB. The Twitter card requests `summary_large_image`; platforms may crop the
+portrait screenshot. The original asset is retained without resizing, and both
+image tags include descriptive alternative text. Check the actual preview after
+deployment because the platform controls rendering and may cache old metadata.
+JSON-LD is omitted: the app has no visible ratings or reviews, and extra
+structured data is not needed for this change.
+Explicit `index,follow` robots metadata is unnecessary. A robots.txt inside
+`/puyo-draw/` would not control crawling; that file must be at the host root.
+A sitemap is omitted because the app has one public entry page and replay
+fragments do not represent separate crawlable pages. No alternate-language URLs
+exist, so no `hreflang` links are added.
+
+Google chooses the final snippet for each query. It may use the description or
+other eligible page content, and may truncate the result to fit the device.
+After deployment, request indexing of the canonical URL in Google Search Console
+if available. Changes require Google to crawl the page again; neither this copy
+nor `data-nosnippet` guarantees that Google will show the meta description.
+See [Google's snippet guidance](https://developers.google.com/search/docs/appearance/snippet).
+
 ### Optional traffic analytics
 
 The site includes an opt-in Cloudflare Web Analytics integration for basic page views and performance metrics. To enable it:
