@@ -183,15 +183,48 @@
       await until(() => element("previewStop").disabled, "Playback did not finish");
       assert(element("previewForward").disabled, "Playback did not reach the end");
     });
-    await test("Bottom controls retain custom styling and suppress double-tap zoom in gaps", async () => {
+    await test("Bottom controls retain custom styling and suppress double-tap and pinch zoom", async () => {
       const style = (target) => frame.contentWindow.getComputedStyle(target);
       for (const id of ["tokopuyoControls", "tokopuyoStepControls", "previewControls"]) {
-        assert(style(element(id)).touchAction === "manipulation", `${id} allows double-tap zoom in gaps`);
+        const bar = element(id);
+        assert(style(bar).touchAction === "none", `${id} allows browser gestures in gaps`);
       }
       const playStyle = style(element("previewPlay"));
       assert(playStyle.appearance === "none", "Play still uses native button appearance");
       assert(playStyle.backgroundImage.includes("linear-gradient"), "Disabled Play lost its red background");
       assert(Number(playStyle.opacity) < 1, "Disabled Play is not visually distinguished");
+    });
+    await test("All buttons suppress zoom, including dialog candidates and future buttons", async () => {
+      const style = (target) => frame.contentWindow.getComputedStyle(target);
+      const assertButtonPolicy = () => {
+        for (const button of frame.contentDocument.querySelectorAll("button")) {
+          assert(["none", "pan-x pan-y"].includes(style(button).touchAction),
+            `${button.id || button.className || "Button"} allows browser zoom`);
+        }
+      };
+      assertButtonPolicy();
+      await navigate(() => { frame.contentWindow.location.hash = ""; });
+      click("searchTsumo");
+      element("tsumoSearchInput").value = "1";
+      element("tsumoSearchInput").dispatchEvent(new frame.contentWindow.Event("input", { bubbles: true }));
+      await until(() => element("tsumoSearchCandidates").querySelector("button"), "Search candidate did not appear");
+      const candidate = element("tsumoSearchCandidates").querySelector("button");
+      assert(style(candidate).touchAction === "pan-x pan-y", "Candidate must allow panning without zoom");
+      candidate.click();
+      assert(!element("confirmTsumoSearch").disabled, "Candidate selection stopped working");
+      assertButtonPolicy();
+      click("closeTsumoSearch");
+      click("help");
+      assertButtonPolicy();
+      click("closeHelp");
+      const futureButton = frame.contentDocument.createElement("button");
+      futureButton.textContent = "Future control";
+      frame.contentDocument.body.append(futureButton);
+      try {
+        assert(style(futureButton).touchAction === "pan-x pan-y", "New button needs individual zoom configuration");
+      } finally {
+        futureButton.remove();
+      }
     });
     results.dataset.status = "passed";
     results.textContent += `\nAll ${logs.length} browser regression tests passed.`;
