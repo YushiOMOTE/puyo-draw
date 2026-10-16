@@ -275,6 +275,24 @@ assert.equal(ROWS, 13);
 assert.equal(HIDDEN_ROWS, 1);
 assert.equal(emptyBoard().length, 13);
 
+const hiddenGarbageCase = JSON.parse(await (await import("node:fs/promises")).readFile(
+  new URL("./hidden-nuisance-erasure-fixture.json", import.meta.url), "utf8"));
+const fieldColors = {r:"red",g:"green",b:"blue",y:"yellow",p:"purple",n:GARBAGE};
+const fieldBoard = (field) => Array.from({length:13}, (_, row) =>
+  [...field.slice((12-row)*6,(13-row)*6)].map(cell => fieldColors[cell] ?? null));
+const hiddenGarbageSource = fieldBoard(hiddenGarbageCase.chain_source);
+assert.ok(findClearingCells(hiddenGarbageSource).some(([row,col]) => row===0 && col===1));
+assert.ok(!findClearingCells(hiddenGarbageSource).some(([row,col]) => row===0 && col===0));
+assert.deepEqual(simulate(hiddenGarbageSource).state, fieldBoard(hiddenGarbageCase.chain_result));
+const hiddenGarbageReplay = loadTokopuyoHistory(new URL(hiddenGarbageCase.replay_url).hash.slice(3));
+const hiddenGarbageTurns = [...hiddenGarbageReplay.future].reverse().filter(post => post.lastTurn?.mode === "pair");
+assert.equal(hiddenGarbageTurns.length, 73);
+hiddenGarbageTurns.forEach((post,index) => {
+  assert.deepEqual(post.board, fieldBoard(hiddenGarbageCase.pair_fields[index].field), `Hidden garbage replay pair ${index+1}`);
+  const locks=hiddenGarbageCase.pair_fields[index].locks.reduce((mask,col) => mask | (1<<(col-1)),0);
+  assert.equal(post.row14,locks);
+});
+
 const hiddenOnlyGroup = emptyBoard();
 for (let col = 0; col < 4; col++) hiddenOnlyGroup[0][col] = "red";
 assert.equal(findGroups(hiddenOnlyGroup).length, 0);
