@@ -117,7 +117,7 @@ function findAdjacentGarbage(state, clearedCells) {
       const key = `${nextRow},${nextCol}`;
 
       if (
-        nextRow >= HIDDEN_ROWS &&
+        nextRow >= 0 &&
         nextRow < ROWS &&
         nextCol >= 0 &&
         nextCol < COLS &&

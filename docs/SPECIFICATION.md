@@ -14,7 +14,7 @@
 - Six columns and thirteen rows.
 - The bottom twelve rows are the standard visible field.
 - The top stored row is the hidden-area row and uses a distinct background color. Tokopuyo additionally tracks Ama's special fourteenth row as a six-bit occupancy mask outside the normal board; Drawing mode does not use it.
-- The hidden-area row is outside chain resolution while occupied: its puyos neither form or join clearing groups nor clear as adjacent garbage. Gravity still applies to the full column, so a puyo that falls into the visible twelve rows participates in later group and chain checks normally.
+- Colored puyos in the hidden-area row neither form nor join clearing groups. Garbage in that row clears when directly adjacent to a clearing visible color group. Gravity still applies to the full column, so a puyo that falls into the visible twelve rows participates in later group and chain checks normally.
 - Tokopuyo's colorless special fourteenth-row occupancy is never imported into Drawing mode.
 - The standard choke point is marked with an `X` in the third column at the top of the visible field.
 - Board cells are always square, including on narrow mobile screens.
