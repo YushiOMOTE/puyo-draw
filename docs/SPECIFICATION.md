@@ -158,7 +158,7 @@ The rail uses square icon buttons without explanatory labels in the compact layo
 
 Long-pressing the board or controls must not enter browser text-selection or touch-callout mode.
 
-Touch gestures that start on any button, including its icons and disabled states, must not trigger double-tap or pinch zoom. A shared native-button CSS rule applies this policy to sidebar, dialog, candidate, replay, and dynamically added buttons without per-button configuration. Normal button taps still perform their actions, and buttons in scrollable dialogs allow panning. The bottom control bars also suppress zoom in their gaps. Bottom buttons use custom appearance in both enabled and disabled states; disabled buttons are dimmed without replacing their backgrounds, and Play retains its red background.
+Touch gestures anywhere in the app must not trigger double-tap or pinch zoom. A single root-element CSS policy covers controls, icons, text, gaps, dialogs, and dynamically added content without per-component configuration. Normal button taps still perform their actions, and scrollable dialogs allow panning. The board retains its stricter touch handling for flick interactions. Bottom buttons use custom appearance in both enabled and disabled states; disabled buttons are dimmed without replacing their backgrounds, and Play retains its red background.
 
 The document itself must not scroll on mobile; the field and controls fit within the app's actual available area, including device safe-area insets, by reducing the field size when necessary.
 

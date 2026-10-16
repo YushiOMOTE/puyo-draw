@@ -29,6 +29,11 @@ body {
   overscroll-behavior: none;
 }
 
+html {
+  /* Suppress gesture zoom app-wide while preserving scrollable dialogs. */
+  touch-action: pan-x pan-y;
+}
+
 body {
   color: var(--ink);
   background: var(--bg);
@@ -39,8 +44,6 @@ button {
   font: inherit;
   color: inherit;
   cursor: pointer;
-  /* Suppress zoom on every button while allowing scrollable dialog lists to pan. */
-  touch-action: pan-x pan-y;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -458,7 +461,6 @@ body[data-mode="preview"] .board-card {
   background: #fff;
   border-top: 1px solid #dce2ed;
   box-shadow: 0 -5px 16px #28344d18;
-  touch-action: none;
 }
 
 .pair-movement-controls,
